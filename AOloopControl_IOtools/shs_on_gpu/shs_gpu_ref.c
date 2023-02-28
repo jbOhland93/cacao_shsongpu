@@ -163,17 +163,17 @@ static errno_t help_function()
 
 
 
-static errno_t streamprocess(SGRRHandle recorder, IMGID inimg, IMGID darkimg)
+static errno_t streamprocess(SGRRHandle recorder)
 {
     DEBUG_TRACE_FSTART();
-    // custom stream process function code
     
-    printf(get_SGR_state_descr(recorder));
-    (void) inimg;
-    (void) darkimg;
+    // Trigger recorder
+    errno_t returnval = SGRR_sample_do(recorder);
+    // Print the current state
+    printf("SGR recorder status: %s", get_SGRR_state_descr(recorder));
 
     DEBUG_TRACE_FEXIT();
-    return RETURN_SUCCESS;
+    return returnval;
 }
 
 
@@ -199,12 +199,14 @@ static errno_t compute_function()
     }
 
     // === SET UP REF RECORDER HERE
-    SGRRHandle recorder = create_SGR_Recorder(*campxsize, *mlapitch, *shsfoclen);
+    SGRRHandle recorder = create_SGR_Recorder(
+        inimg.im, darkimg.im, *campxsize, *mlapitch, *shsfoclen);
+    printf("\nInitial SGR recorder status: %s", get_SGRR_state_descr(recorder));
     // ===
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
-        streamprocess(recorder, inimg, darkimg);
+        streamprocess(recorder);
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 

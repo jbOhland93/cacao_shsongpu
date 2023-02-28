@@ -53,15 +53,12 @@ milk-all << EOF
 mload cacaoAOloopControlIOtools
 cmd? cacaoio.shsGpuRef
 
-readshmim ximeaCam
-readshmim ximeaCam_AVG
-cacaoio.shsGpuRef ximeaCam ximeaCam_AVG
+readshmim ${instream}
+readshmim ${instream}_AVG
+cacaoio.shsGpuRef ..procinfo 1
+cacaoio.shsGpuRef ..triggermode 3
+cacaoio.shsGpuRef ..triggersname ${instream}
+cacaoio.shsGpuRef ..loopcntMax ${nbframe}
+cacaoio.shsGpuRef ${instream} ${instream}_AVG
 exitCLI
 EOF
-
-# Save the file
-#if [ ! -d "${ARCHDIR}" ]; then
-#  mkdir ${ARCHDIR}
-#fi
-#echo Saving to ${ARCHDIR}/${shmdst}_$(date -u --iso-8601=seconds).fits
-#mv imavg.fits ${ARCHDIR}/${shmdst}_$(date -u --iso-8601=seconds).fits
