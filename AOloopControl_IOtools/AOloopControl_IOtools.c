@@ -52,6 +52,8 @@
 #include "WFScamsim.h"
 #include "WFSmap.h"
 
+#include "Testmodule.h" // JTEST
+
 
 /* ===============================================================================================
  */
@@ -458,6 +460,8 @@ static errno_t init_module_CLI()
     CLIADDCMD_AOloopControl_IOtools__WFScamsim();
     CLIADDCMD_AOloopControl_IOtools__WFSmap();
     CLIADDCMD_AOloopControl_IOtools__findspots();
+
+    CLIADDCMD_AOloopControl_IOtools__testfun(); // JTEST
 
     // add atexit functions here
     // atexit((void*) myfunc);

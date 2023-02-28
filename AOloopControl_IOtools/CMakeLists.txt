@@ -16,6 +16,7 @@ set(SOURCEFILES
     AOloopControl_IOtools_RTLOGsave.c
     WFScamsim.c
     WFSmap.c
+    Testmodule.c
 )
 
 set(INCLUDEFILES
@@ -25,10 +26,12 @@ set(INCLUDEFILES
     AOloopControl_IOtools.h
     WFScamsim.h
     WFSmap.h
+    Testmodule.h
 )
 
 
 set(SCRIPTS
+    scripts/cacao-avg-stream
 )
 
 set(LINKLIBS
