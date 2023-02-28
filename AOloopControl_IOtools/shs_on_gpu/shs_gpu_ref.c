@@ -1,14 +1,11 @@
 /**
- * @file    Test,pdiöe.c
- * @brief   template for simple stream processing loop
+ * @file    shs_gpu_ref.c
+ * @brief   reference recording for shs evaluation on gpu
  *
- * Copied from Milk module example
- * File: examplefunc4_streamprocess.c
- * Example 4
- * Function has input stream and output stream.
  */
 
 #include "CommandLineInterface/CLIcore.h"
+#include "ref_recorder/SGR_Recorder_interface.h"
 
 static int cmdindex;
 
@@ -25,20 +22,16 @@ static int cmdindex;
 
 static char *inimname;
 
+static char *darkimname;
 
-static char *outimname;
+static float *campxsize;
+static long      fpi_campxsize = -1;
 
-static uint32_t *cntindex;
-static long      fpi_cntindex = -1;
+static float *mlapitch;
+static long      fpi_mlapitch = -1;
 
-static uint32_t *cntindexmax;
-static long      fpi_cntindexmax = -1;
-
-static int64_t *ex0mode;
-static long     fpi_ex0mode = -1;
-
-static int64_t *ex1mode;
-static long     fpi_ex1mode = -1;
+static float *shsfoclen;
+static long      fpi_shsfoclen = -1;
 
 
 
@@ -48,55 +41,46 @@ static CLICMDARGDEF farg[] =
         CLIARG_IMG,
         ".in_name",
         "input image",
-        "im1",
+        "cam",
         CLIARG_VISIBLE_DEFAULT,
         (void **) &inimname,
         NULL
     },
     {
         CLIARG_IMG,
-        ".out_name",
-        "output image",
-        "out1",
+        ".dark",
+        "darkframe",
+        "dark",
         CLIARG_VISIBLE_DEFAULT,
-        (void **) &outimname,
+        (void **) &darkimname,
         NULL
     },
     {
-        CLIARG_UINT32,
-        ".cntindex",
-        "counter index",
-        "5",
+        CLIARG_FLOAT32,
+        ".campixsize",
+        "camera pixel size in µm",
+        "13.7",
         CLIARG_HIDDEN_DEFAULT,
-        (void **) &cntindex,
-        &fpi_cntindex
+        (void **) &campxsize,
+        &fpi_campxsize
     },
     {
-        CLIARG_UINT32,
-        ".cntindexmax",
-        "counter index max value",
-        "100",
+        CLIARG_FLOAT32,
+        ".mlapitch",
+        "MLA pitch in µm",
+        "250.0",
         CLIARG_HIDDEN_DEFAULT,
-        (void **) &cntindexmax,
-        &fpi_cntindexmax
+        (void **) &mlapitch,
+        &fpi_mlapitch
     },
     {
-        CLIARG_ONOFF,
-        ".option.ex0mode",
-        "toggle0",
-        "0",
+        CLIARG_FLOAT32,
+        ".shsfoclen",
+        "MLS-to-sensor distance in µm",
+        "11330.0",
         CLIARG_HIDDEN_DEFAULT,
-        (void **) &ex0mode,
-        &fpi_ex0mode
-    },
-    {
-        CLIARG_ONOFF,
-        ".option.ex1mode",
-        "toggle1 conditional on toggle0",
-        "0",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &ex1mode,
-        &fpi_ex1mode
+        (void **) &shsfoclen,
+        &fpi_shsfoclen
     }
 };
 
@@ -111,12 +95,14 @@ static CLICMDARGDEF farg[] =
 static errno_t customCONFsetup()
 {
     // increment counter at every configuration check
+    /* Skip tests for now
     *cntindex = *cntindex + 1;
 
     if(*cntindex >= *cntindexmax)
     {
         *cntindex = 0;
     }
+    */
 
     return RETURN_SUCCESS;
 }
@@ -131,6 +117,7 @@ static errno_t customCONFsetup()
 //
 static errno_t customCONFcheck()
 {
+    /* Skip tests for now
     if(data.fpsptr != NULL)
     {
         if(data.fpsptr->parray[fpi_ex0mode].fpflag & FPFLAG_ONOFF)  // ON state
@@ -153,6 +140,7 @@ static errno_t customCONFcheck()
         }
 
     }
+    */
 
     return RETURN_SUCCESS;
 }
@@ -160,8 +148,8 @@ static errno_t customCONFcheck()
 
 static CLICMDDATA CLIcmddata =
 {
-    "streamprocessTest",
-    "process input stream to output stream",
+    "shsGpuRef",
+    "record a SHS reference for GPU evaluation of the input stream",
     CLICMD_FIELDS_DEFAULTS
 };
 
@@ -175,14 +163,14 @@ static errno_t help_function()
 
 
 
-static errno_t streamprocess(IMGID inimg, IMGID outimg)
+static errno_t streamprocess(SGRRHandle recorder, IMGID inimg, IMGID darkimg)
 {
     DEBUG_TRACE_FSTART();
     // custom stream process function code
     
-
+    printf(get_SGR_state_descr(recorder));
     (void) inimg;
-    (void) outimg;
+    (void) darkimg;
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;
@@ -197,9 +185,8 @@ static errno_t compute_function()
 
     IMGID inimg = mkIMGID_from_name(inimname);
     resolveIMGID(&inimg, ERRMODE_ABORT);
-
-    IMGID outimg = mkIMGID_from_name(outimname);
-    resolveIMGID(&outimg, ERRMODE_ABORT);
+    IMGID darkimg = mkIMGID_from_name(darkimname);
+    resolveIMGID(&darkimg, ERRMODE_ABORT);
 
     printf(" COMPUTE Flags = %ld\n", CLIcmddata.cmdsettings->flags);
     INSERT_STD_PROCINFO_COMPUTEFUNC_INIT
@@ -211,14 +198,22 @@ static errno_t compute_function()
         // procinfo is accessible here
     }
 
+    // === SET UP REF RECORDER HERE
+    SGRRHandle recorder = create_SGR_Recorder(*campxsize, *mlapitch, *shsfoclen);
+    // ===
+
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
-        printf(" TEST \n");
-        streamprocess(inimg, outimg);
-        processinfo_update_output_stream(processinfo, outimg.ID);
-
+        streamprocess(recorder, inimg, darkimg);
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
+
+    // === READING RESULTS HERE
+    printf("TODO: Read results from recorder here!\n");
+    //processinfo_update_output_stream(processinfo, outimg.ID);
+    free_SGR_Recorder(recorder);
+    recorder = NULL;
+    // ===
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;
@@ -232,7 +227,7 @@ INSERT_STD_FPSCLIfunctions
 
 // Register function in CLI
 errno_t
-CLIADDCMD_AOloopControl_IOtools__testfun()
+CLIADDCMD_AOloopControl_IOtools__recordShsRefGPU()
 {
     CLIcmddata.FPS_customCONFsetup = customCONFsetup;
     CLIcmddata.FPS_customCONFcheck = customCONFcheck;

@@ -1,6 +1,0 @@
-#ifndef AOLOOPCONTROL_IOTOOLS_TESTMODULE_H
-#define AOLOOPCONTROL_IOTOOLS_TESTMODULE_H
-
-errno_t CLIADDCMD_AOloopControl_IOtools__testfun();
-
-#endif

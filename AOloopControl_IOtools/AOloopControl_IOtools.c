@@ -52,7 +52,7 @@
 #include "WFScamsim.h"
 #include "WFSmap.h"
 
-#include "Testmodule.h" // JTEST
+#include "shs_on_gpu/shs_gpu_ref.h"
 
 
 /* ===============================================================================================
@@ -461,7 +461,7 @@ static errno_t init_module_CLI()
     CLIADDCMD_AOloopControl_IOtools__WFSmap();
     CLIADDCMD_AOloopControl_IOtools__findspots();
 
-    CLIADDCMD_AOloopControl_IOtools__testfun(); // JTEST
+    CLIADDCMD_AOloopControl_IOtools__recordShsRefGPU();
 
     // add atexit functions here
     // atexit((void*) myfunc);

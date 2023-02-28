@@ -16,7 +16,9 @@ set(SOURCEFILES
     AOloopControl_IOtools_RTLOGsave.c
     WFScamsim.c
     WFSmap.c
-    Testmodule.c
+    shs_on_gpu/shs_gpu_ref.c
+    shs_on_gpu/ref_recorder/SGR_Recorder.cpp
+    shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
 )
 
 set(INCLUDEFILES
@@ -26,12 +28,15 @@ set(INCLUDEFILES
     AOloopControl_IOtools.h
     WFScamsim.h
     WFSmap.h
-    Testmodule.h
+    shs_on_gpu/shs_gpu_ref.h
+    shs_on_gpu/ref_recorder/SGR_Recorder.hpp
+    shs_on_gpu/ref_recorder/SGR_Recorder_interface.h
 )
 
 
 set(SCRIPTS
     scripts/cacao-avg-stream
+    scripts/cacao-shs-gpu-ref
 )
 
 set(LINKLIBS

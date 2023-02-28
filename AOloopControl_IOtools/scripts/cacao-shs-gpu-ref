@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Record shs ref"
+
+# Extended description
+MSextdescr="Record a reference for SHS evaluation on a gpu
+This includes generating a mask, reference points and a convolution kernel.
+"
+
+# standard configuration
+# location ./scripts/
+source milk-script-std-config
+
+# prerequisites
+#
+RequiredCommands=(milk)
+RequiredFiles=(LOOPNUMBER)
+RequiredPipes=()
+RequiredDirs=()
+
+# SCRIPT MANDATORY ARGUMENTS
+# syntax: "name:type(s)/test(s):description"
+#
+MSarg+=( "streamInName:string:stream input name" )
+MSarg+=( "nbframe:int:number of frames to be averaged" )
+
+source milk-argparse
+
+set +u
+if [ "${EXITSTATUS}" = "1" ]; then
+exit
+fi
+set -u
+
+if [ -f LOOPNUMBER ]; then
+    AOLOOPNUMBER=$( head -1 LOOPNUMBER )
+else
+	echo "Error: no LOOPNUMBER file. Are we running this from the correct directory ?"
+    exit
+fi
+echo "Loop ${AOLOOPNUMBER}"
+
+instream="${inputMSargARRAY[0]}"
+nbframe="${inputMSargARRAY[1]}"
+echo "Stream in: ${instream}"
+echo "Number of frame: ${nbframe}"
+
+milk-all << EOF
+mload cacaoAOloopControlIOtools
+cmd? cacaoio.shsGpuRef
+
+readshmim ximeaCam
+readshmim ximeaCam_AVG
+cacaoio.shsGpuRef ximeaCam ximeaCam_AVG
+exitCLI
+EOF
+
+# Save the file
+#if [ ! -d "${ARCHDIR}" ]; then
+#  mkdir ${ARCHDIR}
+#fi
+#echo Saving to ${ARCHDIR}/${shmdst}_$(date -u --iso-8601=seconds).fits
+#mv imavg.fits ${ARCHDIR}/${shmdst}_$(date -u --iso-8601=seconds).fits
