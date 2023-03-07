@@ -19,6 +19,9 @@ set(SOURCEFILES
     shs_on_gpu/shs_gpu_ref.c
     shs_on_gpu/ref_recorder/SGR_Recorder.cpp
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
+    shs_on_gpu/ref_recorder/SGR_ImageHandler.cpp
+    shs_on_gpu/util/SpotFitter.cpp
+    shs_on_gpu/util/OneDGaussianFit.cpp
 )
 
 set(INCLUDEFILES
@@ -31,6 +34,11 @@ set(INCLUDEFILES
     shs_on_gpu/shs_gpu_ref.h
     shs_on_gpu/ref_recorder/SGR_Recorder.hpp
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.h
+    shs_on_gpu/ref_recorder/SGR_ImageHandler.hpp
+    shs_on_gpu/util/Point.hpp
+    shs_on_gpu/util/Rectangle.hpp
+    shs_on_gpu/util/SpotFitter.hpp
+    shs_on_gpu/util/OneDGaussianFit.hpp
 )
 
 

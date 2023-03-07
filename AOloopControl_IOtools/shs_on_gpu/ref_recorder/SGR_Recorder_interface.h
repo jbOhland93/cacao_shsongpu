@@ -9,7 +9,13 @@ extern "C" {
 #endif
 
 typedef void * SGRRHandle;
-SGRRHandle create_SGR_Recorder(IMAGE* in, IMAGE* dark, float pxSize, float mlaPitch, float mlaDist);
+SGRRHandle create_SGR_Recorder(
+    IMAGE* in,
+    IMAGE* dark,
+    float pxSize,
+    float mlaPitch,
+    float mlaDist,
+    const char* streamPrefix);
 void free_SGR_Recorder(SGRRHandle);
 
 errno_t SGRR_sample_do(SGRRHandle);

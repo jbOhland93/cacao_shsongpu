@@ -3,9 +3,15 @@
 
 extern "C"
 {
-    SGRRHandle create_SGR_Recorder(IMAGE* in, IMAGE* dark, float pxSize, float mlaPitch, float mlaDist)
+    SGRRHandle create_SGR_Recorder(
+        IMAGE* in,
+        IMAGE* dark,
+        float pxSize,
+        float mlaPitch,
+        float mlaDist,
+        const char* streamPrefix)
     {
-        return new SGR_Recorder(in, dark, pxSize, mlaPitch, mlaDist);
+        return new SGR_Recorder(in, dark, pxSize, mlaPitch, mlaDist, streamPrefix);
     }
 
     void free_SGR_Recorder(SGRRHandle p)

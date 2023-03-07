@@ -200,7 +200,7 @@ static errno_t compute_function()
 
     // === SET UP REF RECORDER HERE
     SGRRHandle recorder = create_SGR_Recorder(
-        inimg.im, darkimg.im, *campxsize, *mlapitch, *shsfoclen);
+        inimg.im, darkimg.im, *campxsize, *mlapitch, *shsfoclen, "aolX_");
     printf("\nInitial SGR recorder status: %s", get_SGRR_state_descr(recorder));
     // ===
 
