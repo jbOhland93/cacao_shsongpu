@@ -1,26 +1,13 @@
 #include "SGR_Recorder.hpp"
 #include "milkDebugTools.h"
-#include <algorithm>
-#include <cmath>
-#include <unistd.h>
-#include <limits>
-
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_multifit_nlin.h>
 
 #include "SGR_ImageHandler.hpp"
 #include "../util/SpotFitter.hpp"
 
+#include <string>
+
 extern "C"
 {
-
-struct data {
-    size_t n;
-    double * y;
-    double * sigma;
-};
 
 SGR_Recorder::SGR_Recorder(
     IMAGE* in,
@@ -48,96 +35,261 @@ SGR_Recorder::SGR_Recorder(
     }
     else
     {
-        // Set up the dark subtraction image handler
-        mIHdarkSubtract = newImHandlerFrmIm(float, makeStreamname("darksub"), mpInput);
-        mIHdarkSubtract->cpy_subtract(mpInput, mpDark);
-        mImgWidth = mIHdarkSubtract->mWidth;
-        mImgHeight = mIHdarkSubtract->mHeight;
-        mNumPixels = mIHdarkSubtract->mNumPx;
+        try
+        {
+            prepareSpotFinding();
+            mState = RECSTATE::READY;
+            sampleDo(); // Don't waste the first image!
+        }
+        catch (std::runtime_error e)
+        {
+            mState = RECSTATE::ERROR;
+            mErrDescr = "Initialization error:";
+            mErrDescr.append(e.what());
+        }
     }
 }
 
 errno_t SGR_Recorder::sampleDo()
 {
-    // Collect image statistics for the thresholding
-    double avg = mIHdarkSubtract->getSumOverROI()/mIHdarkSubtract->getPxInROI();
-    float maxVal = mIHdarkSubtract->getMaxInROI();
-    float thresh = avg + (maxVal-avg)/4.;
-    printf("Image statistics: Max=%.3f, AVG=%.3f => Thresh=%.3f\n",
-        maxVal, avg, thresh);
-
-    // Apply thresholding according to the statistics
-    mIHthresh = newImHandlerFrmIm(uint8_t, makeStreamname("thresh"), mpInput);
-    mIHthresh->cpy_thresh(mIHdarkSubtract->getImage(), thresh);
-
-    // Get spot center estimates by erosion of the thresholded image
-    mIHerode = newImHandlerFrmIm(uint8_t, makeStreamname("erode"), mIHthresh->getImage());
-    std::vector<Point<uint32_t>> particles;
-    while (mIHerode->erode(&particles) > 0);
-    printf("Number of particles after thresholding: %d\n",
-        (int) particles.size());
+    if (mState != RECSTATE::READY)
+    {
+        mErrDescr = "Error while sampling: ";
+        mErrDescr.append("State != READY, cannot evaluate sample.\n");
+        mErrDescr.append("\tCurrent state: ");
+        mErrDescr.append(getStateDescription());
+        return RETURN_FAILURE;
+    }
     
-    // Filter the points by distance
-    // Points that have neighbours which are too close are likely false positives.
-    // The threshold is determined by the subaperture diameter
-    // All particles that are left are used for the spot size measurement.
-    std::vector<Point<uint32_t>> particlesFiltered =
-                filterByMinDistance(particles, 0.8*mApertureDiameter);
-    
-    // Generate a model of the spots by fitting the selected particles
-    SpotFitter spotFitter(mIHdarkSubtract);
-    spotFitter.expressFit(
-        particlesFiltered, mGridRectSize, 2, mVisualize);
-    
-    // Span a preliminary search grid, based on the fit positions
-    std::vector<Point<double>> fitSpots = spotFitter.getFittedSpotCenters();
-    spanCoarseGrid(spotFitter.getFittedSpotCenters());
+    mState = RECSTATE::SAMPLING;
 
-    // Generate a gaussian convolution kernel which matches the stdDev
-    // of the spots in the image
-    double avgStdDev = spotFitter.getAvgStdDev();
-    printf("Average standard deviation of spot PSF: %.3f\n", avgStdDev);
+    try
+    {
+        // Do dark subtraction
+        mIHdarkSubtract->cpy_subtract(mpInput, mpDark);
+        // Convolve the dark-subtracted image with the gaussian kernel
+        mIHconvolution->cpy_convolve(
+            mIHdarkSubtract->getImage(), mIHkernel->getImage());
 
-    
+        // Do Spotfinding with subpixel precision
+        for (int gX = 0; gX < mGridSize.mX; gX++)
+            for (int gY = 0; gY < mGridSize.mY; gY++)
+            {
+                Rectangle<uint32_t> searchRect = mGrid.at(gX).at(gY);
 
-    
-    
+                // Move to subaperture ROI to find inter peak
+                mIHconvolution->setROI(searchRect);
+                uint32_t mpX;
+                uint32_t mpY;
+                float I_xy = mIHconvolution->getMaxInROI(&mpX, &mpY);
+                
+                // Go to absolute ROI again
+                mIHconvolution->unsetROI();
+                mpX += searchRect.mRoot.mX;
+                mpY += searchRect.mRoot.mY;
 
-// =====================================
+                // Read intensites around the integer peak
+                float I_xP_y = mIHconvolution->read(mpX+1,mpY);
+                float I_xM_y = mIHconvolution->read(mpX-1,mpY);
+                float I_x_yP = mIHconvolution->read(mpX,mpY+1);
+                float I_x_yM = mIHconvolution->read(mpX,mpY-1);
+                // Calculate sub-pixel shift (Poyneer 2003)
+                float Dx = 0.5 * (I_xM_y - I_xP_y) / (I_xM_y + I_xP_y - 2*I_xy);
+                float Dy = 0.5 * (I_x_yM - I_x_yP) / (I_x_yM + I_x_yP - 2*I_xy);
 
-    switch(mState) {
-    case RECSTATE::ERROR: return RETURN_FAILURE;
-    case RECSTATE::INIT: mState = RECSTATE::RECORD; return RETURN_SUCCESS;
-    case RECSTATE::RECORD:  mState = RECSTATE::FINISH; return RETURN_SUCCESS;
-    case RECSTATE::FINISH:
-    default: return RETURN_SUCCESS;
+                // Add results to integrals
+                float newIntensitySum = mIHIntensityAVG->read(gX, gY) + I_xy;
+                mIHIntensityAVG->write(newIntensitySum, gX, gY);
+
+                float newPosXSum = mIHShiftsAVG->read(gX, gY) + mpX + Dx;
+                float newPosYSum = mIHShiftsAVG->read(gX + mGridSize.mX, gY) + mpY + Dy;
+                mIHShiftsAVG->write(newPosXSum, gX, gY);
+                mIHShiftsAVG->write(newPosYSum, gX + mGridSize.mX, gY);
+            }
+
+        mIHIntensityAVG->updateWrittenImage();
+        mIHShiftsAVG->updateWrittenImage();
+
+        mSamplesAdded++;
+        mState = RECSTATE::READY;
+
+        return RETURN_SUCCESS;
+    }
+    catch(const std::exception& e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error while sampling: ";
+        mErrDescr.append(e.what());
+        return RETURN_FAILURE;
     }
 }
 
 const char* SGR_Recorder::getStateDescription()
 {
-    switch(mState) {
-    case RECSTATE::ERROR: return makeErrorMessage().c_str();
-    case RECSTATE::INIT: return "Initializing...\n";
-    case RECSTATE::RECORD: return "Recording...\n";
-    case RECSTATE::FINISH: return "Done!\n";
-    default: return "UNKNOWN\n";
-    }
-}
 
-std::string SGR_Recorder::makeErrorMessage()
-{
-    std::string msg("Error! Error message: \n\t");
-    msg.append(mErrDescr);
-    msg.append("\n");
-    return msg;
+    switch(mState) {
+    case RECSTATE::ERROR:
+        mStateDescr = "SGR_Recorder Error: \n\t";
+        mStateDescr.append(mErrDescr);
+        mStateDescr.append("\n");
+        break;
+    case RECSTATE::INIT:
+        mStateDescr = "Initializing...\n";
+        break;
+    case RECSTATE::READY:
+        mStateDescr = "Collected ";
+        mStateDescr.append(std::to_string(mSamplesAdded));
+        mStateDescr.append(" samples. Ready for next command ...\n");
+        break;
+    case RECSTATE::SAMPLING:
+        mStateDescr = "Evaluating sample...\n";
+        break;
+    case RECSTATE::EVALUATING: 
+        mStateDescr = "Evaluating full measurement...\n";
+        break;
+    case RECSTATE::FINISH:
+        mStateDescr = "Done!\n";
+        break;
+    default: mStateDescr = "UNKNOWN\n";
+    }
+
+    return mStateDescr.c_str();
 }
 
 const char* SGR_Recorder::makeStreamname(const char* name)
 {
-    std::string streamName = mStreamPrefix;
-    streamName.append(name);
-    return streamName.c_str();
+    mTmpStreamName = mStreamPrefix;
+    mTmpStreamName.append(name);
+    return mTmpStreamName.c_str();
+}
+
+void SGR_Recorder::prepareSpotFinding()
+{
+    if (mState != RECSTATE::INIT)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "SGR_Recorder::prepareSpotFinding: Already initialized.\n";
+        return;
+    }
+
+    printf("\n\n=== SGR_Recorder: Preparing spot finding ===\n\n");
+    // Set up the dark subtraction image handler
+    try {
+        mIHdarkSubtract = newImHandlerFrmIm(float, makeStreamname("darksub"), mpInput);
+        mImgWidth = mIHdarkSubtract->mWidth;
+        mImgHeight = mIHdarkSubtract->mHeight;
+        mNumPixels = mIHdarkSubtract->mNumPx;
+        // Do dark subtraction
+        mIHdarkSubtract->cpy_subtract(mpInput, mpDark);
+    }
+    catch (std::runtime_error e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error while setting up dark subtraction: ";
+        mErrDescr.append(e.what());
+        return;
+    }
+
+    // Collect image statistics for the thresholding
+    float thresh;
+    try {
+        double avg = mIHdarkSubtract->getSumOverROI()/mIHdarkSubtract->getPxInROI();
+        float maxVal = mIHdarkSubtract->getMaxInROI();
+        thresh = avg + (maxVal-avg)/4.;
+        printf("Image statistics: Max=%.3f, AVG=%.3f => Thresh=%.3f\n",
+            maxVal, avg, thresh);
+    }
+    catch (std::runtime_error e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error while collecting image statistics: ";
+        mErrDescr.append(e.what());
+        return;
+    }
+
+    // Apply thresholding according to the statistics
+    try {
+        mIHthresh = newImHandlerFrmIm(uint8_t, makeStreamname("thresh"), mpInput);
+        mIHthresh->cpy_thresh(mIHdarkSubtract->getImage(), thresh);
+    }
+    catch (std::runtime_error e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error while thresholding: ";
+        mErrDescr.append(e.what());
+        return;
+    }
+
+    // Get spot center estimates by erosion of the thresholded image
+    std::vector<Point<uint32_t>> particlesFiltered;
+    try {
+        mIHerode = newImHandlerFrmIm(uint8_t, makeStreamname("erode"), mIHthresh->getImage());
+        std::vector<Point<uint32_t>> particles;
+        while (mIHerode->erode(&particles) > 0);
+        printf("Number of particles after thresholding: %d\n",
+            (int) particles.size());
+        
+        // Filter the points by distance
+        // Points that have neighbours which are too close are likely false positives.
+        // The threshold is determined by the subaperture diameter
+        // All particles that are left are used for the spot size measurement.
+        particlesFiltered =
+                    filterByMinDistance(particles, 0.8*mApertureDiameter);
+    }
+    catch (std::runtime_error e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error while selecting particles via erosion: ";
+        mErrDescr.append(e.what());
+        return;
+    }
+    
+    // Generate a model of the spots by fitting the selected particles
+    try {
+        SpotFitter spotFitter(mIHdarkSubtract);
+        spotFitter.expressFit(
+            particlesFiltered, mGridRectSize, 2, mVisualize);    
+    
+        // Span a preliminary search grid, based on the fit positions
+        std::vector<Point<double>> fitSpots = spotFitter.getFittedSpotCenters();
+        spanCoarseGrid(spotFitter.getFittedSpotCenters());
+
+        // Generate a gaussian convolution kernel which matches the stdDev
+        // of the spots in the image
+        double stdDeviation = spotFitter.getAvgStdDev();
+        printf("Average standard deviation of spot PSF: %.3f\n", stdDeviation);
+        buildKernel(stdDeviation);
+    }
+    catch (std::runtime_error e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error during spot fitting and fit evaluation: ";
+        mErrDescr.append(e.what());
+        return;
+    }
+    
+    try {
+        // Prepare the convolution image stream
+        mIHconvolution = newImHandlerFrmIm(float,
+            makeStreamname("convol"), mpInput);
+
+        // Prepare the averaging image streams for amplitude and shifts
+        mIHIntensityAVG = SGR_ImageHandler<float>::newImageHandler(
+                makeStreamname("ampAVG"), mGridSize.mX, mGridSize.mY);
+        mIHShiftsAVG = SGR_ImageHandler<float>::newImageHandler(
+                makeStreamname("spotPosAVG"), mGridSize.mX*2, mGridSize.mY);
+        mIHIntensityAVG->setZero();
+        mIHShiftsAVG->setZero();
+    }
+    catch (std::runtime_error e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error during stream preparation: ";
+        mErrDescr.append(e.what());
+        return;
+    }
+
+    printf("\n=== SGR_Recorder: Preparation complete. Ready to collect samples. ===\n\n");
 }
 
 std::vector<Point<uint32_t>> SGR_Recorder::filterByMinDistance(
@@ -221,8 +373,42 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
                     mIHgridVisualization->write(visMax, rightEdge, rootY+v);
                 }
             }
-        mIHgridVisualization->updateWrittenImage();
+        mIHgridVisualization->updateWrittenImage();        
     }
+}
+
+void SGR_Recorder::buildKernel(double stdDev)
+{
+    // Determine the kernel size
+    // => Include 4 stdDevs
+    uint32_t kernelSize = ceil(4*stdDev);
+    if ((kernelSize % 2) == 0)
+        kernelSize ++;  // The kernel size should be odd
+    float kernelCenter = floor(kernelSize/2);
+    printf("Kernel size = %d, kernel center @ %.0f\n", kernelSize, kernelCenter);
+    
+    // Generate the kernel image handler
+    mIHkernel = SGR_ImageHandler<float>::newImageHandler(
+        makeStreamname("kernel"), kernelSize, kernelSize);
+    
+    // Build the kernel
+    float kernelSum = 0;
+    for (uint32_t ix = 0; ix < kernelSize; ix++)
+        for (uint32_t iy = 0; iy < kernelSize; iy++)
+        {
+            float x = ix-kernelCenter;
+            float y = iy-kernelCenter;
+            float val = exp(-(x*x+y*y)/(2*stdDev*stdDev));
+            mIHkernel->write(val, ix, iy);
+            kernelSum += val;
+        }
+    mIHkernel->updateWrittenImage();
+
+    // Normalize the kernel to its energy
+    for (uint32_t ix = 0; ix < kernelSize; ix++)
+        for (uint32_t iy = 0; iy < kernelSize; iy++)
+            mIHkernel->write(mIHkernel->read(ix, iy)/kernelSum, ix, iy);
+    mIHkernel->updateWrittenImage();
 }
 
 }

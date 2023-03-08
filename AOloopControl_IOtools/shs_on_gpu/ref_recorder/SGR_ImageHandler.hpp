@@ -42,6 +42,11 @@ public:
     // Makes a binary image from the data in im
     // by comparing the pix values with thresh
     void cpy_thresh(IMAGE* im, double thresh);
+    // Convolves A with kernel K stores result.
+    // A has to have the same size as this image.
+    // Values outside of A are considered 0.
+    // Note: This is direct convolution, not made for speed.
+    void cpy_convolve(IMAGE* A, IMAGE* K);
 
 // ========== READING/WRITING MEMBER DATA ==========
     // Updates the read buffer to the last written frame
@@ -74,6 +79,7 @@ public:
         { setROI(Rectangle<uint32_t>(x,y,w,h)); }
     // Resetting the ROI
     void unsetROI() { mROI = Rectangle<uint32_t>(0,0, mWidth, mHeight); }
+    Rectangle<uint32_t> getROI() { return mROI; }
 
 // ========== OPERATIONS ==========
     // Updates the reading buffer to the lates written buffer
@@ -98,7 +104,7 @@ public:
         return sum;
     }
     // Gets the maximum pixel value in the current ROI
-    T getMaxInROI()
+    T getMaxInROI(uint32_t* maxposX = nullptr, uint32_t* maxposY= nullptr)
     {
         T max = std::numeric_limits<T>::min();
         T cur;
@@ -107,7 +113,11 @@ public:
             {
                 cur = read(ix, iy);
                 if (cur > max)
+                {
                     max = cur;
+                    if (maxposX != nullptr) *maxposX = ix;
+                    if (maxposY != nullptr) *maxposY = iy;
+                }
             }
         return max;
     }
@@ -115,6 +125,14 @@ public:
     // Returns the number of remaining valid pixels
     // Appends the coordinates of the dissolved particles to d
     uint32_t erode(std::vector<Point<uint32_t>>* d = nullptr);
+    // Sets all elements to zero
+    void setZero()
+    {
+        ImageStreamIO_writeBuffer(&mImage, (void**)&mpWriteBuffer);
+        for (int i = 0; i < mNumPx; i++)
+            mpWriteBuffer[i] = 0;
+        updateWrittenImage();
+    }
     
 private:
     IMAGE mImage;
@@ -282,9 +300,9 @@ inline void SGR_ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
     // Check image sizes
     uint32_t* size = im->md->size;
     if (size[0] != mWidth || size[1] != mHeight)
-        throw std::runtime_error("SGR_ImageHandler::cpy: Incompatible size of input image.\n");
+        throw std::runtime_error("SGR_ImageHandler::cpy_thresh: Incompatible size of input image.\n");
 
-    // Prepare read-buffer
+    // Prepare buffer
     ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
     void* readBuffer;
     ImageStreamIO_readLastWroteBuffer(im, &readBuffer);
@@ -293,6 +311,57 @@ inline void SGR_ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
     uint8_t atype = im->md->datatype;
     for (int i = 0; i < mNumPx; i++)
         mpWriteBuffer[i] = cvtElmt<double>(readBuffer, atype, i) > thresh;
+    
+    updateWrittenImage();
+}
+
+template <typename T>
+inline void SGR_ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
+{
+    // Check image size
+    uint32_t* size = A->md->size;
+    if (size[0] != mWidth || size[1] != mHeight)
+        throw std::runtime_error("SGR_ImageHandler::cpy_convolve: Incompatible size of input A.\n");
+
+    // Prepare buffer
+    ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
+    void* bA;
+    ImageStreamIO_readLastWroteBuffer(A, &bA);
+    void* bK;
+    ImageStreamIO_readLastWroteBuffer(K, &bK);
+
+    // Collect metadata
+    uint8_t tA = A->md->datatype;   // Kernel datatype for casting
+    uint8_t tK = K->md->datatype;   // Kernel datatype for casting
+    int32_t kw = K->md->size[0];   // Kernel width
+    int32_t kh = K->md->size[1];   // Kernel height
+    int32_t kcX = floor(kw/2);     // Kernel center X
+    int32_t kcY = floor(kh/2);     // Kernel center Y
+
+    // Prepare fields
+    float r;    // Convolution result
+    float k;    // Value of the kernel
+    int32_t bi; // The buffer index, calculated from x and y
+    
+    // Do convolution
+    for (int32_t ix = 0; ix < mWidth; ix++)
+        for (int32_t iy = 0; iy < mHeight; iy++)
+        {
+            r = 0;
+            for (int32_t kx = -kcX; kx < kw-kcX; kx++)
+                for (int32_t ky = -kcY; ky < kh-kcY; ky++)
+                {
+                    if (ix+kx >= 0 && ix+kx < mWidth         // Only inside of A
+                        && iy+ky >= 0 && iy+ky < mHeight)
+                    {
+                        bi = (ky+kcY)*kw + kx+kcX;           // Kernel index
+                        k = cvtElmt<float>(bK, tK, bi);      // Kernel value
+                        bi = (iy+ky)*mWidth + ix+kx;         // Image index
+                        r += cvtElmt<float>(bA, tA, bi) * k; // Convolution value
+                    }
+                }
+            mpWriteBuffer[iy*mWidth + ix] = (T) r;
+        }
     
     updateWrittenImage();
 }
