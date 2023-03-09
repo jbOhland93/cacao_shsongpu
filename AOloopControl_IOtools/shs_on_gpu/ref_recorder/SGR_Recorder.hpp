@@ -21,8 +21,10 @@ public:
         float pxSize,   // Size of the camera pixels
         float mlaPitch, // Distance of the microlenses
         float mlaDist,  // Distance of the microlenses to the cam chip
-        const char* streamPrefix = ""); // Prefix for the ISIO streams
-    
+        const char* streamPrefix = "", // Prefix for the ISIO streams
+        bool visualize = false); // If true, additional streams for
+                                 // visual testing are generated
+
     // Triggers reading the input- and dark stream
     errno_t sampleDo();
     // Returns a description of the current internal state
@@ -36,6 +38,7 @@ private:
     // If visualization is true, additional output images will
     // be writen to SHM in order to verify the process
     bool mVisualize = true;
+    std::string mTeststreamPrefix; // Prefix for visualization streams
 
     // SHS parameters
     float mPxSize;
@@ -75,6 +78,8 @@ private:
     // == Helper functions ==
     // Prepends the stream prefix to the given name
     const char* makeStreamname(const char* name);
+    // Prepends the test stream prefix to the given name
+    const char* makeTestStreamname(const char* name);
     // Analyzes the first frame and sets up the analysis
     void prepareSpotFinding();
     // Removes points from pIn which are too close

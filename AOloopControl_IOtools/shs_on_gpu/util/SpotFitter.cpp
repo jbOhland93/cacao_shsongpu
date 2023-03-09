@@ -23,7 +23,9 @@ void SpotFitter::setLineoutWidth(uint32_t width)
         mLineoutWidth = width;
 }
 
-void SpotFitter::makeLineouts(bool forceFullWidth, bool visualize)
+void SpotFitter::makeLineouts(bool forceFullWidth,
+                std::string streamPrefix,
+                bool visualize)
 {
     if (mSpotROIs.size() == 0)
     {
@@ -66,8 +68,8 @@ void SpotFitter::makeLineouts(bool forceFullWidth, bool visualize)
     // Create an image of the lineouts, if desired
     if (visualize)
     {
-        std::string name = mImageHandler->getImage()->name;
-        name.append("_spotLineouts");
+        std::string name = streamPrefix;
+        name.append("spotLineouts");
         spImageHandler(double) lineoutIH =
             SGR_ImageHandler<double>::newImageHandler(
                 name,
@@ -85,7 +87,7 @@ void SpotFitter::makeLineouts(bool forceFullWidth, bool visualize)
     }
 }
 
-void SpotFitter::fitCurves(bool visualize)
+void SpotFitter::fitCurves(std::string streamPrefix, bool visualize)
 {
     if (mLineoutsX.size() == 0)
     {
@@ -99,16 +101,16 @@ void SpotFitter::fitCurves(bool visualize)
     if (visualize)
     {
 
-        std::string name = mImageHandler->getImage()->name;
-        name.append("_spotLineoutFits");
+        std::string name = streamPrefix;
+        name.append("spotLineoutFits");
         fitIH = SGR_ImageHandler<double>::newImageHandler(
                 name,
                 mLineoutLength * 2,
                 mSpotROIs.size());
         printImStreamDescr(name, "spot fits");
 
-        name = mImageHandler->getImage()->name;
-        name.append("_spotLineoutFitErrs");
+        name = streamPrefix;
+        name.append("spotLineoutFitErrs");
         errIH = SGR_ImageHandler<double>::newImageHandler(
                 name,
                 mLineoutLength * 2,
@@ -259,6 +261,7 @@ void SpotFitter::expressFit(
         std::vector<Point<uint32_t>> centers,
         uint32_t windowSize,
         uint32_t iterations,
+        std::string streamPrefix,
         bool visualize)
 {
     if (iterations < 1)
@@ -267,8 +270,8 @@ void SpotFitter::expressFit(
     bool visualizeFirst = (iterations == 1) && visualize;
 
     setROIs(centers, windowSize);
-    makeLineouts(false, visualizeFirst);
-    fitCurves(visualizeFirst);
+    makeLineouts(false, streamPrefix, visualizeFirst);
+    fitCurves(streamPrefix, visualizeFirst);
 
     for (int i = 1; i < iterations; i++)
     {
@@ -282,8 +285,8 @@ void SpotFitter::expressFit(
         setROIs(fittedCenters, windowSize);
         // Only include 2 stdDeviations in each direction in lineout
         setLineoutWidth(ceil(4*stdDev));
-        makeLineouts(false, visualizeCurrent);
-        fitCurves(visualizeCurrent);
+        makeLineouts(false, streamPrefix, visualizeCurrent);
+        fitCurves(streamPrefix, visualizeCurrent);
     }
 }
 

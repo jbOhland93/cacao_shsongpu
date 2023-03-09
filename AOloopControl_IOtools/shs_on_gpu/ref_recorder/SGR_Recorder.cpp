@@ -15,18 +15,17 @@ SGR_Recorder::SGR_Recorder(
     float pxSize,
     float mlaPitch,
     float mlaDist,
-    const char* streamPrefix)
+    const char* streamPrefix,
+    bool visualize)
     :
     mpInput(in),
     mpDark(dark),
     mPxSize(pxSize),
     mMlaPitch(mlaPitch),
     mMlaDist(mlaDist),
-    mStreamPrefix(streamPrefix)
+    mStreamPrefix(streamPrefix),
+    mVisualize(visualize)
 {
-    mApertureDiameter = mlaPitch/mPxSize;
-    mGridRectSize = floor(mApertureDiameter);
-
     // Check if input and dark images are compatible
     if (mpInput->md->naxis != 2 || mpDark->md->naxis != 2)
     {
@@ -37,9 +36,16 @@ SGR_Recorder::SGR_Recorder(
     {
         try
         {
+            // Prepare the test stream prefix
+            mTeststreamPrefix = mStreamPrefix;
+            mTeststreamPrefix.append("TEST-");
+            // Initialize parameters
+            mApertureDiameter = mlaPitch/mPxSize;
+            mGridRectSize = floor(mApertureDiameter);
+            
+            // Prepare the actual spotfinding
             prepareSpotFinding();
             mState = RECSTATE::READY;
-            sampleDo(); // Don't waste the first image!
         }
         catch (std::runtime_error e)
         {
@@ -163,6 +169,13 @@ const char* SGR_Recorder::makeStreamname(const char* name)
     return mTmpStreamName.c_str();
 }
 
+const char* SGR_Recorder::makeTestStreamname(const char* name)
+{
+    mTmpStreamName = mTeststreamPrefix;
+    mTmpStreamName.append(name);
+    return mTmpStreamName.c_str();
+}
+
 void SGR_Recorder::prepareSpotFinding()
 {
     if (mState != RECSTATE::INIT)
@@ -175,7 +188,7 @@ void SGR_Recorder::prepareSpotFinding()
     printf("\n\n=== SGR_Recorder: Preparing spot finding ===\n\n");
     // Set up the dark subtraction image handler
     try {
-        mIHdarkSubtract = newImHandlerFrmIm(float, makeStreamname("darksub"), mpInput);
+        mIHdarkSubtract = newImHandlerFrmIm(float, makeStreamname("1-darksub"), mpInput);
         mImgWidth = mIHdarkSubtract->mWidth;
         mImgHeight = mIHdarkSubtract->mHeight;
         mNumPixels = mIHdarkSubtract->mNumPx;
@@ -209,7 +222,8 @@ void SGR_Recorder::prepareSpotFinding()
 
     // Apply thresholding according to the statistics
     try {
-        mIHthresh = newImHandlerFrmIm(uint8_t, makeStreamname("thresh"), mpInput);
+        mIHthresh = newImHandlerFrmIm(uint8_t,
+            makeStreamname("2-thresh"), mpInput);
         mIHthresh->cpy_thresh(mIHdarkSubtract->getImage(), thresh);
     }
     catch (std::runtime_error e)
@@ -223,7 +237,8 @@ void SGR_Recorder::prepareSpotFinding()
     // Get spot center estimates by erosion of the thresholded image
     std::vector<Point<uint32_t>> particlesFiltered;
     try {
-        mIHerode = newImHandlerFrmIm(uint8_t, makeStreamname("erode"), mIHthresh->getImage());
+        mIHerode = newImHandlerFrmIm(uint8_t,
+            makeStreamname("3-erode"), mIHthresh->getImage());
         std::vector<Point<uint32_t>> particles;
         while (mIHerode->erode(&particles) > 0);
         printf("Number of particles after thresholding: %d\n",
@@ -248,7 +263,8 @@ void SGR_Recorder::prepareSpotFinding()
     try {
         SpotFitter spotFitter(mIHdarkSubtract);
         spotFitter.expressFit(
-            particlesFiltered, mGridRectSize, 2, mVisualize);    
+            particlesFiltered, mGridRectSize, 2,
+            mTeststreamPrefix, mVisualize);    
     
         // Span a preliminary search grid, based on the fit positions
         std::vector<Point<double>> fitSpots = spotFitter.getFittedSpotCenters();
@@ -271,13 +287,13 @@ void SGR_Recorder::prepareSpotFinding()
     try {
         // Prepare the convolution image stream
         mIHconvolution = newImHandlerFrmIm(float,
-            makeStreamname("convol"), mpInput);
+            makeStreamname("5-convol"), mpInput);
 
         // Prepare the averaging image streams for amplitude and shifts
         mIHIntensityAVG = SGR_ImageHandler<float>::newImageHandler(
-                makeStreamname("ampAVG"), mGridSize.mX, mGridSize.mY);
+                makeStreamname("6-ampRec"), mGridSize.mX, mGridSize.mY);
         mIHShiftsAVG = SGR_ImageHandler<float>::newImageHandler(
-                makeStreamname("spotPosAVG"), mGridSize.mX*2, mGridSize.mY);
+                makeStreamname("6-spotPosRec"), mGridSize.mX*2, mGridSize.mY);
         mIHIntensityAVG->setZero();
         mIHShiftsAVG->setZero();
     }
@@ -349,7 +365,7 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
     if (mVisualize)
     {
         mIHgridVisualization = newImHandlerFrmIm(float,
-            makeStreamname("gridShow"), mIHdarkSubtract->getImage());
+            makeTestStreamname("gridShow"), mIHdarkSubtract->getImage());
         // Copy the SHS image as visual reference
         mIHgridVisualization->cpy(mIHdarkSubtract->getImage());
         float visMax = mIHgridVisualization->getMaxInROI();
@@ -389,7 +405,7 @@ void SGR_Recorder::buildKernel(double stdDev)
     
     // Generate the kernel image handler
     mIHkernel = SGR_ImageHandler<float>::newImageHandler(
-        makeStreamname("kernel"), kernelSize, kernelSize);
+        makeStreamname("4-kernel"), kernelSize, kernelSize);
     
     // Build the kernel
     float kernelSum = 0;

@@ -6,6 +6,7 @@
 
 #include "CommandLineInterface/CLIcore.h"
 #include "ref_recorder/SGR_Recorder_interface.h"
+#include <math.h>
 
 static int cmdindex;
 
@@ -33,7 +34,14 @@ static long      fpi_mlapitch = -1;
 static float *shsfoclen;
 static long      fpi_shsfoclen = -1;
 
+static uint32_t *loopnumber;
+static long      fpi_loopnumber = -1;
 
+static char *loopname;
+static long      fpi_loopname = -1;
+
+static int64_t *visualize;
+static long      fpi_visualize = -1;
 
 static CLICMDARGDEF farg[] =
 {
@@ -81,6 +89,33 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &shsfoclen,
         &fpi_shsfoclen
+    },
+    {
+        CLIARG_UINT32,
+        ".loopnumber",
+        "The number of the AO loop, used for stream naming",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &loopnumber,
+        &fpi_loopnumber
+    },
+    {
+        CLIARG_STR,
+        ".loopname",
+        "The name of the AO loop, used for stream naming",
+        "",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &loopname,
+        &fpi_loopname
+    },
+    {
+        CLIARG_ONOFF,
+        ".visualize",
+        "Generates additional image streams to visually assess the process",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &visualize,
+        &fpi_visualize
     }
 };
 
@@ -197,10 +232,35 @@ static errno_t compute_function()
     {
         // procinfo is accessible here
     }
-
+    printf("Visualize = %d\n", (int)*visualize);
     // === SET UP REF RECORDER HERE
+    // Allocate a buffer for the stream prefix
+    uint8_t lnLen = strlen(loopname);
+    const char* funPrefix = "_shsRefRec_";
+    uint8_t fpLen = strlen(funPrefix);
+    char loopPrefix[(int)((
+        3                           // "aol"
+        +ceil(log10(*loopnumber))   // loopnumber
+        +1                          // "_"
+        +lnLen                      // loopname
+        +fpLen                      // function prefix
+        )*sizeof(char))];
+    // Build the stream prefix
+    sprintf(loopPrefix, "%s%d%s%s%s",
+        "aol",
+        *loopnumber,
+        "_",
+        loopname,
+        funPrefix);
+    // Construct the recorder
     SGRRHandle recorder = create_SGR_Recorder(
-        inimg.im, darkimg.im, *campxsize, *mlapitch, *shsfoclen, "aolX_");
+        inimg.im,
+        darkimg.im,
+        *campxsize,
+        *mlapitch,
+        *shsfoclen,
+        loopPrefix,
+        *visualize);
     printf("\nSGR recorder status: %s", get_SGRR_state_descr(recorder));
     // ===
 

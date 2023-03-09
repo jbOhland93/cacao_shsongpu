@@ -19,6 +19,7 @@ source milk-script-std-config
 #
 RequiredCommands=(milk)
 RequiredFiles=(LOOPNUMBER)
+RequiredFiles=(LOOPNAME)
 RequiredPipes=()
 RequiredDirs=()
 
@@ -27,6 +28,15 @@ RequiredDirs=()
 #
 MSarg+=( "streamInName:string:stream input name" )
 MSarg+=( "nbframe:int:number of frames to be averaged" )
+
+# SCRIPT OPTIONS
+# syntax: "short:long:functioncall:args[types]:description"
+#
+VISUALIZE="OFF"
+MSopt+=( "v:visual:enableVisualization::enable additional visualization" )
+function enableVisualization() {
+	VISUALIZE="ON"
+}
 
 source milk-argparse
 
@@ -44,6 +54,14 @@ else
 fi
 echo "Loop ${AOLOOPNUMBER}"
 
+if [ -f LOOPNAME ]; then
+    AOLOOPNAME=$( head -1 LOOPNAME )
+else
+	echo "Error: no LOOPNAME file. Are we running this from the correct directory ?"
+    exit
+fi
+echo "Loop ${AOLOOPNAME}"
+
 instream="${inputMSargARRAY[0]}"
 nbframe="${inputMSargARRAY[1]}"
 echo "Stream in: ${instream}"
@@ -55,6 +73,9 @@ cmd? cacaoio.shsGpuRef
 
 readshmim ${instream}
 readshmim ${instream}_AVG
+cacaoio.shsGpuRef .loopnumber ${AOLOOPNUMBER}
+cacaoio.shsGpuRef .loopname ${AOLOOPNAME}
+cacaoio.shsGpuRef .visualize ${VISUALIZE}
 cacaoio.shsGpuRef ..procinfo 1
 cacaoio.shsGpuRef ..triggermode 3
 cacaoio.shsGpuRef ..triggersname ${instream}

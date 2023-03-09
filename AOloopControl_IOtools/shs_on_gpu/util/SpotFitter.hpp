@@ -22,11 +22,14 @@ public:
     void setLineoutWidth(uint32_t width);
     // Will generate lineouts for each ROI along the X and Y axis.
     // forceFullWidth: If false, mLineoutWidth will be used.
+    // streamPrefix: Prefix for newly generated streams
     // visualize: If true, creates an image with the lineouts
-    void makeLineouts(bool forceFullWidth = false, bool visualize = false);
+    void makeLineouts(bool forceFullWidth = false,
+        std::string streamPrefix = "",
+        bool visualize = false);
     // Will fit gaussians along all pre-generated lineouts.
     // visualize: If true, creates images for the fit and the errors
-    void fitCurves(bool visualize = false);
+    void fitCurves(std::string streamPrefix = "", bool visualize = false);
     // Returns the average standard deviation of the fit results
     // The averaging uses the fitted spot amplitude as weight.
     double getAvgStdDev();
@@ -41,12 +44,14 @@ public:
     // windowSize: The size around the spot centers
     // iterations: Each successive iteration optimizes the lineout
     //      width to the previously found spot size to optimize the SNR
+    // streamPrefix: Prefix for newly generated streams
     // visualize: If true, images in SHM will be generated to monitor
     //      the accuracy of the final fit
     void expressFit(
         std::vector<Point<uint32_t>> centers,
         uint32_t windowSize,
         uint32_t iterations = 2,
+        std::string streamPrefix = "",
         bool visualize = false);
     
 private:

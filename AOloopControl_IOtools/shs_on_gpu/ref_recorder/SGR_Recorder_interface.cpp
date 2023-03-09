@@ -9,9 +9,17 @@ extern "C"
         float pxSize,
         float mlaPitch,
         float mlaDist,
-        const char* streamPrefix)
+        const char* streamPrefix,
+        int64_t visualize)
     {
-        return new SGR_Recorder(in, dark, pxSize, mlaPitch, mlaDist, streamPrefix);
+        return new SGR_Recorder(
+            in,
+            dark,
+            pxSize,
+            mlaPitch,
+            mlaDist,
+            streamPrefix,
+            visualize > 0);
     }
 
     void free_SGR_Recorder(SGRRHandle p)
