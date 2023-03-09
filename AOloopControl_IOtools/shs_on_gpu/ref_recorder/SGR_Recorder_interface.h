@@ -8,18 +8,25 @@
 extern "C" {
 #endif
 
+// A pointer to the recorder object to be used for function calls
 typedef void * SGRRHandle;
+// Constructor
 SGRRHandle create_SGR_Recorder(
-    IMAGE* in,
-    IMAGE* dark,
-    float pxSize,
-    float mlaPitch,
-    float mlaDist,
-    const char* streamPrefix,
-    int64_t visualize);
+    IMAGE* in,                  // Raw camera stream
+    IMAGE* dark,                // Stream holding a dark for subtraction
+    float pxSize,               // Size of the camera pixels
+    float mlaPitch,             // Distance of the microlenses
+    float mlaDist,              // Distance of the microlenses to the cam chip
+    uint32_t numSamples,        // number of samples to be recorded
+    const char* streamPrefix,   // Prefix for the ISIO streams
+    int64_t visualize);         // If true, additional streams for
+                                // visual testing are generated
+// Desctructor
 void free_SGR_Recorder(SGRRHandle);
 
+// Do one sample step
 errno_t SGRR_sample_do(SGRRHandle);
+// Returns a brief description on the current internal state of the recorder
 const char* get_SGRR_state_descr(SGRRHandle);
 
 #ifdef __cplusplus

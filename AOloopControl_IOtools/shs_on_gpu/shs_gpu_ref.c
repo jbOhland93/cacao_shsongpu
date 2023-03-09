@@ -228,11 +228,13 @@ static errno_t compute_function()
 
     // custom initialization
     printf(" COMPUTE Flags = %ld\n", CLIcmddata.cmdsettings->flags);
+    long loopcnt = 0;
     if(CLIcmddata.cmdsettings->flags & CLICMDFLAG_PROCINFO)
     {
         // procinfo is accessible here
+        loopcnt = CLIcmddata.cmdsettings->procinfo_loopcntMax;
     }
-    printf("Visualize = %d\n", (int)*visualize);
+    
     // === SET UP REF RECORDER HERE
     // Allocate a buffer for the stream prefix
     uint8_t lnLen = strlen(loopname);
@@ -259,6 +261,7 @@ static errno_t compute_function()
         *campxsize,
         *mlapitch,
         *shsfoclen,
+        loopcnt,
         loopPrefix,
         *visualize);
     printf("\nSGR recorder status: %s", get_SGRR_state_descr(recorder));

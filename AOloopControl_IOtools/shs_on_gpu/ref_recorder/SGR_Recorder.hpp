@@ -16,11 +16,12 @@ class SGR_Recorder
 public:
     // Ctor, doing the initialization
     SGR_Recorder(
-        IMAGE* in,      // Raw camera stream
-        IMAGE* dark,    // Stream holding a dark for subtraction
-        float pxSize,   // Size of the camera pixels
-        float mlaPitch, // Distance of the microlenses
-        float mlaDist,  // Distance of the microlenses to the cam chip
+        IMAGE* in,           // Raw camera stream
+        IMAGE* dark,         // Stream holding a dark for subtraction
+        float pxSize,        // Size of the camera pixels
+        float mlaPitch,      // Distance of the microlenses
+        float mlaDist,       // Distance of the microlenses to the cam chip
+        uint32_t numSamples, // number of samples to be recorded
         const char* streamPrefix = "", // Prefix for the ISIO streams
         bool visualize = false); // If true, additional streams for
                                  // visual testing are generated
@@ -34,48 +35,57 @@ private:
     // Internal status
     enum RECSTATE {ERROR,INIT,READY,SAMPLING,EVALUATING,FINISH};
     RECSTATE mState = RECSTATE::INIT;
+    uint32_t mSamplesExpected;  // Number of samples promised by ctor call
+    uint32_t mSamplesAdded = 0; // For calculating the average at the end
 
     // If visualization is true, additional output images will
     // be writen to SHM in order to verify the process
     bool mVisualize = true;
     std::string mTeststreamPrefix; // Prefix for visualization streams
+    std::string mStreamPrefix; // Prefix for all streams to be generated
 
-    // SHS parameters
+// SHS parameters
     float mPxSize;
     float mMlaPitch;
     float mMlaDist;
     float mApertureDiameter;
     
+// Image streams / ImageHandlers
+    IMAGE* mpInput;
+    IMAGE* mpDark;
     // Properties of the input image stream, for easier access
     uint32_t mImgWidth;
     uint32_t mImgHeight;
     uint32_t mNumPixels;
 
-    // Image streams / ImageHandlers
-    IMAGE* mpInput;
-    IMAGE* mpDark;
-    std::string mStreamPrefix; // Prefix for all streams to be generated
+    // Stream for the result of mpInput-mpDark
     spImageHandler(float) mIHdarkSubtract;
+    // Binary image, thresholded from darkSubtract
     spImageHandler(uint8_t) mIHthresh;
+    // Stream for erosion of thresh to estimate spot positions
     spImageHandler(uint8_t) mIHerode;
-    spImageHandler(float) mIHgridVisualization;
+    // Stream for the gaussian convolution kernel
     spImageHandler(float) mIHkernel;
+    // Stream for the convolution of darkSubtract and kernel
     spImageHandler(float) mIHconvolution;
-    spImageHandler(float) mIHIntensityAVG;
-    spImageHandler(float) mIHShiftsAVG;
-    uint32_t mSamplesAdded = 0; // For calculating the average at the end
+    // Recording stream for the spot intensities
+    spImageHandler(float) mIHintensityREC;
+    // Recording stream for the spot positions
+    spImageHandler(float) mIHposREC;
+    // A display for the search grid. Only used if mVisualize == true.
+    spImageHandler(float) mIHgridVisualization;
 
-    // Preliminary search grid, used for calibration
+// Preliminary search grid, used for calibration
     Point<uint32_t> mGridSize;
     uint32_t mGridRectSize;
     std::vector<std::vector<Rectangle<uint32_t>>> mGrid;
 
-    // String members for persistence of messages, names etc.
+// String members for persistence of messages, names etc.
     std::string mErrDescr{ "" };
     std::string mStateDescr{ "" };
     std::string mTmpStreamName{ "" };
 
-    // == Helper functions ==
+// Helper functions ==
     // Prepends the stream prefix to the given name
     const char* makeStreamname(const char* name);
     // Prepends the test stream prefix to the given name

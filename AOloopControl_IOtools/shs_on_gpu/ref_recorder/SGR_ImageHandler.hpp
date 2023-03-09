@@ -28,11 +28,13 @@ public:
     static spImageHandler(T) newImageHandler(
         std::string name,
         size_t width,
-        size_t height);
+        size_t height,
+        uint32_t circBufSize = 0);
     // Creates a new image of the same size, but converts the data.
     static spImageHandler(T) newHandlerfrmImage(
         std::string name,
-        IMAGE* im);
+        IMAGE* im,
+        uint32_t circBufSize = 0);
 
 // ========== IMAGE HANDLING ==========    
     // Copies the data from im and converts to own datatype
@@ -49,22 +51,14 @@ public:
     void cpy_convolve(IMAGE* A, IMAGE* K);
 
 // ========== READING/WRITING MEMBER DATA ==========
-    // Updates the read buffer to the last written frame
-    IMAGE* getImage() {return &mImage;}
-    
+    // Returns the image object
+    IMAGE* getImage() { return &mImage; }
     // Reads the element at x/y from the last written buffer
     T read(uint32_t x, uint32_t y)
-    {
-        if (mpReadBuffer == nullptr)
-        {
-            printf("IS NULL!\n");
-            updateReadBuffer();
-        }
-        return mpReadBuffer[toROIy(y)*mWidth + toROIx(x)];
-    }
+        { return mpBuffer[toROIy(y)*mWidth + toROIx(x)]; }
     // Writes the given element at teh x/y position into the write buffer
     void write(T e, uint32_t x, uint32_t y)
-        { mpWriteBuffer[toROIy(y)*mWidth + toROIx(x)] = e; }
+        { mpBuffer[toROIy(y)*mWidth + toROIx(x)] = e; }
     // Setting a ROI
     void setROI(Rectangle<uint32_t> roi)
     {
@@ -82,16 +76,9 @@ public:
     Rectangle<uint32_t> getROI() { return mROI; }
 
 // ========== OPERATIONS ==========
-    // Updates the reading buffer to the lates written buffer
-    void updateReadBuffer()
-        { ImageStreamIO_readLastWroteBuffer(&mImage, (void**)&mpReadBuffer); }
     // Updates the image and gets the new write buffer
     void updateWrittenImage()
-    {
-        ImageStreamIO_UpdateIm(&mImage);
-        ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
-        updateReadBuffer();
-    }
+        { ImageStreamIO_UpdateIm(&mImage); }
     // Get the number of pixels in the current ROI
     uint32_t getPxInROI() { return mROI.w() * mROI.h(); }
     // Sums all the pixels in the current ROI
@@ -125,19 +112,10 @@ public:
     // Returns the number of remaining valid pixels
     // Appends the coordinates of the dissolved particles to d
     uint32_t erode(std::vector<Point<uint32_t>>* d = nullptr);
-    // Sets all elements to zero
-    void setZero()
-    {
-        ImageStreamIO_writeBuffer(&mImage, (void**)&mpWriteBuffer);
-        for (int i = 0; i < mNumPx; i++)
-            mpWriteBuffer[i] = 0;
-        updateWrittenImage();
-    }
     
 private:
     IMAGE mImage;
-    T* mpReadBuffer = nullptr;
-    T* mpWriteBuffer = nullptr;
+    T* mpBuffer = nullptr;
     Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
 // ========== CONSTRUCTORS ==========
     SGR_ImageHandler(); // No publically available default ctor
@@ -145,7 +123,8 @@ private:
         std::string name,
         uint32_t width,
         uint32_t height,
-        uint8_t atype);
+        uint8_t atype,
+        uint32_t circBufSize = 10);
 
 // ========== HELPER FUNCTIONS ==========
     // Transform from ROI coordinates to image coordinates
@@ -200,7 +179,8 @@ template <typename T>
 inline spImageHandler(T) SGR_ImageHandler<T>::newImageHandler(
     std::string name,
     size_t width,
-    size_t height)
+    size_t height,
+    uint32_t circBufSize)
 {
     throw std::runtime_error(
         "SGR_ImageHandler<T>::newImageHandler: Type not supported.");
@@ -213,13 +193,15 @@ template <>                                                             \
 inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
     std::string name,                                                   \
     size_t width,                                                       \
-    size_t height)                                                      \
+    size_t height,                                                      \
+    uint32_t circBufSize)                                               \
 {                                                                       \
     spImageHandler(type) sp(new SGR_ImageHandler<type>(                 \
         name,                                                           \
         width,                                                          \
         height,                                                         \
-        atype));                                                        \
+        atype,                                                          \
+        circBufSize));                                                  \
     return sp;                                                          \
 }
 IH_FACTORY(uint8_t, _DATATYPE_UINT8);
@@ -237,10 +219,12 @@ IH_FACTORY(double, _DATATYPE_DOUBLE);
 template <typename T>
 inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerfrmImage(
         std::string name,
-        IMAGE* im)
+        IMAGE* im,
+        uint32_t circBufSize)
 {
     uint32_t* size = im->md->size;
-    spImageHandler(T) spIH = newImageHandler(name, size[0], size[1]);
+    spImageHandler(T) spIH = 
+        newImageHandler(name, size[0], size[1], circBufSize);
     spIH->cpy(im);
     return spIH;
 }
@@ -254,14 +238,13 @@ inline void SGR_ImageHandler<T>::cpy(IMAGE* im)
         throw std::runtime_error("SGR_ImageHandler::cpy: Incompatible size of input image.\n");
 
     // Prepare read-buffer
-    ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
     void* readBuffer;
     ImageStreamIO_readLastWroteBuffer(im, &readBuffer);
 
     // Convert
     uint8_t atype = im->md->datatype;
     for (int i = 0; i < mNumPx; i++)
-        mpWriteBuffer[i] = cvtElmt(readBuffer, atype, i);
+        mpBuffer[i] = cvtElmt(readBuffer, atype, i);
     
     updateWrittenImage();
 }
@@ -279,7 +262,6 @@ inline void SGR_ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
         throw std::runtime_error("SGR_ImageHandler::cpy_subtract: Incompatible size of input image(s).\n");
 
     // Prepare buffers
-    ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
     void* readBufferA;
     ImageStreamIO_readLastWroteBuffer(A, &readBufferA);
     void* readBufferB;
@@ -289,7 +271,8 @@ inline void SGR_ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
     uint8_t atypeA = A->md->datatype;
     uint8_t atypeB = B->md->datatype;
     for (int i = 0; i < mNumPx; i++)
-        mpWriteBuffer[i] = cvtElmt(readBufferA, atypeA, i) - cvtElmt(readBufferB, atypeB, i);
+        mpBuffer[i] = cvtElmt(readBufferA, atypeA, i)
+            - cvtElmt(readBufferB, atypeB, i);
 
     updateWrittenImage();
 }
@@ -303,14 +286,13 @@ inline void SGR_ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
         throw std::runtime_error("SGR_ImageHandler::cpy_thresh: Incompatible size of input image.\n");
 
     // Prepare buffer
-    ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
     void* readBuffer;
     ImageStreamIO_readLastWroteBuffer(im, &readBuffer);
 
     // Convert
     uint8_t atype = im->md->datatype;
     for (int i = 0; i < mNumPx; i++)
-        mpWriteBuffer[i] = cvtElmt<double>(readBuffer, atype, i) > thresh;
+        mpBuffer[i] = cvtElmt<double>(readBuffer, atype, i) > thresh;
     
     updateWrittenImage();
 }
@@ -324,7 +306,6 @@ inline void SGR_ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
         throw std::runtime_error("SGR_ImageHandler::cpy_convolve: Incompatible size of input A.\n");
 
     // Prepare buffer
-    ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
     void* bA;
     ImageStreamIO_readLastWroteBuffer(A, &bA);
     void* bK;
@@ -360,7 +341,7 @@ inline void SGR_ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
                         r += cvtElmt<float>(bA, tA, bi) * k; // Convolution value
                     }
                 }
-            mpWriteBuffer[iy*mWidth + ix] = (T) r;
+            mpBuffer[iy*mWidth + ix] = (T) r;
         }
     
     updateWrittenImage();
@@ -372,7 +353,8 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
         std::string name,
         uint32_t width,
         uint32_t height,
-        uint8_t atype)
+        uint8_t atype,
+        uint32_t circBufSize)
         :
         mWidth(width),
         mHeight(height),
@@ -385,7 +367,6 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
     imsize[1] = height;
     int shared = 1; // image will be in shared memory
     int NBkw = 0; // No keywords for now. Do this later.
-    int circBufSize = 10;
     ImageStreamIO_createIm(&mImage,
                             name.c_str(),
                             naxis,
@@ -395,7 +376,7 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
                             NBkw,
                             circBufSize);
     delete imsize;
-    ImageStreamIO_writeBuffer(&mImage, (void**) &mpWriteBuffer);
+    ImageStreamIO_writeBuffer(&mImage, (void**) &mpBuffer);
 }
 
 template <typename T>
@@ -417,7 +398,7 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
 
     // Copy the read frame to the write buffer
     for (int i = 0; i < mNumPx; i++)
-        mpWriteBuffer[i] = mpReadBuffer[i];
+        mpBuffer[i] = mpBuffer[i];
 
     // Erode the ROI
     for (uint32_t ix = 0; ix < mROI.w(); ix++)
@@ -426,7 +407,7 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
             x = toROIx(ix);
             y = toROIy(iy);
             // Only consider pixel if it is greater than 0
-            if (mpWriteBuffer[y*mWidth + x] > 0)
+            if (mpBuffer[y*mWidth + x] > 0)
             {   // Count the neighbours
                 neighbours = 0;
                 for (int j = 0; j < 8; j++)
@@ -435,7 +416,7 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                         y+nOffY[j] >= 0 && y+nOffY[j] < mHeight)
                     {
                         neighbourIndex = (y+nOffY[j])*mWidth + x + nOffX[j];
-                        if (mpWriteBuffer[neighbourIndex] > 0)
+                        if (mpBuffer[neighbourIndex] > 0)
                             neighbours++;
                     }
                 }
@@ -443,13 +424,13 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                 {   // Standalonepixel - Dissolving particle.
                     if (d != nullptr)
                         d->push_back(
-                            Point<uint32_t>(x,y,mpReadBuffer[y*mWidth + x], true));
-                    // Set to 0
-                    mpWriteBuffer[y*mWidth + x] = 0;
+                            Point<uint32_t>(x,y,mpBuffer[y*mWidth + x], true));
+                    // Set to zero.
+                    mpBuffer[y*mWidth + x] = 0;
                 }
                 else if (neighbours < 4)
                     // Edgepixel - set to zero.
-                    mpWriteBuffer[y*mWidth + x] = 0;
+                    mpBuffer[y*mWidth + x] = 0;
                 else
                     // Embedded pixel, leave as it is.
                     remainingPixels++;

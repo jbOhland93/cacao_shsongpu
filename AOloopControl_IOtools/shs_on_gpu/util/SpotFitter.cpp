@@ -69,7 +69,7 @@ void SpotFitter::makeLineouts(bool forceFullWidth,
     if (visualize)
     {
         std::string name = streamPrefix;
-        name.append("spotLineouts");
+        name.append("spotLO");
         spImageHandler(double) lineoutIH =
             SGR_ImageHandler<double>::newImageHandler(
                 name,
@@ -102,7 +102,7 @@ void SpotFitter::fitCurves(std::string streamPrefix, bool visualize)
     {
 
         std::string name = streamPrefix;
-        name.append("spotLineoutFits");
+        name.append("spotLOFits");
         fitIH = SGR_ImageHandler<double>::newImageHandler(
                 name,
                 mLineoutLength * 2,
@@ -110,7 +110,7 @@ void SpotFitter::fitCurves(std::string streamPrefix, bool visualize)
         printImStreamDescr(name, "spot fits");
 
         name = streamPrefix;
-        name.append("spotLineoutFitErrs");
+        name.append("spotLOFitErrs");
         errIH = SGR_ImageHandler<double>::newImageHandler(
                 name,
                 mLineoutLength * 2,

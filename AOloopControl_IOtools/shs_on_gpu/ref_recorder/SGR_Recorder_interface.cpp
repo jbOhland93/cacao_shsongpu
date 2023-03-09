@@ -9,6 +9,7 @@ extern "C"
         float pxSize,
         float mlaPitch,
         float mlaDist,
+        uint32_t numSamples,
         const char* streamPrefix,
         int64_t visualize)
     {
@@ -18,6 +19,7 @@ extern "C"
             pxSize,
             mlaPitch,
             mlaDist,
+            numSamples,
             streamPrefix,
             visualize > 0);
     }

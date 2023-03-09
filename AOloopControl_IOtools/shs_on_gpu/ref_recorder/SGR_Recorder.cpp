@@ -15,6 +15,7 @@ SGR_Recorder::SGR_Recorder(
     float pxSize,
     float mlaPitch,
     float mlaDist,
+    uint32_t numSamples,
     const char* streamPrefix,
     bool visualize)
     :
@@ -23,6 +24,7 @@ SGR_Recorder::SGR_Recorder(
     mPxSize(pxSize),
     mMlaPitch(mlaPitch),
     mMlaDist(mlaDist),
+    mSamplesExpected(numSamples),
     mStreamPrefix(streamPrefix),
     mVisualize(visualize)
 {
@@ -42,7 +44,7 @@ SGR_Recorder::SGR_Recorder(
             // Initialize parameters
             mApertureDiameter = mlaPitch/mPxSize;
             mGridRectSize = floor(mApertureDiameter);
-            
+
             // Prepare the actual spotfinding
             prepareSpotFinding();
             mState = RECSTATE::READY;
@@ -104,20 +106,28 @@ errno_t SGR_Recorder::sampleDo()
                 float Dy = 0.5 * (I_x_yM - I_x_yP) / (I_x_yM + I_x_yP - 2*I_xy);
 
                 // Add results to integrals
-                float newIntensitySum = mIHIntensityAVG->read(gX, gY) + I_xy;
-                mIHIntensityAVG->write(newIntensitySum, gX, gY);
+                float newIntensitySum = mIHintensityREC->read(gX, gY) + I_xy;
+                mIHintensityREC->write(newIntensitySum, gX, gY);
 
-                float newPosXSum = mIHShiftsAVG->read(gX, gY) + mpX + Dx;
-                float newPosYSum = mIHShiftsAVG->read(gX + mGridSize.mX, gY) + mpY + Dy;
-                mIHShiftsAVG->write(newPosXSum, gX, gY);
-                mIHShiftsAVG->write(newPosYSum, gX + mGridSize.mX, gY);
+                float newPosXSum = mIHposREC->read(gX, gY) + mpX + Dx;
+                float newPosYSum = mIHposREC->read(gX + mGridSize.mX, gY) + mpY + Dy;
+                mIHposREC->write(newPosXSum, gX, gY);
+                mIHposREC->write(newPosYSum, gX + mGridSize.mX, gY);
             }
 
-        mIHIntensityAVG->updateWrittenImage();
-        mIHShiftsAVG->updateWrittenImage();
+        mIHintensityREC->updateWrittenImage();
+        mIHposREC->updateWrittenImage();
 
         mSamplesAdded++;
-        mState = RECSTATE::READY;
+        if (mSamplesAdded < mSamplesExpected)
+            mState = RECSTATE::READY;
+        else
+        {
+            mState = RECSTATE::EVALUATING;
+            printf("Collected %d/%d samples. Startig evaluation...\n",
+                mSamplesAdded, mSamplesExpected);
+            return RETURN_SUCCESS;
+        }
 
         return RETURN_SUCCESS;
     }
@@ -145,7 +155,9 @@ const char* SGR_Recorder::getStateDescription()
     case RECSTATE::READY:
         mStateDescr = "Collected ";
         mStateDescr.append(std::to_string(mSamplesAdded));
-        mStateDescr.append(" samples. Ready for next command ...\n");
+        mStateDescr.append("/");
+        mStateDescr.append(std::to_string(mSamplesExpected));
+        mStateDescr.append(" samples. Ready for next sample ...\n");
         break;
     case RECSTATE::SAMPLING:
         mStateDescr = "Evaluating sample...\n";
@@ -289,13 +301,16 @@ void SGR_Recorder::prepareSpotFinding()
         mIHconvolution = newImHandlerFrmIm(float,
             makeStreamname("5-convol"), mpInput);
 
-        // Prepare the averaging image streams for amplitude and shifts
-        mIHIntensityAVG = SGR_ImageHandler<float>::newImageHandler(
-                makeStreamname("6-ampRec"), mGridSize.mX, mGridSize.mY);
-        mIHShiftsAVG = SGR_ImageHandler<float>::newImageHandler(
-                makeStreamname("6-spotPosRec"), mGridSize.mX*2, mGridSize.mY);
-        mIHIntensityAVG->setZero();
-        mIHShiftsAVG->setZero();
+        // Prepare the averaging image streams for intensity and positions
+        mIHintensityREC = SGR_ImageHandler<float>::newImageHandler(
+                makeStreamname("6-ampRec"),
+                mGridSize.mX, mGridSize.mY,
+                mSamplesExpected);
+        mIHposREC = SGR_ImageHandler<float>::newImageHandler(
+                makeStreamname("6-spotPosRec"),
+                mGridSize.mX*2,
+                mGridSize.mY,
+                mSamplesExpected);
     }
     catch (std::runtime_error e)
     {
