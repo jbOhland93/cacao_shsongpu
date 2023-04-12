@@ -22,6 +22,7 @@ set(SOURCEFILES
     shs_on_gpu/ref_recorder/SGR_ImageHandler.cpp
     shs_on_gpu/util/SpotFitter.cpp
     shs_on_gpu/util/OneDGaussianFit.cpp
+    shs_on_gpu/shs_gpu.c
 )
 
 set(INCLUDEFILES
@@ -39,12 +40,14 @@ set(INCLUDEFILES
     shs_on_gpu/util/Rectangle.hpp
     shs_on_gpu/util/SpotFitter.hpp
     shs_on_gpu/util/OneDGaussianFit.hpp
+    shs_on_gpu/shs_gpu.h
 )
 
 
 set(SCRIPTS
     scripts/cacao-avg-stream
     scripts/cacao-shs-gpu-ref
+    scripts/cacao-shs-on-gpu
 )
 
 set(LINKLIBS

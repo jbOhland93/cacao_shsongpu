@@ -53,6 +53,7 @@
 #include "WFSmap.h"
 
 #include "shs_on_gpu/shs_gpu_ref.h"
+#include "shs_on_gpu/shs_gpu.h"
 
 
 /* ===============================================================================================
@@ -461,7 +462,9 @@ static errno_t init_module_CLI()
     CLIADDCMD_AOloopControl_IOtools__WFSmap();
     CLIADDCMD_AOloopControl_IOtools__findspots();
 
+    // SHS evaluation on a GPU
     CLIADDCMD_AOloopControl_IOtools__recordShsRefGPU();
+    CLIADDCMD_AOloopControl_IOtools__EvaluateShsGPU();
 
     // add atexit functions here
     // atexit((void*) myfunc);
