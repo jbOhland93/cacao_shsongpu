@@ -28,6 +28,7 @@ RequiredDirs=()
 #
 MSarg+=( "streamInName:string:stream input name" )
 MSarg+=( "nbframe:int:number of frames to be averaged" )
+MSarg+=( "minSpotPrec_urad:float:The minimum precision of a subaperture to be considered valid" )
 
 # SCRIPT OPTIONS
 # syntax: "short:long:functioncall:args[types]:description"
@@ -64,8 +65,10 @@ echo "Loop ${AOLOOPNAME}"
 
 instream="${inputMSargARRAY[0]}"
 nbframe="${inputMSargARRAY[1]}"
+uradThresh="${inputMSargARRAY[2]}"
 echo "Stream in: ${instream}"
 echo "Number of frame: ${nbframe}"
+echo "Demanded spot precision: ${uradThresh}"
 
 milk-all << EOF
 mload cacaoAOloopControlIOtools
@@ -76,6 +79,7 @@ readshmim ${instream}_AVG
 cacaoio.shsGpuRef .loopnumber ${AOLOOPNUMBER}
 cacaoio.shsGpuRef .loopname ${AOLOOPNAME}
 cacaoio.shsGpuRef .visualize ${VISUALIZE}
+cacaoio.shsGpuRef .minSpotPrec ${uradThresh}
 cacaoio.shsGpuRef ..procinfo 1
 cacaoio.shsGpuRef ..triggermode 3
 cacaoio.shsGpuRef ..triggersname ${instream}

@@ -34,6 +34,11 @@ extern "C"
         return ((SGR_Recorder*) p)->sampleDo();
     }
 
+    errno_t SGRR_evaluate_rec_buffers(SGRRHandle p, float uradPrecisionThresh)
+    {
+        return ((SGR_Recorder*) p)->evaluateRecBuffers(uradPrecisionThresh);
+    }
+
     const char* get_SGRR_state_descr(SGRRHandle p)
     {
         return ((SGR_Recorder*) p)->getStateDescription();

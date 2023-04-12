@@ -26,6 +26,11 @@ void free_SGR_Recorder(SGRRHandle);
 
 // Do one sample step
 errno_t SGRR_sample_do(SGRRHandle);
+// Evaluate the recorded buffers and generates the reference output
+// uradPrecisionThresh: Threshhold for generating the spot mask
+//      If the precision of a subaperture is better than this,
+//      the sample will be included in the mask.
+errno_t SGRR_evaluate_rec_buffers(SGRRHandle, float);
 // Returns a brief description on the current internal state of the recorder
 const char* get_SGRR_state_descr(SGRRHandle);
 

@@ -34,6 +34,9 @@ static long      fpi_mlapitch = -1;
 static float *shsfoclen;
 static long      fpi_shsfoclen = -1;
 
+static float *minSpotPrec;
+static long      fpi_minSpotPrec = -1;
+
 static uint32_t *loopnumber;
 static long      fpi_loopnumber = -1;
 
@@ -89,6 +92,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &shsfoclen,
         &fpi_shsfoclen
+    },
+    {
+        CLIARG_FLOAT32,
+        ".minSpotPrec",
+        "Minimum spot precision in urad, for generating a mask",
+        "20.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &minSpotPrec,
+        &fpi_minSpotPrec
     },
     {
         CLIARG_UINT32,
@@ -273,8 +285,8 @@ static errno_t compute_function()
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 
-    // === READING RESULTS HERE
-    printf("TODO: Read results from recorder here!\n");
+    // === EVALUATING RESULTS HERE
+    SGRR_evaluate_rec_buffers(recorder, *minSpotPrec);
     //processinfo_update_output_stream(processinfo, outimg.ID);
     free_SGR_Recorder(recorder);
     recorder = NULL;

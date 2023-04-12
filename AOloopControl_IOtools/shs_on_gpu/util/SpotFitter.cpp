@@ -75,6 +75,7 @@ void SpotFitter::makeLineouts(bool forceFullWidth,
                 name,
                 mLineoutLength * 2,
                 mSpotROIs.size());
+        lineoutIH->setPersistent(true);
         
         for (int i = 0; i < mSpotROIs.size(); i++)
             for (int j = 0; j < mLineoutLength; j++)
@@ -102,19 +103,21 @@ void SpotFitter::fitCurves(std::string streamPrefix, bool visualize)
     {
 
         std::string name = streamPrefix;
-        name.append("spotLOFits");
+        name.append("spotLnOuzFits");
         fitIH = SGR_ImageHandler<double>::newImageHandler(
                 name,
                 mLineoutLength * 2,
                 mSpotROIs.size());
+        fitIH->setPersistent(true);
         printImStreamDescr(name, "spot fits");
 
         name = streamPrefix;
-        name.append("spotLOFitErrs");
+        name.append("LnOutFitErrs");
         errIH = SGR_ImageHandler<double>::newImageHandler(
                 name,
                 mLineoutLength * 2,
                 mSpotROIs.size());
+        errIH->setPersistent(true);
         printImStreamDescr(name, "fit errors");
     }
 

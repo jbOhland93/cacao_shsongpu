@@ -12,18 +12,18 @@ extern "C"
 SGR_Recorder::SGR_Recorder(
     IMAGE* in,
     IMAGE* dark,
-    float pxSize,
-    float mlaPitch,
-    float mlaDist,
+    float pxSize_um,
+    float mlaPitch_um,
+    float mlaDist_um,
     uint32_t numSamples,
     const char* streamPrefix,
     bool visualize)
     :
     mpInput(in),
     mpDark(dark),
-    mPxSize(pxSize),
-    mMlaPitch(mlaPitch),
-    mMlaDist(mlaDist),
+    mPxSize_um(pxSize_um),
+    mMlaPitch_um(mlaPitch_um),
+    mMlaDist_um(mlaDist_um),
     mSamplesExpected(numSamples),
     mStreamPrefix(streamPrefix),
     mVisualize(visualize)
@@ -40,14 +40,14 @@ SGR_Recorder::SGR_Recorder(
         {
             // Prepare the test stream prefix
             mTeststreamPrefix = mStreamPrefix;
-            mTeststreamPrefix.append("TEST-");
+            mTeststreamPrefix.append("Vrfy-");
             // Initialize parameters
-            mApertureDiameter = mlaPitch/mPxSize;
-            mGridRectSize = floor(mApertureDiameter);
+            mApertureDiameter_px = mlaPitch_um/mPxSize_um;
+            mGridRectSize = floor(mApertureDiameter_px);
 
             // Prepare the actual spotfinding
             prepareSpotFinding();
-            mState = RECSTATE::READY;
+            mState = RECSTATE::AWAIT_SAMPLE;
         }
         catch (std::runtime_error e)
         {
@@ -60,10 +60,10 @@ SGR_Recorder::SGR_Recorder(
 
 errno_t SGR_Recorder::sampleDo()
 {
-    if (mState != RECSTATE::READY)
+    if (mState != RECSTATE::AWAIT_SAMPLE)
     {
         mErrDescr = "Error while sampling: ";
-        mErrDescr.append("State != READY, cannot evaluate sample.\n");
+        mErrDescr.append("State != AWAIT_SAMPLE, cannot evaluate sample.\n");
         mErrDescr.append("\tCurrent state: ");
         mErrDescr.append(getStateDescription());
         return RETURN_FAILURE;
@@ -105,14 +105,10 @@ errno_t SGR_Recorder::sampleDo()
                 float Dx = 0.5 * (I_xM_y - I_xP_y) / (I_xM_y + I_xP_y - 2*I_xy);
                 float Dy = 0.5 * (I_x_yM - I_x_yP) / (I_x_yM + I_x_yP - 2*I_xy);
 
-                // Add results to integrals
-                float newIntensitySum = mIHintensityREC->read(gX, gY) + I_xy;
-                mIHintensityREC->write(newIntensitySum, gX, gY);
-
-                float newPosXSum = mIHposREC->read(gX, gY) + mpX + Dx;
-                float newPosYSum = mIHposREC->read(gX + mGridSize.mX, gY) + mpY + Dy;
-                mIHposREC->write(newPosXSum, gX, gY);
-                mIHposREC->write(newPosYSum, gX + mGridSize.mX, gY);
+                // Record results
+                mIHintensityREC->write(I_xy, gX, gY);
+                mIHposREC->write(mpX + Dx, gX, gY);
+                mIHposREC->write(mpY + Dy, gX + mGridSize.mX, gY);
             }
 
         mIHintensityREC->updateWrittenImage();
@@ -120,13 +116,27 @@ errno_t SGR_Recorder::sampleDo()
 
         mSamplesAdded++;
         if (mSamplesAdded < mSamplesExpected)
-            mState = RECSTATE::READY;
+            mState = RECSTATE::AWAIT_SAMPLE;
         else
         {
-            mState = RECSTATE::EVALUATING;
-            printf("Collected %d/%d samples. Startig evaluation...\n",
-                mSamplesAdded, mSamplesExpected);
-            return RETURN_SUCCESS;
+            // Check if the recording buffers are completely filled once
+            bool intFullCycle = mIHintensityREC->getImage()->md->CBcycle == 1;
+            bool posFullCycle = mIHposREC->getImage()->md->CBcycle == 1;
+            // Check if the recording buffers are exactly filled once
+            bool intIntCycle = mIHintensityREC->getImage()->md->CBindex == 0;
+            bool posIntCycle = mIHposREC->getImage()->md->CBindex == 0;
+
+            if (intFullCycle && posFullCycle && intIntCycle && posIntCycle)
+            {
+                mState = RECSTATE::READY_FOR_EVAL;
+                return RETURN_SUCCESS;
+            }
+            else
+            {
+                mState = RECSTATE::ERROR;
+                mErrDescr = "The recording buffers are not filled exactly once!";
+                return RETURN_FAILURE;
+            }
         }
 
         return RETURN_SUCCESS;
@@ -135,6 +145,130 @@ errno_t SGR_Recorder::sampleDo()
     {
         mState = RECSTATE::ERROR;
         mErrDescr = "Error while sampling: ";
+        mErrDescr.append(e.what());
+        return RETURN_FAILURE;
+    }
+}
+
+errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
+{
+    if (mState != RECSTATE::READY_FOR_EVAL)
+    {
+        mErrDescr = "Error attempting to start evaluation: ";
+        mErrDescr.append("State != READY_FOR_EVAL, cannot start evaluation.\n");
+        mErrDescr.append("\tCurrent state: ");
+        mErrDescr.append(getStateDescription());
+        return RETURN_FAILURE;
+    }
+
+    mState = RECSTATE::EVALUATING;
+    printf("\n\n=== SGR_Recorder: Evaluating recorded buffers ===\n\n");
+
+    // Check if the recording buffers are completely filled once
+    bool intFullCycle = mIHintensityREC->getImage()->md->CBcycle == 1;
+    bool posFullCycle = mIHposREC->getImage()->md->CBcycle == 1;
+    // Check if the recording buffers are exactly filled once
+    bool intIntCycle = mIHintensityREC->getImage()->md->CBindex == 0;
+    bool posIntCycle = mIHposREC->getImage()->md->CBindex == 0;
+
+    bool cbOK = intFullCycle && posFullCycle && intIntCycle && posIntCycle;
+    if (!cbOK)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error during evaluation: ";
+        mErrDescr.append("The recording buffers are not filled exactly once!");
+        return RETURN_FAILURE;
+    }
+    
+    try {
+        // Initialize the  image handlers for the evaluation
+        spImageHandler(float) IHavgI = SGR_ImageHandler<float>::newImageHandler(
+            makeStreamname("7_Eval-AVGintensity"), mGridSize.mX, mGridSize.mY);
+        IHavgI->setPersistent(mVisualize);
+        spImageHandler(float) IHavgP = SGR_ImageHandler<float>::newImageHandler(
+            makeStreamname("7_Eval-AVGpos"), mGridSize.mX*2, mGridSize.mY);
+        IHavgP->setPersistent(mVisualize);
+        spImageHandler(float) IHstdDvP = SGR_ImageHandler<float>::newImageHandler(
+            makeStreamname("7_Eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
+        IHstdDvP->setPersistent(mVisualize);
+        spImageHandler(uint8_t) IHspotMask = SGR_ImageHandler<uint8_t>::newImageHandler(
+            makeStreamname("7_Eval-SpotMask"), mGridSize.mX, mGridSize.mY);
+        IHspotMask->setPersistent(true);
+
+        // Calculate the stability threshold for the mask
+        float deflectionPrecision = mMlaDist_um * tan(uradPrecisionThresh*1e-6);
+        float pxPrecision = deflectionPrecision / mPxSize_um;
+        printf("Demanded spot stability: %.1f µrad == %.4f px. Generating mask...\n",
+            uradPrecisionThresh, pxPrecision);
+        
+        // Size of the circular buffer == # of frames recorded
+        uint32_t cbSize = mIHintensityREC->getImage()->md->CBsize;
+        // Initialize fields for statistics
+        std::vector<float> vI, vX, vY;
+        float avgI, avgX, avgY, stdDvX, stdDvY, stdDvXY;
+
+        int numOfValidSpots = 0;
+        
+        for (uint32_t ix = 0; ix < mGridSize.mX; ix++)
+            for (uint32_t iy = 0; iy < mGridSize.mY; iy++)
+            {
+                vI = mIHintensityREC->readCircularBufAt(ix,iy);
+                vX = mIHposREC->readCircularBufAt(ix,iy);
+
+                vY = mIHposREC->readCircularBufAt(ix+mGridSize.mX,iy);
+                avgI = avgX = avgY = 0.;
+                for (uint32_t iz = 0; iz < cbSize; iz++)
+                {
+                    avgI += vI.at(iz);
+                    avgX += vX.at(iz);
+                    avgY += vY.at(iz);
+                }
+                avgI /= cbSize;
+                avgX /= cbSize;
+                avgY /= cbSize;
+                IHavgI->write(avgI, ix, iy);
+                IHavgP->write(avgX, ix, iy);
+                IHavgP->write(avgY, ix+mGridSize.mX, iy);
+
+                stdDvX = stdDvY = stdDvXY = 0.;
+                for (uint32_t iz = 0; iz < cbSize; iz++)
+                {
+                    stdDvX += pow(vX.at(iz)-avgX, 2);
+                    stdDvY += pow(vY.at(iz)-avgY, 2);
+                }
+                stdDvXY = sqrt((stdDvX+stdDvY)/cbSize);
+                stdDvX = sqrt(stdDvX/cbSize);
+                stdDvY = sqrt(stdDvY/cbSize);
+
+                IHstdDvP->write(stdDvX, ix, iy);
+                IHstdDvP->write(stdDvY, ix+mGridSize.mX, iy);
+                if (stdDvXY <= pxPrecision)
+                {
+                    IHspotMask->write(1, ix, iy);
+                    numOfValidSpots++;
+                }
+                else
+                    IHspotMask->write(0, ix, iy);
+            }
+
+        IHavgI->updateWrittenImage();
+        IHavgP->updateWrittenImage();
+        IHstdDvP->updateWrittenImage();
+        IHspotMask->updateWrittenImage();
+        printf("Mask generated. %d valid subapertures detected.\n", numOfValidSpots);
+        printf("\nTODOs: Generate 1D arrays of centroids, search rects, and the kernel, load them to GPU.\n\n");
+        // Make 1D arrays
+        // Store fits files
+        // Generate image streams on GPU
+        // Load 1D arrays onto GPU
+
+        mState = RECSTATE::FINISH;
+
+        return RETURN_SUCCESS;
+    } catch (std::runtime_error e)
+    {
+        mState = RECSTATE::ERROR;
+        mErrDescr = "Error during evaluation: ";
         mErrDescr.append(e.what());
         return RETURN_FAILURE;
     }
@@ -149,21 +283,28 @@ const char* SGR_Recorder::getStateDescription()
         mStateDescr.append(mErrDescr);
         mStateDescr.append("\n");
         break;
-    case RECSTATE::INIT:
+    case RECSTATE::INITIALIZING:
         mStateDescr = "Initializing...\n";
         break;
-    case RECSTATE::READY:
+    case RECSTATE::AWAIT_SAMPLE:
         mStateDescr = "Collected ";
         mStateDescr.append(std::to_string(mSamplesAdded));
         mStateDescr.append("/");
         mStateDescr.append(std::to_string(mSamplesExpected));
-        mStateDescr.append(" samples. Ready for next sample ...\n");
+        mStateDescr.append(" samples. Awaiting next sample ...\n");
         break;
     case RECSTATE::SAMPLING:
         mStateDescr = "Evaluating sample...\n";
         break;
+    case RECSTATE::READY_FOR_EVAL: 
+        mStateDescr = "Collected ";
+        mStateDescr.append(std::to_string(mSamplesAdded));
+        mStateDescr.append("/");
+        mStateDescr.append(std::to_string(mSamplesExpected));
+        mStateDescr.append(". Ready for evaluation...\n");
+        break;
     case RECSTATE::EVALUATING: 
-        mStateDescr = "Evaluating full measurement...\n";
+        mStateDescr = "Evaluating recorded buffers ...\n";
         break;
     case RECSTATE::FINISH:
         mStateDescr = "Done!\n";
@@ -190,7 +331,7 @@ const char* SGR_Recorder::makeTestStreamname(const char* name)
 
 void SGR_Recorder::prepareSpotFinding()
 {
-    if (mState != RECSTATE::INIT)
+    if (mState != RECSTATE::INITIALIZING)
     {
         mState = RECSTATE::ERROR;
         mErrDescr = "SGR_Recorder::prepareSpotFinding: Already initialized.\n";
@@ -201,6 +342,7 @@ void SGR_Recorder::prepareSpotFinding()
     // Set up the dark subtraction image handler
     try {
         mIHdarkSubtract = newImHandlerFrmIm(float, makeStreamname("1-darksub"), mpInput);
+        mIHdarkSubtract->setPersistent(mVisualize);
         mImgWidth = mIHdarkSubtract->mWidth;
         mImgHeight = mIHdarkSubtract->mHeight;
         mNumPixels = mIHdarkSubtract->mNumPx;
@@ -236,6 +378,7 @@ void SGR_Recorder::prepareSpotFinding()
     try {
         mIHthresh = newImHandlerFrmIm(uint8_t,
             makeStreamname("2-thresh"), mpInput);
+        mIHthresh->setPersistent(mVisualize);
         mIHthresh->cpy_thresh(mIHdarkSubtract->getImage(), thresh);
     }
     catch (std::runtime_error e)
@@ -251,6 +394,7 @@ void SGR_Recorder::prepareSpotFinding()
     try {
         mIHerode = newImHandlerFrmIm(uint8_t,
             makeStreamname("3-erode"), mIHthresh->getImage());
+        mIHerode->setPersistent(mVisualize);
         std::vector<Point<uint32_t>> particles;
         while (mIHerode->erode(&particles) > 0);
         printf("Number of particles after thresholding: %d\n",
@@ -261,7 +405,7 @@ void SGR_Recorder::prepareSpotFinding()
         // The threshold is determined by the subaperture diameter
         // All particles that are left are used for the spot size measurement.
         particlesFiltered =
-                    filterByMinDistance(particles, 0.8*mApertureDiameter);
+                    filterByMinDistance(particles, 0.8*mApertureDiameter_px);
     }
     catch (std::runtime_error e)
     {
@@ -300,17 +444,20 @@ void SGR_Recorder::prepareSpotFinding()
         // Prepare the convolution image stream
         mIHconvolution = newImHandlerFrmIm(float,
             makeStreamname("5-convol"), mpInput);
+        mIHconvolution->setPersistent(mVisualize);
 
         // Prepare the averaging image streams for intensity and positions
         mIHintensityREC = SGR_ImageHandler<float>::newImageHandler(
-                makeStreamname("6-ampRec"),
+                makeStreamname("6-recordAmp"),
                 mGridSize.mX, mGridSize.mY,
                 mSamplesExpected);
+        mIHintensityREC->setPersistent(mVisualize);
         mIHposREC = SGR_ImageHandler<float>::newImageHandler(
-                makeStreamname("6-spotPosRec"),
+                makeStreamname("6-RecordSpotPos"),
                 mGridSize.mX*2,
                 mGridSize.mY,
                 mSamplesExpected);
+        mIHposREC->setPersistent(mVisualize);
     }
     catch (std::runtime_error e)
     {
@@ -320,7 +467,7 @@ void SGR_Recorder::prepareSpotFinding()
         return;
     }
 
-    printf("\n=== SGR_Recorder: Preparation complete. Ready to collect samples. ===\n\n");
+    printf("\n\n=== SGR_Recorder: Preparation complete. Ready to collect samples. ===\n");
 }
 
 std::vector<Point<uint32_t>> SGR_Recorder::filterByMinDistance(
@@ -328,7 +475,7 @@ std::vector<Point<uint32_t>> SGR_Recorder::filterByMinDistance(
     double minDistance)
 {
     std::vector<Point<uint32_t>> pFiltered;
-    float keepoutDistance = 0.8*mApertureDiameter;
+    float keepoutDistance = 0.8*mApertureDiameter_px;
     for (int i = 0; i < pIn.size(); i++)
     {
         double minDistance = std::numeric_limits<double>::max();
@@ -354,11 +501,11 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
 {
     Point<double> gridAnchor(0, 0);
     for (size_t i = 0; i < fitSpots.size(); i++)
-        gridAnchor += fitSpots.at(i) % mApertureDiameter;
-    gridAnchor = (gridAnchor / fitSpots.size()) + mApertureDiameter/2;
-    gridAnchor = gridAnchor % mApertureDiameter;
-    mGridSize.mX = floor((mImgWidth - gridAnchor.mX)/mApertureDiameter);
-    mGridSize.mY = floor((mImgHeight - gridAnchor.mY)/mApertureDiameter);
+        gridAnchor += fitSpots.at(i) % mApertureDiameter_px;
+    gridAnchor = (gridAnchor / fitSpots.size()) + mApertureDiameter_px/2;
+    gridAnchor = gridAnchor % mApertureDiameter_px;
+    mGridSize.mX = floor((mImgWidth - gridAnchor.mX)/mApertureDiameter_px);
+    mGridSize.mY = floor((mImgHeight - gridAnchor.mY)/mApertureDiameter_px);
     printf("Grid anchor: X=%.3f, Y=%.3f\n", gridAnchor.mX, gridAnchor.mY);
     printf("Grid size: X=%d, Y=%d\n", mGridSize.mX, mGridSize.mY);
     printf("Grid rectangle size: %d\n", mGridRectSize);
@@ -369,8 +516,8 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
         std::vector<Rectangle<uint32_t>> gridRow;
         for (size_t iy = 0; iy < mGridSize.mY; iy++)
         {
-            uint32_t rootX = round(gridAnchor.mX + ix * mApertureDiameter);
-            uint32_t rootY = round(gridAnchor.mY + iy * mApertureDiameter);
+            uint32_t rootX = round(gridAnchor.mX + ix * mApertureDiameter_px);
+            uint32_t rootY = round(gridAnchor.mY + iy * mApertureDiameter_px);
             Rectangle<uint32_t> r(rootX, rootY, mGridRectSize, mGridRectSize);
             gridRow.push_back(r);
         }
@@ -381,6 +528,7 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
     {
         mIHgridVisualization = newImHandlerFrmIm(float,
             makeTestStreamname("gridShow"), mIHdarkSubtract->getImage());
+        mIHgridVisualization->setPersistent(true);
         // Copy the SHS image as visual reference
         mIHgridVisualization->cpy(mIHdarkSubtract->getImage());
         float visMax = mIHgridVisualization->getMaxInROI();
@@ -421,6 +569,7 @@ void SGR_Recorder::buildKernel(double stdDev)
     // Generate the kernel image handler
     mIHkernel = SGR_ImageHandler<float>::newImageHandler(
         makeStreamname("4-kernel"), kernelSize, kernelSize);
+    mIHkernel->setPersistent(mVisualize);
     
     // Build the kernel
     float kernelSum = 0;

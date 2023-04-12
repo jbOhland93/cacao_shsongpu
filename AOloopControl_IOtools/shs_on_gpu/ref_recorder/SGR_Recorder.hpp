@@ -18,9 +18,9 @@ public:
     SGR_Recorder(
         IMAGE* in,           // Raw camera stream
         IMAGE* dark,         // Stream holding a dark for subtraction
-        float pxSize,        // Size of the camera pixels
-        float mlaPitch,      // Distance of the microlenses
-        float mlaDist,       // Distance of the microlenses to the cam chip
+        float pxSize_um,     // Size of the camera pixels in um
+        float mlaPitch_um,   // Distance of the microlenses in um
+        float mlaDist_um,    // Distance of the microlenses to the cam chip in um
         uint32_t numSamples, // number of samples to be recorded
         const char* streamPrefix = "", // Prefix for the ISIO streams
         bool visualize = false); // If true, additional streams for
@@ -28,13 +28,26 @@ public:
 
     // Triggers reading the input- and dark stream
     errno_t sampleDo();
+    // Evaluates the recorded buffers and generates the reference output
+    // uradPrecisionThresh: Threshhold for generating the spot mask
+    //      If the precision of a subaperture is better than this,
+    //      the sample will be included in the mask.
+    errno_t evaluateRecBuffers(float uradPrecisionThresh);
     // Returns a description of the current internal state
     const char* getStateDescription();
 
 private:
     // Internal status
-    enum RECSTATE {ERROR,INIT,READY,SAMPLING,EVALUATING,FINISH};
-    RECSTATE mState = RECSTATE::INIT;
+    // Call getStateDescription to get printable info
+    enum RECSTATE {
+        ERROR,
+        INITIALIZING,
+        AWAIT_SAMPLE,
+        SAMPLING,
+        READY_FOR_EVAL,
+        EVALUATING,
+        FINISH};
+    RECSTATE mState = RECSTATE::INITIALIZING;
     uint32_t mSamplesExpected;  // Number of samples promised by ctor call
     uint32_t mSamplesAdded = 0; // For calculating the average at the end
 
@@ -45,10 +58,10 @@ private:
     std::string mStreamPrefix; // Prefix for all streams to be generated
 
 // SHS parameters
-    float mPxSize;
-    float mMlaPitch;
-    float mMlaDist;
-    float mApertureDiameter;
+    float mPxSize_um;
+    float mMlaPitch_um;
+    float mMlaDist_um;
+    float mApertureDiameter_px;
     
 // Image streams / ImageHandlers
     IMAGE* mpInput;

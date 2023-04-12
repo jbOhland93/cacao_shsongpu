@@ -35,6 +35,8 @@ public:
         std::string name,
         IMAGE* im,
         uint32_t circBufSize = 0);
+    
+    ~SGR_ImageHandler();
 
 // ========== IMAGE HANDLING ==========    
     // Copies the data from im and converts to own datatype
@@ -59,11 +61,19 @@ public:
     // Writes the given element at teh x/y position into the write buffer
     void write(T e, uint32_t x, uint32_t y)
         { mpBuffer[toROIy(y)*mWidth + toROIx(x)] = e; }
+    // Reads all the samples at x/y from the circular buffer
+    std::vector<T> readCircularBufAt(uint32_t x, uint32_t y)
+    {
+        std::vector<T> v;
+        T* cbBuf = (T*) mImage.CBimdata;
+        for (int i = 0; i < mImage.md->CBsize; i++)
+            v.push_back(cbBuf[i*mNumPx + y*mWidth + x]);
+        return v;
+    }
     // Setting a ROI
     void setROI(Rectangle<uint32_t> roi)
     {
-        if (roi.x()+roi.w() >= mWidth ||
-            roi.y()+roi.h() >= mHeight)
+        if (roi.x()+roi.w() >= mWidth || roi.y()+roi.h() >= mHeight)
             throw std::runtime_error("SGR_ImageHandler::setROI: out of range.");
         else
             mROI = roi;
@@ -74,6 +84,8 @@ public:
     // Resetting the ROI
     void unsetROI() { mROI = Rectangle<uint32_t>(0,0, mWidth, mHeight); }
     Rectangle<uint32_t> getROI() { return mROI; }
+    // Makes the image stream stay after destruction
+    void setPersistent(bool persistent) { mPersistent = persistent; }
 
 // ========== OPERATIONS ==========
     // Updates the image and gets the new write buffer
@@ -116,6 +128,7 @@ public:
 private:
     IMAGE mImage;
     T* mpBuffer = nullptr;
+    bool mPersistent = false;
     Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
 // ========== CONSTRUCTORS ==========
     SGR_ImageHandler(); // No publically available default ctor
@@ -228,6 +241,16 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerfrmImage(
     spIH->cpy(im);
     return spIH;
 }
+
+// ===== Destructor =====
+template <typename T>
+inline SGR_ImageHandler<T>::~SGR_ImageHandler()
+{
+    if (!mPersistent)
+        ImageStreamIO_destroyIm(&mImage);
+}
+
+// ===== specifications for image handling =====
 
 template <typename T>
 inline void SGR_ImageHandler<T>::cpy(IMAGE* im)
@@ -428,7 +451,7 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                     // Set to zero.
                     mpBuffer[y*mWidth + x] = 0;
                 }
-                else if (neighbours < 4)
+                else if (neighbours < 5)
                     // Edgepixel - set to zero.
                     mpBuffer[y*mWidth + x] = 0;
                 else
