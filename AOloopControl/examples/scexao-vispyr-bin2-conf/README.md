@@ -3,17 +3,7 @@
 SCExAO system pyramid WFS.
 Low-resolution WFS mode (120x120)
 
-cacao-task-manager tasks for this example :
-
-~~~
- 0           INITSETUP             DONE        READY   Initial setup:
- 1     GETSIMCONFFILES             DONE        READY   Get simulation files:
- 2          TESTCONFIG             DONE        READY   Test configuration:
- 3          CACAOSETUP             DONE        READY   Run cacao-setup:
-~~~
-Subsequent tasks can perform specific parts of the AO loop.
-
-
+This is a (nearly) full-featured example for a single input / single output control loop.
 
 
 # Running the example
@@ -70,7 +60,7 @@ cacao-aorun-002-simwfs -w start
 
 
 ```bash
-cacao-aorun-005-takedark
+cacao-aorun-005-takedark -n 2000
 ```
 
 
@@ -124,8 +114,8 @@ The following files are written to ./conf/RMmodesDM/
 
 ```bash
 # Acquire response matrix - Hadamard modes
-# 20 cycles - default is 10.
-cacao-aorun-030-acqlinResp -n 20 -w HpokeC
+# 6 cycles - default is 10.
+cacao-aorun-030-acqlinResp -n 6 -w HpokeC
 ```
 
 ### Decode Hadamard matrix
@@ -143,7 +133,7 @@ cacao-aorun-032-RMmkmask
 ### Create synthetic (Fourier) response matrix
 
 ```bash
-cacao-aorun-033-RM-mksynthetic -c 20
+cacao-aorun-033-RM-mksynthetic -c 25
 ```
 
 
@@ -152,7 +142,7 @@ cacao-aorun-033-RM-mksynthetic -c 20
 Compute control modes, in both WFS and DM spaces.
 
 ```bash
-cacao-fpsctrl setval compstrCM svdlim 0.1
+cacao-fpsctrl setval compstrCM svdlim 0.01
 ```
 Then run the compstrCM process to compute CM and load it to shared memory :
 ```bash
@@ -197,6 +187,14 @@ cacao-fpsctrl setval mfilt loopmult 0.98
 cacao-fpsctrl setval mfilt loopON ON
 
 ```
+
+# Cleanup
+
+```bash
+cacao-task-manager -C 0 scexao-vispyr-bin2
+rm -rf .vispyr2.cacaotaskmanager-log
+```
+
 
 
 THE END
