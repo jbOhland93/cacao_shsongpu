@@ -143,7 +143,7 @@ private:
     // Transform from ROI coordinates to image coordinates
     uint32_t toROIx(uint32_t x)
     {
-        if (x < 0 || x >= mROI.w())
+        if (x >= mROI.w()) // x is uint3_t, thus always > 0
             throw std::runtime_error("SGR_ImageHandler::toROIx: x is out of range.");
         else
             return x + mROI.x();
@@ -151,7 +151,7 @@ private:
     // Transform from image coordinates to ROI coordinates
     uint32_t toROIy(uint32_t y)
     {
-        if (y < 0 || y >= mROI.h())
+        if (y >= mROI.h()) // y is uint3_t, thus always > 0
             throw std::runtime_error("SGR_ImageHandler::toROIx: x is out of range.");
         else
             return y + mROI.y();

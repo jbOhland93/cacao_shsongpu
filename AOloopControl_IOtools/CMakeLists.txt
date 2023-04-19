@@ -23,6 +23,9 @@ set(SOURCEFILES
     shs_on_gpu/util/SpotFitter.cpp
     shs_on_gpu/util/OneDGaussianFit.cpp
     shs_on_gpu/shs_gpu.c
+    shs_on_gpu/evaluator/SGE_Evaluator.cu
+    shs_on_gpu/evaluator/SGE_Evaluator_interface.cpp
+    shs_on_gpu/evaluator/SGE_GridLayout.cu
 )
 
 set(INCLUDEFILES
@@ -40,7 +43,12 @@ set(INCLUDEFILES
     shs_on_gpu/util/Rectangle.hpp
     shs_on_gpu/util/SpotFitter.hpp
     shs_on_gpu/util/OneDGaussianFit.hpp
+    shs_on_gpu/util/CudaSGEutil.hpp
     shs_on_gpu/shs_gpu.h
+    shs_on_gpu/evaluator/SGE_Evaluator.hpp
+    shs_on_gpu/evaluator/SGE_Evaluator_interface.h
+    shs_on_gpu/evaluator/SGE_GridLayout.hpp
+    shs_on_gpu/evaluator/SGE_Kernel.hpp
 )
 
 

@@ -5,7 +5,7 @@
  */
 
 #include "CommandLineInterface/CLIcore.h"
-//#include "ref_recorder/SGR_Recorder_interface.h"
+#include "evaluator/SGE_Evaluator_interface.h"
 //#include <math.h>
 
 static int cmdindex;
@@ -127,15 +127,15 @@ static errno_t help_function()
 
 
 
-static errno_t streamprocess()
+static errno_t streamprocess(SGEEHandle evaluator)
 {
     DEBUG_TRACE_FSTART();
     
     // Code
-    printf("SHS on GPU code is executed ...\n");
+    errno_t retVal = SGEE_eval_do(evaluator);
 
     DEBUG_TRACE_FEXIT();
-    return RETURN_SUCCESS;
+    return retVal;
 }
 
 
@@ -158,14 +158,27 @@ static errno_t compute_function()
     {
         // procinfo is accessible here
     }
+
+    // === SET UP EVALUATOR HERE
+    // Construct the recorder
+    SGEEHandle evaluator = create_SGE_Evaluator(
+        inimg.im,
+        darkimg.im);
+;
+    // ===
     
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
-        streamprocess();
+        streamprocess(evaluator);
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 
+    // === EVALUATING RESULTS HERE
     //processinfo_update_output_stream(processinfo, outimg.ID);
+    printf("== Deleting.\n");
+    free_SGE_Evaluator(evaluator);
+    evaluator = NULL;
+    // ===
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;

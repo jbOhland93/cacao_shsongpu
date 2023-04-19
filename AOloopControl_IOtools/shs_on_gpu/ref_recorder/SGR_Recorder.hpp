@@ -7,9 +7,6 @@
 #include <memory>
 #include <vector>
 
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_matrix.h>
-
 // A class for recording SHS references
 class SGR_Recorder
 {
