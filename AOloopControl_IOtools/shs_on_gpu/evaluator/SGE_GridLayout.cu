@@ -8,83 +8,68 @@
 SGE_GridLayout::SGE_GridLayout(
     int device,
     int numSubapertures,
-    int kernelSize,
-    int warpsPerBlock)
+    int kernelSize)
     : mNumSubapertures(numSubapertures),
       mKernelSize(kernelSize),
       mNumKernelPx(kernelSize*kernelSize),
-      mWarpsPerBlock(warpsPerBlock),
       mDeviceID(device)
 {
-    // Get device properties
-    cudaDeviceProp prop;
-    cudaError_t err = cudaGetDeviceProperties(&prop, device);
-    printCE(err)
-    int MPcount = prop.multiProcessorCount;
-    mNumCudaCores = getCudaCoresPerSM(prop.major, prop.minor) * MPcount;
-    mWarpSize = prop.warpSize;
-
-    // Calc grid dimensioning
-    mBlockSize = mWarpSize * warpsPerBlock;
-    float coresPerAperture = mNumCudaCores / (float) numSubapertures;
-    float blocksPerAperture = coresPerAperture / mBlockSize;
-    mAperturesPerBlockBulk = ceil(1/blocksPerAperture);
-    mNumBlocks = ceil(numSubapertures / (float) mAperturesPerBlockBulk);
-    mAperturesPerBlockLast = mNumSubapertures - (mNumBlocks-1)*mAperturesPerBlockBulk;
-
-    // Calc aperture dimensioning
-    // We need an area of 4x4 pixels after correlation.
-    // To perform this correlation, the kernel will overlap on each side.
-    // 2*correlMargin accounts for this overlap.
-    mCorrelMargin = (kernelSize - 1) / 2;
-    mWindowSize = 4 + mCorrelMargin * 2;
-    mNumWindowPx = mWindowSize * mWindowSize;
-    int pixelsStreamedPerBlock = mNumWindowPx * mAperturesPerBlockBulk;
-    mStreamedPxPerThread = ceil(pixelsStreamedPerBlock / (float) mBlockSize);
-    int pxCorrelPerBlock = mNumCorrelPosPerAp * mAperturesPerBlockBulk;
-    mCorrelCalcsPerThread = ceil(mKernelSize*mKernelSize * pxCorrelPerBlock / (float) mBlockSize);
-
-    // Set shared memory organization
-    mShmSize = 0;
-    
-    // Memory for pixel storage
-    mShmOffsetPixels = 0;
-    mShmApStridePixels = mNumWindowPx;
-    int memsizePixels = mShmApStridePixels * mAperturesPerBlockBulk;
-    mShmSize += memsizePixels * sizeof(float);
-    // Memory for kernel storage
-    mShmOffsetKernel = mShmOffsetPixels + memsizePixels;
-    int memsizeKernel = mKernelSize * mKernelSize;
-    mShmSize += memsizeKernel * sizeof(float);
-    // Memory for the aperture window roots
-    mShmOffsetRootsX = mShmOffsetKernel + memsizeKernel;
-    int memsizeRoots = mNumSubapertures;
-    mShmSize += memsizeRoots * sizeof(int); // sizeof(int) == sizeof(float)
-    mShmOffsetRootsY = mShmOffsetRootsX + memsizeRoots;
-    mShmSize += memsizeRoots * sizeof(int); // sizeof(int) == sizeof(float)
-    // Memory for the correlation target coordinates;
-    mShmOffsetCCoordX = mShmOffsetRootsY + memsizeRoots;
-    int memsizeCCoord = mNumCorrelPosPerAp;
-    mShmSize += memsizeCCoord * sizeof(int);
-    mShmOffsetCCoordY = mShmOffsetCCoordX + memsizeCCoord;
-    mShmSize += memsizeCCoord * sizeof(int);
-    // Memory for correlation result storage
-    mShmOffsetCorrelRes = mShmOffsetCCoordY + memsizeCCoord;
-    mShmApStrideCorrelRes = mNumCorrelPosPerAp;
-    int memsizeCorrelResult = mShmApStrideCorrelRes * mAperturesPerBlockBulk;
-    mShmSize += memsizeCorrelResult * sizeof(float);
-
-    printReport();
+    getGPUproperties();
+    calcGridProperties();
+    setSHMlayout();
 
     // Copy this object to the GPU
     cudaMalloc(&mpd_deviceCopy, sizeof(SGE_GridLayout));
     cudaMemcpy(mpd_deviceCopy, this, sizeof(SGE_GridLayout), cudaMemcpyHostToDevice);
+
+    // Finally, print a report about the grid layout.
+    printReport();
 }
 
 SGE_GridLayout::~SGE_GridLayout()
 {
     // Delete the device copy from GPU memory
     cudaFree(mpd_deviceCopy);
+}
+
+void SGE_GridLayout::gnrtCorrelOffsetsFrmRoots(int* xOff, int* yOff)
+{
+    for(int i = 0;
+        i < SGE_GridLayout::getNumConvolutionsPerAp();
+        i++)
+    {
+        if (i < 2)
+        {
+            xOff[i] = mCorrelMargin + i + 1;
+            yOff[i] = mCorrelMargin;
+        }
+        else if (i < 6)
+        {
+            xOff[i] = mCorrelMargin + i - 2;
+            yOff[i] = mCorrelMargin + 1;
+        }
+        else if (i < 10)
+        {
+            xOff[i] = mCorrelMargin + i - 6;
+            yOff[i] = mCorrelMargin + 2;
+        }
+        else if (i < 12)
+        {
+            xOff[i] = mCorrelMargin + i - 9;
+            yOff[i] = mCorrelMargin + 3;
+        }
+    }
+}
+
+void SGE_GridLayout::getGPUproperties()
+{
+    // Get device properties
+    cudaDeviceProp prop;
+    cudaError_t err = cudaGetDeviceProperties(&prop, mDeviceID);
+    printCE(err)
+    int MPcount = prop.multiProcessorCount;
+    mNumCudaCores = getCudaCoresPerSM(prop.major, prop.minor) * MPcount;
+    mWarpSize = prop.warpSize;
 }
 
 int SGE_GridLayout::getCudaCoresPerSM(int major, int minor)
@@ -130,6 +115,53 @@ int SGE_GridLayout::getCudaCoresPerSM(int major, int minor)
     }
 }
 
+void SGE_GridLayout::calcGridProperties()
+{
+    // Calc grid dimensioning
+    mBlockSize = mNumKernelPx;
+    mBlockSize *= mNumCorrelPosPerAp;
+    mWarpsPerBlock = mBlockSize/mWarpSize + 1;
+    mBlockSize = mWarpsPerBlock * mWarpSize;
+    mNumBlocks = mNumSubapertures;
+
+    // Calc aperture dimensioning
+    // We need an area of 4x4 pixels after correlation.
+    // To perform this correlation, the kernel will overlap on each side.
+    // 2*correlMargin accounts for this overlap.
+    mCorrelMargin = (mKernelSize - 1) / 2;
+    mWindowSize = 4 + mCorrelMargin * 2;
+    mNumWindowPx = mWindowSize * mWindowSize;
+}
+
+void SGE_GridLayout::setSHMlayout()
+{
+    
+    mShmSize = 0;
+    int curOffset = 0;
+
+    #define setMemoryBlock(memName, memSize) \
+        memName ## Offset = curOffset; \
+        memName ## Size = memSize; \
+        mShmSize += memSize; \
+        curOffset += memSize;
+
+    // Holding window pixels in shm
+    setMemoryBlock(mShmImData, mNumWindowPx);
+    // Holding kernel pixels in shm
+    setMemoryBlock(mShmKernel, mNumKernelPx);
+    // Holding the convolution coordinates
+    setMemoryBlock(mShmConvCoordsX, mNumCorrelPosPerAp);
+    setMemoryBlock(mShmConvCoordsY, mNumCorrelPosPerAp);
+    // Buffer for the calculation of the convulution
+    setMemoryBlock(mShmConvBuf1, mNumCorrelPosPerAp*mNumKernelPx);
+    setMemoryBlock(mShmConvBuf2, mNumCorrelPosPerAp*mNumKernelPx);
+    // Holding the convolution results
+    setMemoryBlock(mShmConvResult, mNumCorrelPosPerAp);
+
+    // Convert the size to bytes
+    mShmSize *= sizeof(float); // Note that sizeof(float) == sizeof(int)
+}
+
 void SGE_GridLayout::printReport()
 {
     cudaDeviceProp prop;
@@ -155,25 +187,8 @@ void SGE_GridLayout::printReport()
     printf("- Warps per block:\t\t\t%d\n", mWarpsPerBlock);
     printf("- Block size:\t\t\t\t%d\n", mBlockSize);
     printf("- # of blocks:\t\t\t\t%d\n", mNumBlocks);
-    printf("- Max. apertures per block:\t\t%d\n", mAperturesPerBlockBulk);
-    printf("- Streamed px. per thread:\t\t%d\n", mStreamedPxPerThread);
-    printf("- Correl. mul. OPs per thread:\t\t%d\n", mCorrelCalcsPerThread);
-
-    printf("\nGrid performance:\n");
-    printf("- Core usage:\t\t\t\t%d (%.1f)\n",
+    printf("- Core usage:\t\t\t\t%d (%.1f%%)\n",
         mNumBlocks*mBlockSize, mNumBlocks*mBlockSize/(float)mNumCudaCores*100);
-
-    int streamingCoresInBulk = (mNumBlocks-1)*ceil(mNumWindowPx*mAperturesPerBlockBulk / (float) mStreamedPxPerThread);
-    int streamingCoresInLast = ceil(mNumWindowPx*mAperturesPerBlockLast / (float) mStreamedPxPerThread);
-    int totalStreamingCores = streamingCoresInBulk + streamingCoresInLast;
-    printf("- Cores participating in streaming: \t%d (%.1f)\n",
-        totalStreamingCores, totalStreamingCores/(float)mNumCudaCores*100);
-
-    int correlCoresInBulk = (mNumBlocks-1)*ceil(mNumCorrelPosPerAp*mKernelSize*mKernelSize*mAperturesPerBlockBulk / (float) mCorrelCalcsPerThread);
-    int correlCoresInLast = ceil(mNumCorrelPosPerAp*mKernelSize*mKernelSize*mAperturesPerBlockLast / (float) mCorrelCalcsPerThread);
-    int totalCorrelCores = correlCoresInBulk + correlCoresInLast;
-    printf("- Cores participating in correlation: \t%d (%.1f)\n",
-        totalCorrelCores, totalCorrelCores/(float)mNumCudaCores*100);
 
     printf("\n=== SGE_GridLayout end. ===\n\n");
 }

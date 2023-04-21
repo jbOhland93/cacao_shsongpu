@@ -1,421 +1,229 @@
 #include <cuda.h>
 #include "SGE_GridLayout.hpp"
 
-__device__ void getCorrellationIndicees(
-    int threadIndex,
-    int numCorrelOpsPerThread,
-    int kernelSize,
-    int numCorrelCoordsPerAp,
-    int* apertureIndexOut,
-    int* coordinateIndexOut,
-    int* kernelIndexYOut,
-    int* kernelIndexXOut)
-{
-    int opIdx = threadIndex * numCorrelOpsPerThread;
-    
-    int opsPerCoord = kernelSize*kernelSize;
-    int opsPerAp = numCorrelCoordsPerAp*opsPerCoord;
-
-    *apertureIndexOut = opIdx / opsPerAp;
-    opIdx -= *apertureIndexOut * opsPerAp;
-    *coordinateIndexOut = opIdx / opsPerCoord;
-    opIdx -= *coordinateIndexOut * opsPerCoord;
-    *kernelIndexYOut = opIdx / kernelSize;
-    *kernelIndexXOut = opIdx - *kernelIndexYOut * kernelSize;
-}
-
-__global__ void evaluateSpot(
-    uint16_t* h_imageData,
-    float* d_darkData,
-    float* d_kernel,
-    int imW,
-    uint16_t* d_roiPosX,
-    uint16_t* d_roiPosY,
-    SGE_GridLayout* d_gridLayout,
-    float* d_intensity,
-    float* d_convImage)
-{
-    //if (blockIdx.x < d_gridLayout->mNumSubapertures)
-    //{
-        // Initialize shared memory
-        extern __shared__ float shm[];
-        __shared__ char* gridLayoutSpace[sizeof(SGE_GridLayout)];
-
-        // Copy the grid layout
-        if (threadIdx.x == 0)
-            *(SGE_GridLayout*)gridLayoutSpace = *d_gridLayout;
-        __syncthreads();
-
-        // Chop up the shared memory
-        SGE_GridLayout* gridLayout = (SGE_GridLayout*)gridLayoutSpace;
-        float* imageData = &shm[gridLayout->mShmOffsetPixels];
-        float* kernel = &shm[gridLayout->mShmOffsetKernel];
-        float* correlationResult = &shm[gridLayout->mShmOffsetCorrelRes];
-        int* apRootsX = (int*)&shm[gridLayout->mShmOffsetRootsX];
-        int* apRootsY = (int*)&shm[gridLayout->mShmOffsetRootsY];
-        int* correlCoordX = (int*)&shm[gridLayout->mShmOffsetCCoordX];
-        int* correlCoordY = (int*)&shm[gridLayout->mShmOffsetCCoordY];
-
-        // Fill in static data to shared memory
-        int numSubapertures = gridLayout->mNumSubapertures;
-        int kernelSize = gridLayout->mKernelSize;
-        int apPerBlockBulk = gridLayout->mAperturesPerBlockBulk;
-        if (threadIdx.x < gridLayout->mNumCorrelPosPerAp)
-            gridLayout->gnrtCorrelOffsetsFrmRoots(shm, threadIdx.x);
-        else if (threadIdx.x == blockDim.x-1)
-            for (int i = 0; i < numSubapertures; i++)
-                apRootsX[i] = d_roiPosX[i];
-        else if (threadIdx.x == blockDim.x-2)
-            for (int i = 0; i < numSubapertures; i++)
-                apRootsY[i] = d_roiPosY[i];
-        else if (threadIdx.x == blockDim.x-3)
-            for (int i = 0; i < kernelSize*kernelSize; i++)
-                kernel[i] = d_kernel[i];
-
-        // Get aperture indicees
-        int apIndex, apX, apY;
-        gridLayout->getStreamStartIndicees(blockIdx.x, threadIdx.x, &apIndex, &apX, &apY);
-        int blockApIndex = apIndex % apPerBlockBulk;
-        __syncthreads();
-
-        // Stream pixels
-        int winSize;
-        int numAperturePixels;
-        int pixelIndex;
-        int toStream;
-        int rootX;
-        int rootY;
-        if (apIndex > numSubapertures)
-            toStream = 0;
-        else
-        {
-            winSize = gridLayout->mWindowSize;
-            numAperturePixels = gridLayout->mNumWindowPx;
-            pixelIndex = blockApIndex*numAperturePixels + apY*winSize + apX;
-            toStream = gridLayout->mStreamedPxPerThread;
-            rootX = apRootsX[apIndex];
-            rootY = apRootsY[apIndex];
-        }
-        while (toStream > 0)
-        {
-            int imX = rootX + apX;
-            int imY = rootY + apY;
-            imageData[pixelIndex] =
-                (float) h_imageData[imY*imW + imX]
-                - d_darkData[imY*imW + imX];
-            toStream--;
-            // If there are still pixels to stream, update indices
-            if (toStream > 0)
-            {
-                pixelIndex++;
-                apX++;
-                if (apX == winSize)
-                {
-                    apX = 0;
-                    apY++;
-                    if (apY == winSize)
-                    {
-                        apY = 0;
-                        apIndex++;
-                        if (apIndex > numSubapertures)
-                            toStream = 0;
-                        else
-                        {
-                            rootX = apRootsX[apIndex];
-                            rootY = apRootsY[apIndex];
-                        }
-                    }
-                }
-            }
-        }
-
-        // Fetch data for the convolution before syncing
-        int firstApertureInBlock = blockIdx.x * apPerBlockBulk;
-        int correlOpsPerThread = gridLayout->mCorrelCalcsPerThread;
-        int correlCoordsPerAprt = gridLayout->mNumCorrelPosPerAp;
-
-        __syncthreads();
-        
-        // Do tile processing
-        int blckApertIdx;
-        int coordIdx;
-        int kIdxY;
-        int kIdxX;
-        getCorrellationIndicees(
-            threadIdx.x,
-            correlOpsPerThread,
-            kernelSize,
-            correlCoordsPerAprt,
-            &blckApertIdx,
-            &coordIdx,
-            &kIdxY,
-            &kIdxX);
-
-
-        int apertIdx = blockIdx.x*apPerBlockBulk + blckApertIdx;
-        if (apertIdx < numSubapertures)
-        {
-            int correlMargin = gridLayout->mCorrelMargin;
-
-            int rootX = apRootsX[apertIdx];
-            int rootY = apRootsY[apertIdx];
-            int apCoordX = correlCoordX[coordIdx];
-            int apCoordY = correlCoordY[coordIdx];
-
-
-
-// Set to 0 if needed
-        if (threadIdx.x == 0)
-            for (int blkAp = 0; blkAp < apPerBlockBulk; blkAp++)
-                for (int coordIdx = 0; coordIdx < correlCoordsPerAprt; coordIdx++)
-                    {
-                        int apIdx = blkAp + blockIdx.x * apPerBlockBulk;
-                        if (apIdx < numSubapertures)
-                            correlationResult[blkAp*correlCoordsPerAprt + coordIdx] = 0;
-                    }
-
-
-
-
-            // Do convlution!
-            int toConvolve = correlOpsPerThread;
-            float sum = 0.f;
-            while (toConvolve > 0)
-            {
-                sum += 1;
-                    //kernel[kIdxY*kernelSize+kIdxX] *
-                    //abs(imageData[blckApertIdx*numAperturePixels + apCoordY*winSize + apCoordX]);
-                correlationResult[blckApertIdx*correlCoordsPerAprt + coordIdx] = 1;
-                toConvolve--;
-                // Done?
-                if (toConvolve == 0)
-                {
-                    // Add sum to correl results
-                    //correlationResult[blckApertIdx*correlCoordsPerAprt + coordIdx] = 1;//+= sum;
-                }
-                else
-                {
-                    kIdxX++;
-                    // Kernel row completed?
-                    if (kIdxX == kernelSize)
-                    {
-                        kIdxX = 0;
-                        kIdxY++;
-                        // Kernel completed?
-                        if (kIdxY == kernelSize)
-                        {
-                            // Add sum to the correlation result
-                            //correlationResult[blckApertIdx*correlCoordsPerAprt + coordIdx] = 1;//+= sum;
-                            sum = 0;
-                            kIdxY = 0;
-                            coordIdx++;
-                            if (coordIdx == correlCoordsPerAprt)
-                            {
-                                coordIdx = 0;
-                                apertIdx++;
-                                blckApertIdx++;
-                                if (apertIdx == numSubapertures && blckApertIdx == apPerBlockBulk)
-                                    break;
-                                else
-                                {
-                                    rootX = apRootsX[apertIdx];
-                                    rootY = apRootsY[apertIdx];
-                                }
-                            }
-                            apCoordX = correlCoordX[coordIdx];
-                            apCoordY = correlCoordY[coordIdx];
-                        }
-                    }
-                }
-            }
-        }
-        __syncthreads();
-        // Copy convoluted image to array for testing purposes
-        if (threadIdx.x == 0)
-        {
-            for (int x = 0; x < 480; x++)
-                for (int y = 0; y < 424; y++)
-                    d_convImage[y*imW + x] = 0;
-
-            for (int blkAp = 0; blkAp < apPerBlockBulk; blkAp++)
-                for (int coordIdx = 0; coordIdx < correlCoordsPerAprt; coordIdx++)
-                    {
-                        int apIdx = blkAp + blockIdx.x * apPerBlockBulk;
-                        if (apIdx < numSubapertures)
-                        {
-                            int rootX = apRootsX[apIdx];
-                            int rootY = apRootsY[apIdx];
-                            int apX = correlCoordX[coordIdx];
-                            int apY = correlCoordY[coordIdx];
-                            d_convImage[(rootY+apY)*imW + rootX + apX]
-                                = correlationResult[blkAp*correlCoordsPerAprt + coordIdx];
-                        }
-                    }
-        }
-
-        int inspectedIdx = 107;
-        if (threadIdx.x == inspectedIdx && blockIdx.x == 79 )
-        {
-            //float sum = 0.;
-            //int start = gridLayout->mNumWindowPx * (threadIdx.x);
-            //int end = gridLayout->mNumWindowPx * (threadIdx.x+1);
-            //for (int x = start; x < end; x++)
-            //    sum += imageData[x];
-            d_intensity[0] = threadIdx.x;
-            d_intensity[1] = apertIdx;
-            d_intensity[2] = coordIdx;
-            d_intensity[3] = kIdxX;
-            d_intensity[4] = kIdxY;
-            d_intensity[5] = correlOpsPerThread;
-            d_intensity[6] = correlCoordsPerAprt;
-        }
-}
-
-
-__global__ void evaluateSingleSpot(
-    uint16_t* h_imageData,
-    float* d_darkData,
-    float* d_outputImage,
-    int imW,
-    int windowRootX,
-    int windowRootY,
-    int windowSize,
-    float* d_kernel,
-    int kernelSize,
-    int* d_convCoordsX,
-    int* d_convCoordsY,
-    int numConvCoords)
-{
-    extern __shared__ float shm[];
-// Chop up dynamic shared memory
-    int numPxInWindow = windowSize*windowSize;
-    int numPxInKernel = kernelSize*kernelSize;
-    float* imData = shm;
-    float* kernel = &shm[numPxInWindow];
-    int* convCoordsX = (int*)&shm[numPxInWindow + numPxInKernel];
-    int* convCoordsY = (int*)&shm[numPxInWindow + numPxInKernel + numConvCoords];
-
-// == Stream data into shared memory
-    if (threadIdx.x < numPxInWindow)
-    {
-        int imX = windowRootX + threadIdx.x % windowSize;
-        int imY = windowRootY + threadIdx.x / windowSize;
-        imData[threadIdx.x] =
-            (float)h_imageData[imY*imW+imX]
-            - d_darkData[imY*imW+imX];
-    }
-    else if (threadIdx.x < numPxInWindow + numPxInKernel)
-    {
-        int idx = threadIdx.x - numPxInWindow ;
-        kernel[idx] = d_kernel[idx];
-    }
-    else if (threadIdx.x < numPxInWindow + numPxInKernel + numConvCoords)
-    {
-        int idx = threadIdx.x - numPxInWindow - numPxInWindow;
-        convCoordsX[idx] = d_convCoordsX[idx];
-    }
-    else if (threadIdx.x < numPxInWindow + numPxInKernel + 2*numConvCoords)
-    {
-        int idx = threadIdx.x - numPxInWindow - numPxInWindow - numConvCoords;
-        convCoordsY[idx] = d_convCoordsX[idx];
-    }
-
-// == Sanity check: Feed streamed pixels into output image
-    if (threadIdx.x < numPxInWindow)
-    {
-        int imX = windowRootX + threadIdx.x % windowSize;
-        int imY = windowRootY + threadIdx.x / windowSize;
-        d_outputImage[imY*imW+imX] = imData[threadIdx.x]+10;
-    }
-}
-
 __global__ void evaluateSpots(
     uint16_t* h_imageData,
     float* d_darkData,
-    float* d_outputImage,
     int imW,
-    uint16_t* windowRootsX,
-    uint16_t* windowRootsY,
-    int windowSize,
+    SGE_GridLayout* d_GridLayout,
+    uint16_t* d_windowRootsX,
+    uint16_t* d_windowRootsY,
     float* d_kernel,
-    int kernelSize,
     int* d_convCoordsX,
     int* d_convCoordsY,
-    int numConvCoords,
-    int correlMargin,
+    float* d_debugImage,
     float* d_debugBuffer)
-{
-    extern __shared__ float shm[];
-// Chop up dynamic shared memory
-    int numPxInWindow = windowSize*windowSize;
-    int numPxInKernel = kernelSize*kernelSize;
-    float* imData = shm;
-    float* kernel = &shm[numPxInWindow];
-    int* convCoordsX = (int*)&shm[numPxInWindow + numPxInKernel];
-    int* convCoordsY = (int*)&shm[numPxInWindow + numPxInKernel + numConvCoords];
-    float* convResults = &shm[numPxInWindow + numPxInKernel + 2*numConvCoords];
+{    
+// == Initialize local variables
+    // Copy the grid layout to the register
+    // But avoid calling a ctor or dtor
+    char glBuf[sizeof(SGE_GridLayout)];
+    SGE_GridLayout* GL = (SGE_GridLayout*)glBuf;
+    *GL = *d_GridLayout;
+    // Get the root of the current window
+    int windowRootX = d_windowRootsX[blockIdx.x];
+    int windowRootY = d_windowRootsY[blockIdx.x];
 
-    int windowRootX = windowRootsX[blockIdx.x];
-    int windowRootY = windowRootsY[blockIdx.x];
+// == Chop up dynamic shared memory
+    extern __shared__ float shm[];
+    // Array for the image data of the block window
+    float* imData = &shm[GL->mShmImDataOffset];
+    // Array for the kernel values for the convolution
+    float* kernel = &shm[GL->mShmKernelOffset];
+    // Array for the X-coordinates of the convolution area
+    int* convCoordsX = (int*)&shm[GL->mShmConvCoordsXOffset];
+    // Array for the Y-coordinates of the convolution area
+    int* convCoordsY = (int*)&shm[GL->mShmConvCoordsYOffset];
+    // Array for buffering the intermediate results of the convolution
+    float* convBuffer1 = &shm[GL->mShmConvBuf1Offset];
+    // Array for buffering the intermediate results of the convolution
+    float* convBuffer2 = &shm[GL->mShmConvBuf2Offset];
+    // Array for the result of the local convolution
+    float* convResults = &shm[GL->mShmConvResultOffset];
+    
 // == Stream data into shared memory
-    if (threadIdx.x < numPxInWindow)
-    {
-        int imX = windowRootX + threadIdx.x % windowSize;
-        int imY = windowRootY + threadIdx.x / windowSize;
+    if (threadIdx.x < GL->mNumWindowPx)
+    {   // Stream pixel values to shm and do dark subtraction
+        int imX = windowRootX + threadIdx.x % GL->mWindowSize;
+        int imY = windowRootY + threadIdx.x / GL->mWindowSize;
         imData[threadIdx.x] =
             (float)h_imageData[imY*imW+imX]
             - d_darkData[imY*imW+imX];
     }
-    else if (threadIdx.x < numPxInWindow + numPxInKernel)
-    {
-        int idx = threadIdx.x - numPxInWindow ;
+    else if (threadIdx.x < GL->mNumWindowPx + GL->mNumKernelPx)
+    {   // Stream kernel values to shm
+        int idx = threadIdx.x - GL->mNumWindowPx ;
         kernel[idx] = d_kernel[idx];
     }
-    else if (threadIdx.x < numPxInWindow + numPxInKernel + numConvCoords)
-    {
-        int idx = threadIdx.x - numPxInWindow - numPxInKernel;
+    else if (threadIdx.x < GL->mNumWindowPx + GL->mNumKernelPx + GL->mNumCorrelPosPerAp)
+    {   // Stream X-values of the convolution area to shm
+        int idx = threadIdx.x - GL->mNumWindowPx - GL->mNumKernelPx;
         convCoordsX[idx] = d_convCoordsX[idx];
     }
-    else if (threadIdx.x < numPxInWindow + numPxInKernel + 2*numConvCoords)
-    {
-        int idx = threadIdx.x - numPxInWindow - numPxInKernel - numConvCoords;
+    else if (threadIdx.x < GL->mNumWindowPx + GL->mNumKernelPx + 2*GL->mNumCorrelPosPerAp)
+    {   // Stream Y-values of the convolution area to shm
+        int idx = threadIdx.x - GL->mNumWindowPx - GL->mNumKernelPx - GL->mNumCorrelPosPerAp;
         convCoordsY[idx] = d_convCoordsY[idx];
     }
     __syncthreads();
+// ## Sanity check: Feed streamed pixels into output image
+/*    if (threadIdx.x < GL->mNumWindowPx)
+    {
+        int imX = windowRootX + threadIdx.x % GL->mWindowSize;
+        int imY = windowRootY + threadIdx.x / GL->mWindowSize;
+        d_debugImage[imY*imW+imX] = imData[threadIdx.x]-10;
+    }*/
 
-// == Sanity check: Feed streamed pixels into output image
-/*    if (threadIdx.x < numPxInWindow)
+
+// == Do convolution for the selected locations
+    // Each thread performs exactly one multiplication of a pixel and a kernel value
+    // These values are stored in the convolution buffer and are added in the next step
+    int convCoordIdx = threadIdx.x / GL->mNumKernelPx;
+    int kernelIdx = threadIdx.x % GL->mNumKernelPx;
+    bool convThread = convCoordIdx < GL->mNumCorrelPosPerAp;
+    if (convThread)
     {
-        int imX = windowRootX + threadIdx.x % windowSize;
-        int imY = windowRootY + threadIdx.x / windowSize;
-        d_outputImage[imY*imW+imX] = imData[threadIdx.x]-10;
+        int apX = convCoordsX[convCoordIdx] + kernelIdx % GL->mKernelSize - GL->mCorrelMargin;
+        int apY = convCoordsY[convCoordIdx] + kernelIdx / GL->mKernelSize - GL->mCorrelMargin;
+        convBuffer1[threadIdx.x] = kernel[kernelIdx] * imData[apY*GL->mWindowSize + apX];
     }
-*/
-    int convCoordIdx = threadIdx.x / numPxInKernel;
-    int kernelIdx = threadIdx.x % numPxInKernel;
-    if (convCoordIdx < numConvCoords)
+    __syncthreads();
+
+    // Integrate over each kernel-patch of the convolution buffer to get the convolution result
+    // Fields for buffer swapping
+    float* srcBuffer;
+    float* dstBuffer;
+    bool bufferSelector = false;
+    // Fields for array access
+    int storageOffset = convCoordIdx * GL->mNumKernelPx;
+    int reductionIndex = threadIdx.x - storageOffset;
+    int indexA, indexB;
+    // Fields for iteration tracking
+    int sumCounter = GL->mNumKernelPx; // Number of elements to be added
+    int activeThreads;
+
+    while (sumCounter > 1)
     {
-        int apX = convCoordsX[convCoordIdx] + kernelIdx % kernelSize - correlMargin;
-        int apY = convCoordsY[convCoordIdx] + kernelIdx / kernelSize - correlMargin;
-        convResults[threadIdx.x] = kernel[kernelIdx] * imData[apY*windowSize + apX];
-    }
-// == Sanity check: Feed convoluted pixels into output image
-    if (threadIdx.x < numConvCoords)
-    {
-        int convCoordIdx = threadIdx.x;
-        float convSum = 0.f;
-        for (int i = 0; i < numPxInKernel; i++)
+        // Swap source- and destination buffers
+        srcBuffer = bufferSelector ? convBuffer2 : convBuffer1;
+        dstBuffer = bufferSelector ? convBuffer1 : convBuffer2;
+        bufferSelector = !bufferSelector;
+        // Number of additions to be done in this iteration = number of active threads
+        activeThreads = (sumCounter+1)/2;
+        // Add the specified elements and write them to the destination buffer
+        if (convThread && reductionIndex < activeThreads)
         {
-            convSum += convResults[convCoordIdx*numPxInKernel + i];
+            indexA = 2*reductionIndex;
+            indexB = indexA+1;
+            if (indexB < sumCounter)
+                dstBuffer[threadIdx.x] =
+                        srcBuffer[indexA + storageOffset]
+                        + srcBuffer[indexB + storageOffset];
+            else    // Odd array size? Just pass the last value to the next iteration
+                dstBuffer[threadIdx.x] = srcBuffer[indexA + storageOffset];
+                
         }
-        int convCoordX = convCoordsX[convCoordIdx];
-        int convCoordY = convCoordsY[convCoordIdx];
+        // Update the number of elements to be added
+        sumCounter = activeThreads;
+        // Sync after each loop iteration as we rely on the results of all threads
+        __syncthreads();
+    }
+    // Integration complete. Collect the results.
+    if (reductionIndex == 0)
+        convResults[convCoordIdx] = dstBuffer[threadIdx.x];
+    __syncthreads();
+
+// ## Sanity check: Feed convoluted pixels into output image
+    if (threadIdx.x < GL->mNumCorrelPosPerAp)
+    {
+        int convCoordX = convCoordsX[threadIdx.x];
+        int convCoordY = convCoordsY[threadIdx.x];
         int imX = windowRootX + convCoordX;
         int imY = windowRootY + convCoordY;
+        // For better visibility: Negate the ovolution result.
+        d_debugImage[imY*imW+imX] = -convResults[threadIdx.x];        
+    }
 
-        int apX = convCoordsX[convCoordIdx] + kernelIdx % kernelSize - correlMargin;
-        int apY = convCoordsY[convCoordIdx] + kernelIdx / kernelSize - correlMargin;
 
-        d_outputImage[imY*imW+imX] = convSum;
+// == Determine the spot center from the convolution result
+    // There's not much to be parallelized here, so let's do it single threaded.
+    if (threadIdx.x == 0)
+    {
+        int maxPosIdx = 0;
+        float maxVal = convResults[maxPosIdx];
+        float curVal = maxVal;
+        for (int i = 0; i < GL->mNumCorrelPosPerAp; i++)
+        {
+            curVal = convResults[i];
+            if (maxVal < curVal)
+            {
+                maxVal = curVal;
+                maxPosIdx = i;
+            }
+            // Copy the colvoluted values to the shm array of image data for 2D access
+            imData[convCoordsY[i]*GL->mWindowSize + convCoordsX[i]] = curVal;
+        }
+        int maxIdxX = convCoordsX[maxPosIdx];
+        int maxIdxY = convCoordsX[maxPosIdx];
+        int centerIndex = GL->mWindowSize/2 - 1;
+
+        bool xInRange = (maxIdxX == centerIndex) || (maxIdxX == centerIndex+1);
+        bool yInRange = (maxIdxY == centerIndex) || (maxIdxY == centerIndex+1);
+
+        float spotPosXInWindow;
+        float spotPosYInWindow;
+        if (xInRange && yInRange)
+        {   // Spot is still in tracking rectangle
+            // Calculate the x-position of the spot
+            float xNeg = imData[maxIdxY*GL->mWindowSize + maxIdxX-1];
+            float xPos = imData[maxIdxY*GL->mWindowSize + maxIdxX+1];
+            float fracX = (xNeg - xPos)/(xNeg + xPos + 2*maxVal) / 2;
+            spotPosXInWindow = maxIdxX + fracX;
+            
+            // Calculate the y-position of the spot
+            float yNeg = imData[(maxIdxY-1)*GL->mWindowSize + maxIdxX];
+            float yPos = imData[(maxIdxY+1)*GL->mWindowSize + maxIdxX];
+            float fracY = (yNeg - yPos)/(yNeg + yPos + 2*maxVal) / 2;
+            spotPosYInWindow = maxIdxY + fracY;
+        }
+        else
+        {   // Lost track of the spot
+            // For now, just assume the spot did not wanter too far and that the
+            // max value of the convolution area points towards the spot center.
+            // Therefore, setting the position of the max value as spot center,
+            // The search window will drift towards the spot, hopefully catching it
+            // in upcomong measurements.
+            // If that is not stable enough, implement a different routine in the future.
+            spotPosXInWindow = maxIdxX;
+            spotPosYInWindow = maxIdxY;
+        }
+        float spotPositionX = windowRootX + spotPosXInWindow;
+        float spotPositionY = windowRootY + spotPosYInWindow;
+
+        // If the spot drifted out of the center of the tracking rectangle,
+        // update the window root positions accordingly.
+        if (spotPosXInWindow < ((float)centerIndex))
+            d_windowRootsX[blockIdx.x]--;
+        else if (spotPosXInWindow > centerIndex+1.f)
+            d_windowRootsX[blockIdx.x]++;
+
+        if (spotPosYInWindow < ((float)centerIndex))
+            d_windowRootsY[blockIdx.x]--;
+        else if (spotPosYInWindow > centerIndex+1.f)
+            d_windowRootsY[blockIdx.x]++;
+
+        if (threadIdx.x == 0)
+        {
+            d_debugBuffer[blockIdx.x*6] = maxIdxX;
+            d_debugBuffer[blockIdx.x*6+1] = maxIdxY;
+            d_debugBuffer[blockIdx.x*6+2] = spotPosXInWindow;
+            d_debugBuffer[blockIdx.x*6+3] = spotPosYInWindow;
+            d_debugBuffer[blockIdx.x*6+4] = spotPositionX;
+            d_debugBuffer[blockIdx.x*6+5] = spotPositionY;
+            d_debugBuffer[blockIdx.x*6+6] = centerIndex;
+            d_debugBuffer[blockIdx.x*6+7] = xInRange;
+            d_debugBuffer[blockIdx.x*6+8] = yInRange;
+            d_debugBuffer[blockIdx.x*6+9] = xInRange && yInRange;
+        }
     }
 }

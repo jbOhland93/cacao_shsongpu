@@ -23,8 +23,11 @@ public:
 private:
     int m_deviceID;
     IMAGE* mp_im;
+    IMAGE* mp_imDark;
     IMAGE m_imDarkGPU;
-    std::shared_ptr<SGE_GridLayout> mpGridLayout;
+    uint16_t m_numSpots;
+    uint16_t m_kernelSize;
+    std::shared_ptr<SGE_GridLayout> mp_GridLayout;
 
     uint16_t* m_hp_ROIx;
     uint16_t* m_hp_ROIy;
@@ -32,7 +35,22 @@ private:
     uint16_t* m_dp_ROIy;
     float* m_dp_kernel;
 
-    void copyDarkToGPU(IMAGE* dark);
+    int* m_dp_convCoordsX;
+    int* m_dp_convCoordsY;
+
+    cudaEvent_t m_cuEvtStart, m_cuEvtStop;
+    IMAGE m_imDebug;
+    IMAGE m_imDebug_GPU;
+    int m_debugBufSize;
+    float* m_hp_debug;
+    float* m_dp_debug;
+
+    void emulateReferenceInput();
+    void writeApertureConvolutionCoordToGPU();
+    void copyDarkToGPU();
+    void initDebugFields();
+    float* copyDebugImgToGPU();
+    float* copyDebugImgFrmGPU();
 };
 
 #endif // SGR_RECORDER_HPP

@@ -9,9 +9,17 @@ public:
     SGE_GridLayout(
         int device,
         int numSubapertures,
-        int kernelSize,
-        int warpsPerBlock);
+        int kernelSize);
     ~SGE_GridLayout();
+
+    // Returns the number of coordinates per subapertur for which a convolution
+    // with a gaussian kernel shall be calculated.
+    static int getNumConvolutionsPerAp() { return 12; }
+    // Allocates and writes coordinate offsets relative to the root
+    // of a subaperture to the given locations.
+    // The buffer has to be of size SGE_GridLayout::getNumConvolutionsPerAp().
+    // The shape
+    void gnrtCorrelOffsetsFrmRoots(int* xOff, int* yOff);
 
     // GPU data
     int mDeviceID;              // Device ID
@@ -23,109 +31,49 @@ public:
     int mBlockSize;             // Threads per block
     int mNumSubapertures;       // Total # of apertures
     int mNumBlocks;             // # of blocks in grid
-    int mAperturesPerBlockBulk; // # of apertures to be evaluated per block
-    int mAperturesPerBlockLast; // # of apertures to be evaluated in last block
 
     // Aperture data
-    int mKernelSize;            // Edge size of the convolution kernel
-    int mNumKernelPx;           // # of pixels in the kernel
-    int mCorrelMargin;          // Margin in px between window edge and correl. area
     int mWindowSize;            // Edge size of considered window per subaperture
     int mNumWindowPx;           // # of pixels inside one aperture window
-    int mStreamedPxPerThread;   // # of pixels that each thread has to stream
-    int mCorrelCalcsPerThread;  // # of multipl. of Kernel- and Window pixels / thread
-    int mNumCorrelPosPerAp = 12;// # of positions for which the correlation shall be calced
+    int mKernelSize;            // Edge size of the convolution kernel
+    int mNumKernelPx;           // # of pixels in the kernel
+    int mCorrelMargin;          // Margin in px between window edge and convolution area
+    int mNumCorrelPosPerAp      // # of positions for which the convolution shall be calced
+        = getNumConvolutionsPerAp();
 
     // Shared memory organization
-    int mShmSize;               // Size of the shared memory per block in bytes
-    int mShmOffsetPixels;       // Offset of the pixel data in sizeof(float)
-    int mShmApStridePixels;     // Stride width for one aperture in sizeof(float)
-    int mShmOffsetKernel;       // Offset to the kernel data in sizeof(float)
-    int mShmOffsetRootsX;       // Offset to the aperture rootsX in the image in sizeof(float)
-    int mShmOffsetRootsY;       // Offset to the aperture rootsY in the image in sizeof(float)
-    int mShmOffsetCCoordX;      // Offset to the correlation offsetX in sizeof(float)
-    int mShmOffsetCCoordY;      // Offset to the correlation offsetY in sizeof(float)
-    int mShmOffsetCorrelRes;    // Offst to the Correlation results in sizeof(float)
-    int mShmApStrideCorrelRes;  // Stride width for one aperture in sizeof(float)
+    int mShmSize;               // Size of the dynamic shared memory per block in bytes
+    int mShmImDataOffset;       // Offset to the image data buffer in dynamic shm
+    int mShmImDataSize;         // Size of the image data buffer in dynamic shm
+    int mShmKernelOffset;       // Offset to the kernel buffer in dynamic shm
+    int mShmKernelSize;         // Size of the kernel buffer in dynamic shm
+    int mShmConvCoordsXOffset;  // Offset to the X buffer of the coordinates to be convoluted in dynamic shm
+    int mShmConvCoordsXSize;    // Size of the X buffer of the coordinates to be convoluted in dynamic shm
+    int mShmConvCoordsYOffset;  // Offset to the Y buffer of the coordinates to be convoluted in dynamic shm
+    int mShmConvCoordsYSize;    // Size of the Y buffer of the coordinates to be convoluted in dynamic shm
+    int mShmConvBuf1Offset;     // Offset to the 1st buffer for the convolution operation in dynamic shm
+    int mShmConvBuf1Size;       // Size of the 1st buffer for the convolution operation in dynamic shm
+    int mShmConvBuf2Offset;     // Offset to the 2nd buffer for the convolution operation in dynamic shm
+    int mShmConvBuf2Size;       // Size of the 2nd buffer for the convolution operation in dynamic shm
+    int mShmConvResultOffset;   // Offset to the convolution result buffer in dynamic shm
+    int mShmConvResultSize;     // Size of the convolution result buffer in dynamic shm
 
+    // Returns a pointer to the copy of this object in the global device memory
     SGE_GridLayout* getDeviceCopy() { return mpd_deviceCopy; }
-
-    // Writes the index of the subaperture and location within
-    // the subaperture to the given pointers
-    CUDA_CALLABLE_MEMBER void getStreamStartIndicees(int blockIdx, int threadIdx, int* apIdxOut, int* apXout, int* apYout)
-    {
-        int firstApertureInBlock = blockIdx * mAperturesPerBlockBulk;
-        int pxIndex = threadIdx * mStreamedPxPerThread;
-        int pxApIndex = pxIndex % mNumWindowPx;
-        *apXout = pxApIndex % mWindowSize;
-        *apYout = pxApIndex / mWindowSize;
-        *apIdxOut = firstApertureInBlock + pxIndex / mNumWindowPx;
-    }
-
-    // Allocates and writes coordinate offsets relative to the root
-    // of a subaperture to the given locations.
-    // The buffer is assumed to be the shared memory of a cuda block,
-    // which is dimensioned and partitioned according to this class.
-    CUDA_CALLABLE_MEMBER void gnrtCorrelOffsetsFrmRoots(float* shm, int index)
-    {
-        if (index >= 0 && index < mNumCorrelPosPerAp)
-        {
-            int* xOff = (int*)&shm[mShmOffsetCCoordX];
-            int* yOff = (int*)&shm[mShmOffsetCCoordY];
-            if (index < 2)
-            {
-                xOff[index] = mCorrelMargin + index + 1;
-                yOff[index] = mCorrelMargin;
-            }
-            else if (index < 6)
-            {
-                xOff[index] = mCorrelMargin + index - 2;
-                yOff[index] = mCorrelMargin + 1;
-            }
-            else if (index < 10)
-            {
-                xOff[index] = mCorrelMargin + index - 6;
-                yOff[index] = mCorrelMargin + 2;
-            }
-            else if (index < 12)
-            {
-                xOff[index] = mCorrelMargin + index - 9;
-                yOff[index] = mCorrelMargin + 3;
-            }
-        }
-    }
-    void gnrtCorrelOffsetsFrmRootsHost(int* xOff, int* yOff)
-    {
-        for (int index = 0; index < mNumCorrelPosPerAp; index++)
-        {
-            if (index < 2)
-            {
-                xOff[index] = mCorrelMargin + index + 1;
-                yOff[index] = mCorrelMargin;
-            }
-            else if (index < 6)
-            {
-                xOff[index] = mCorrelMargin + index - 2;
-                yOff[index] = mCorrelMargin + 1;
-            }
-            else if (index < 10)
-            {
-                xOff[index] = mCorrelMargin + index - 6;
-                yOff[index] = mCorrelMargin + 2;
-            }
-            else if (index < 12)
-            {
-                xOff[index] = mCorrelMargin + index - 9;
-                yOff[index] = mCorrelMargin + 3;
-            }
-        }
-    }
 
 private:
     SGE_GridLayout(); // No publically available default ctor.
+    
+    // Reads relevant properties about the used GPU and stores them in member fields
+    void getGPUproperties();
+    // Helper function, looks up the cuda cores based on the compute capability
     int getCudaCoresPerSM(int major, int minor);
+    // Calculates the grid porpiertes from what is known
+    void calcGridProperties();
+    // Sets the sizes and offsets for the dynamic shared memory for ach block on the grid
+    void setSHMlayout();
+    // Prints a little report about the properties of the layout
     void printReport();
-    void copyToGPU();
 
     SGE_GridLayout* mpd_deviceCopy;
 };
