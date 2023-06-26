@@ -257,6 +257,29 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         IHspotMask->updateWrittenImage();
         printf("Mask generated. %d valid subapertures detected.\n", numOfValidSpots);
         printf("\nTODOs: Generate 1D arrays of centroids, search rects, and the kernel, load them to GPU.\n\n");
+
+        // Make GPU reference
+
+        std::string refName = makeStreamname(mpInput->name);
+        std::string maskName = refName;
+        refName.append("_Ref");
+        maskName.append("_Mask");
+        
+
+        IMAGE gpuRef;
+        ImageStreamIO_createIm_gpu(
+            &gpuRef,
+            refName.c_str(),
+            mpInput->md->naxis,
+            mpInput->md->size,
+            _DATATYPE_FLOAT,
+            mDevice,            // -1: CPU RAM, 0+ : GPU
+            1,                  // shared?
+            0,                  // # of semaphores
+            5,                  // # of keywords
+            mpDark->md->imagetype,
+            0 // circular buffer size (if shared), 0 if not used
+        );
         // Make 1D arrays
         // Store fits files
         // Generate image streams on GPU
@@ -450,12 +473,14 @@ void SGR_Recorder::prepareSpotFinding()
         mIHintensityREC = SGR_ImageHandler<float>::newImageHandler(
                 makeStreamname("6-recordAmp"),
                 mGridSize.mX, mGridSize.mY,
+                0,
                 mSamplesExpected);
         mIHintensityREC->setPersistent(mVisualize);
         mIHposREC = SGR_ImageHandler<float>::newImageHandler(
                 makeStreamname("6-RecordSpotPos"),
                 mGridSize.mX*2,
                 mGridSize.mY,
+                0,
                 mSamplesExpected);
         mIHposREC->setPersistent(mVisualize);
     }

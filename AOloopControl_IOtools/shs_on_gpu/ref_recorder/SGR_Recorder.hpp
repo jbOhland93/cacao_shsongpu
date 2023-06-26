@@ -34,6 +34,8 @@ public:
     const char* getStateDescription();
 
 private:
+    // GPU ID
+    int mDevice = -1;
     // Internal status
     // Call getStateDescription to get printable info
     enum RECSTATE {

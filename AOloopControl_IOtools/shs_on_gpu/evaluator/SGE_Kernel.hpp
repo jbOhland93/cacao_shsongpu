@@ -133,6 +133,7 @@ __global__ void evaluateSpots(
         convResults[convCoordIdx] = dstBuffer[threadIdx.x];
     __syncthreads();
 
+    int offX = 5;
 // ## Sanity check: Feed convoluted pixels into output image
     if (threadIdx.x < GL->mNumCorrelPosPerAp)
     {
@@ -141,7 +142,8 @@ __global__ void evaluateSpots(
         int imX = windowRootX + convCoordX;
         int imY = windowRootY + convCoordY;
         // For better visibility: Negate the ovolution result.
-        d_debugImage[imY*imW+imX] = -convResults[threadIdx.x];        
+        d_debugImage[imY*imW+imX+offX] = -convResults[threadIdx.x];
+        d_debugImage[imY*imW+imX-offX] = -convResults[threadIdx.x];
     }
 
 
@@ -164,7 +166,7 @@ __global__ void evaluateSpots(
             imData[convCoordsY[i]*GL->mWindowSize + convCoordsX[i]] = curVal;
         }
         int maxIdxX = convCoordsX[maxPosIdx];
-        int maxIdxY = convCoordsX[maxPosIdx];
+        int maxIdxY = convCoordsY[maxPosIdx];
         int centerIndex = GL->mWindowSize/2 - 1;
 
         bool xInRange = (maxIdxX == centerIndex) || (maxIdxX == centerIndex+1);
@@ -177,13 +179,13 @@ __global__ void evaluateSpots(
             // Calculate the x-position of the spot
             float xNeg = imData[maxIdxY*GL->mWindowSize + maxIdxX-1];
             float xPos = imData[maxIdxY*GL->mWindowSize + maxIdxX+1];
-            float fracX = (xNeg - xPos)/(xNeg + xPos + 2*maxVal) / 2;
+            float fracX = (xNeg - xPos)/(xNeg + xPos - 2*maxVal) / 2;
             spotPosXInWindow = maxIdxX + fracX;
             
             // Calculate the y-position of the spot
             float yNeg = imData[(maxIdxY-1)*GL->mWindowSize + maxIdxX];
             float yPos = imData[(maxIdxY+1)*GL->mWindowSize + maxIdxX];
-            float fracY = (yNeg - yPos)/(yNeg + yPos + 2*maxVal) / 2;
+            float fracY = (yNeg - yPos)/(yNeg + yPos - 2*maxVal) / 2;
             spotPosYInWindow = maxIdxY + fracY;
         }
         else
@@ -199,6 +201,15 @@ __global__ void evaluateSpots(
         }
         float spotPositionX = windowRootX + spotPosXInWindow;
         float spotPositionY = windowRootY + spotPosYInWindow;
+
+        d_debugImage[((int)spotPositionY)*imW + (int)spotPositionX + offX] = 1000;
+        /*d_debugImage[(maxIdxY + windowRootY)*imW + maxIdxX + windowRootX] = 1000;
+        for (int i = 0; i < GL->mNumCorrelPosPerAp; i++)
+        {
+            d_debugImage[(convCoordsY[i] + windowRootY)*imW + convCoordsX[i] + windowRootX + 10] = 50*i;
+        }
+        d_debugImage[(convCoordsY[maxPosIdx] + windowRootY)*imW + windowRootX + convCoordsX[maxPosIdx] + 10] = 1000;
+        */
 
         // If the spot drifted out of the center of the tracking rectangle,
         // update the window root positions accordingly.

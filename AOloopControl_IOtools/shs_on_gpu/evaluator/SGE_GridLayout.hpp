@@ -21,6 +21,7 @@ public:
     // The shape
     void gnrtCorrelOffsetsFrmRoots(int* xOff, int* yOff);
 
+    // Public fields which will be used the CUDA kernels
     // GPU data
     int mDeviceID;              // Device ID
     int mNumCudaCores;          // Cuda cores on GPU

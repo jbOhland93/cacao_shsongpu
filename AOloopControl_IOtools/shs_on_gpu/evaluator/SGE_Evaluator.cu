@@ -92,16 +92,16 @@ errno_t SGE_Evaluator::evaluateDo()
     printf("Assessing done!\n");
 
     cudaMemcpy(m_hp_debug, m_dp_debug, m_debugBufSize*sizeof(float), cudaMemcpyDeviceToHost);
-    printf("Debug 0: %.3f\n", m_hp_debug[0]);
-    printf("Debug 1: %.3f\n", m_hp_debug[1]);
-    printf("Debug 2: %.3f\n", m_hp_debug[2]);
-    printf("Debug 3: %.3f\n", m_hp_debug[3]);
-    printf("Debug 4: %.3f\n", m_hp_debug[4]);
-    printf("Debug 5: %.3f\n", m_hp_debug[5]);
-    printf("Debug 6: %.3f\n", m_hp_debug[6]);
-    printf("Debug 7: %.3f\n", m_hp_debug[7]);
-    printf("Debug 8: %.3f\n", m_hp_debug[8]);
-    printf("Debug 9: %.3f\n", m_hp_debug[9]);
+    printf("Debug 0: %.6f\n", m_hp_debug[0]);
+    printf("Debug 1: %.6f\n", m_hp_debug[1]);
+    printf("Debug 2: %.6f\n", m_hp_debug[2]);
+    printf("Debug 3: %.6f\n", m_hp_debug[3]);
+    printf("Debug 4: %.6f\n", m_hp_debug[4]);
+    printf("Debug 5: %.6f\n", m_hp_debug[5]);
+    printf("Debug 6: %.6f\n", m_hp_debug[6]);
+    printf("Debug 7: %.6f\n", m_hp_debug[7]);
+    printf("Debug 8: %.6f\n", m_hp_debug[8]);
+    printf("Debug 9: %.6f\n", m_hp_debug[9]);
     copyDebugImgFrmGPU();
 
 

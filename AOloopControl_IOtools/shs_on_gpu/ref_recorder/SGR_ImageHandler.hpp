@@ -11,6 +11,8 @@
 #include <vector>
 #include <exception>
 #include <limits>
+#include <cstring>
+#include <algorithm>
 #include "../util/Rectangle.hpp"
 
 #define spImageHandler(type) std::shared_ptr<SGR_ImageHandler<type>>
@@ -29,11 +31,13 @@ public:
         std::string name,
         size_t width,
         size_t height,
+        uint8_t numKeywords = 0,
         uint32_t circBufSize = 0);
     // Creates a new image of the same size, but converts the data.
     static spImageHandler(T) newHandlerfrmImage(
         std::string name,
         IMAGE* im,
+        uint8_t numKeywords = 0,
         uint32_t circBufSize = 0);
     
     ~SGR_ImageHandler();
@@ -86,6 +90,92 @@ public:
     Rectangle<uint32_t> getROI() { return mROI; }
     // Makes the image stream stay after destruction
     void setPersistent(bool persistent) { mPersistent = persistent; }
+    // Setting a keyword
+    template <typename U>
+    void setKeyword(int index, std::string name, U data)
+    { throw std::runtime_error("SGR_ImageHandler::setKeyword: Only int64_t, double and string supported."); }
+    //template<>
+    void setKeyword(int index, std::string name, int64_t data)
+    {
+        if (index >= mImage.md->NBkw)
+            throw std::runtime_error("SGR_ImageHandler::setKeyword: Index is larger than the number of available keywords.");
+        IMAGE_KEYWORD kw;
+        std::strncpy(kw.name, name.c_str(), name.length());
+        kw.type = 'L';
+        kw.value.numl = data;
+        mImage.kw[index] = kw;
+    }
+    //template<>
+    void setKeyword(int index, std::string name, double data)
+    {
+        if (index >= mImage.md->NBkw)
+            throw std::runtime_error("SGR_ImageHandler::setKeyword: Index is larger than the number of available keywords.");
+        IMAGE_KEYWORD kw;
+        std::strncpy(kw.name, name.c_str(), name.length());
+        kw.type = 'D';
+        kw.value.numf = data;
+        mImage.kw[index] = kw;
+    }
+    //template<>
+    void setKeyword(int index, std::string name, std::string data)
+    {
+        if (index >= mImage.md->NBkw)
+            throw std::runtime_error("SGR_ImageHandler::setKeyword: Index is larger than the number of available keywords.");
+        IMAGE_KEYWORD kw;
+        std::strncpy(kw.name, name.c_str(), name.length());
+        kw.type = 'S';
+        std::strncpy(kw.value.valstr, data.c_str(), std::min(16, (int)data.length()));
+        mImage.kw[index] = kw;
+    }
+    // Reading a keyword
+    template <typename U>
+    bool getKeyword(std::string name, U* dst)
+    { throw std::runtime_error("SGR_ImageHandler::getKeyword: Only int64_t, double and string supported."); }
+    bool getKeyword(std::string name, int64_t* dst)
+    {
+        int kwIdx = getKWindex(name);
+        if (kwIdx >= 0)
+        {   
+            IMAGE_KEYWORD kw = mImage.kw[kwIdx];
+            if (kw.type == 'L')
+            {
+                *dst = kw.value.numl;
+                return true;
+            }
+        }
+        return false;
+    }
+    //template<>
+    bool getKeyword(std::string name, double* dst)
+    {
+        int kwIdx = getKWindex(name);
+        if (kwIdx >= 0)
+        {   
+            IMAGE_KEYWORD kw = mImage.kw[kwIdx];
+            if (kw.type == 'D')
+            {
+                *dst = kw.value.numf;
+                return true;
+            }
+        }
+        return false;
+    }
+    //template<>
+    bool getKeyword(std::string name, std::string* dst)
+    {
+        int kwIdx = getKWindex(name);
+        if (kwIdx >= 0)
+        {   
+            IMAGE_KEYWORD kw = mImage.kw[kwIdx];
+            if (kw.type == 'S')
+            {
+                std::string tmp(kw.value.valstr);
+                *dst = tmp;
+                return true;
+            }
+        }
+        return false;
+    }
 
 // ========== OPERATIONS ==========
     // Updates the image and gets the new write buffer
@@ -137,6 +227,7 @@ private:
         uint32_t width,
         uint32_t height,
         uint8_t atype,
+        uint8_t numKeywords,
         uint32_t circBufSize = 10);
 
 // ========== HELPER FUNCTIONS ==========
@@ -179,6 +270,7 @@ private:
     {
         return cvtElmt<T>(ptr, atype, index);
     }
+    int getKWindex(std::string name);
 };
 
 // ######################################
@@ -193,6 +285,7 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newImageHandler(
     std::string name,
     size_t width,
     size_t height,
+    uint8_t numKeywords,
     uint32_t circBufSize)
 {
     throw std::runtime_error(
@@ -207,6 +300,7 @@ inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
     std::string name,                                                   \
     size_t width,                                                       \
     size_t height,                                                      \
+    uint8_t numKeywords,                                                \
     uint32_t circBufSize)                                               \
 {                                                                       \
     spImageHandler(type) sp(new SGR_ImageHandler<type>(                 \
@@ -214,6 +308,7 @@ inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
         width,                                                          \
         height,                                                         \
         atype,                                                          \
+        numKeywords,                                                    \
         circBufSize));                                                  \
     return sp;                                                          \
 }
@@ -233,11 +328,12 @@ template <typename T>
 inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerfrmImage(
         std::string name,
         IMAGE* im,
+        uint8_t numKeywords,
         uint32_t circBufSize)
 {
     uint32_t* size = im->md->size;
     spImageHandler(T) spIH = 
-        newImageHandler(name, size[0], size[1], circBufSize);
+        newImageHandler(name, size[0], size[1], numKeywords, circBufSize);
     spIH->cpy(im);
     return spIH;
 }
@@ -370,6 +466,7 @@ inline void SGR_ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
     updateWrittenImage();
 }
 
+
 // Implementation of ctor
 template<typename T>
 inline SGR_ImageHandler<T>::SGR_ImageHandler(
@@ -377,6 +474,7 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
         uint32_t width,
         uint32_t height,
         uint8_t atype,
+        uint8_t numKeywords,
         uint32_t circBufSize)
         :
         mWidth(width),
@@ -389,14 +487,13 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
     imsize[0] = width;
     imsize[1] = height;
     int shared = 1; // image will be in shared memory
-    int NBkw = 0; // No keywords for now. Do this later.
     ImageStreamIO_createIm(&mImage,
                             name.c_str(),
                             naxis,
                             imsize,
                             atype,
                             shared,
-                            NBkw,
+                            numKeywords,
                             circBufSize);
     delete imsize;
     ImageStreamIO_writeBuffer(&mImage, (void**) &mpBuffer);
@@ -462,6 +559,15 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
     
     updateWrittenImage();
     return remainingPixels;
+}
+
+template <typename T>
+int SGR_ImageHandler<T>::getKWindex(std::string name)
+{
+    for (int i = 0; i < mImage.md->NBkw; i++)
+        if (name == mImage.kw[i].name)
+            return i;
+    return 0;
 }
 
 #endif // SGR_IMAGEHANDLER_HPP
