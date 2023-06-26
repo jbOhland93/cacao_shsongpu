@@ -22,8 +22,16 @@ cacao-loop-deploy -c scexao-vispyr-bin2
 # CACAO_LOOPNUMBER=7 cacao-loop-deploy -c scexao-vispyr-bin2
 # CACAO_LOOPNUMBER=7 CACAO_DMINDEX="03" cacao-loop-deploy -c scexao-vispyr-bin2
 
+# OPTIONAL:
+# Edit file scexao-vispyr-bin2-conf/fpstmuxenv to modify local environment for processes
+
+
 # OPTIONAL: Edit file scexao-vispyr-bin2-conf/cacaovars.bash as needed
 # For example, change loop index, DM index, etc ...
+
+# OPTIONAL: Clean previous deployment :
+# rm -rf .vispyr2.cacaotaskmanager-log
+
 
 # Run deployment (starts conf processes)
 cacao-loop-deploy -r scexao-vispyr-bin2
@@ -59,10 +67,10 @@ cacao-aorun-002-simwfs -w start
 ## Measure WFS dark
 
 
+Takes dark, stores it into aolX_wfsdarkraw, with aolX_wfsdark pointing to it.
 ```bash
 cacao-aorun-005-takedark -n 2000
 ```
-
 
 
 ## Start WFS acquisition
@@ -72,11 +80,14 @@ cacao-aorun-005-takedark -n 2000
 cacao-aorun-025-acqWFS -w start
 ```
 
+The acqWFS process performs flux normalization, and at this point assumes all WFS pixels are active (wfsmask set to 1). The mask will be updated later.
+
 ```bash
 # Acquire WFS reference
 cacao-aorun-026-takeref -n 2000
 ```
 
+The reference is acquired here and immediately applied through the acquWFS process.
 
 ## Measure DM to WFS latency
 
@@ -117,18 +128,30 @@ The following files are written to ./conf/RMmodesDM/
 # 6 cycles - default is 10.
 cacao-aorun-030-acqlinResp -n 6 -w HpokeC
 ```
+This could take a while. Check status on milk-procCTRL.
+To inspect results, display file conf/RMmodesWFS/HpokeC.WFSresp.fits.
 
 ### Decode Hadamard matrix
 
 ```bash
 cacao-aorun-031-RMHdecode
 ```
+To inspect results, display file conf/RMmodesWFS/zrespM-H.fits.
+This should visually look like a zonal response matrix.
+
 
 ### Make DM and WFS masks
 
 ```bash
 cacao-aorun-032-RMmkmask
 ```
+Check results:
+- conf/dmmask.fits
+- conf/wfsmask.fits
+
+If needed, rerun command with non-default parameters (see -h for options).
+Note: we are not going to apply the masks in this example, so OK if not net properly. The masks are informative here, allowing us to view which DM actuators and WFS pixels have the best response.
+
 
 ### Create synthetic (Fourier) response matrix
 
@@ -140,9 +163,11 @@ cacao-aorun-033-RM-mksynthetic -c 25
 ## Compute control matrix (straight)
 
 Compute control modes, in both WFS and DM spaces.
+Set GPU device (if GPU available).
 
 ```bash
 cacao-fpsctrl setval compstrCM svdlim 0.01
+cacao-fpsctrl setval compstrCM GPUdevice 0
 ```
 Then run the compstrCM process to compute CM and load it to shared memory :
 ```bash
@@ -188,7 +213,86 @@ cacao-fpsctrl setval mfilt loopON ON
 
 ```
 
+
+## Testing the loop
+
+### SelfRM
+
+```bash
+# Set max number of modes above nbmodes to measure all modes
+
+cacao-fpsctrl runstop mfilt 0 0
+cacao-fpsctrl setval mfilt selfRM.zsize 20
+cacao-fpsctrl setval mfilt selfRM.NBmode 2000
+cacao-fpsctrl runstart mfilt 0 0
+cacao-fpsctrl setval mfilt selfRM.enable ON
+```
+
+Check result: vispyr2-rundir/selfRM.fits
+
+### Turbulence
+
+```bash
+cacao-aorun-100-DMturb start
+cacao-aorun-100-DMturb off
+cacao-aorun-100-DMturb on
+cacao-aorun-100-DMturb stop
+```
+
+### Monitoring
+
+```bash
+cacao-modalstatsTUI
+```
+
+
+## Predictive Control
+
+### Pseudo-OL reconstruction
+
+OPTIONAL: Tune software latency and WFS factor to ensure exact pseudoOL reconstruction.
+
+```bash
+cacao-fpsctrl setval mfilt auxDMmval.enable ON
+cacao-fpsctrl setval mfilt auxDMmval.mixfact 1.0
+cacao-fpsctrl setval mfilt auxDMmval.modulate OFF
+
+# repeat multiple times to converge to correct parameters
+cacao-fpsctrl setval mfilt testOL.enable ON
+```
+
+Check that probe and psOL reconstruction overlap and have same amplitude:
+```bash
+gnuplot
+plot "vispyr2-rundir/testOL.log" u 1:2 w l, "vispyr2-rundir/testOL.log" u ($1-2.9):5
+quit
+```
+The x-offset is the total latency (hardw+softw).
+
+
+
+### Modal control blocks
+
+Start process mctrlstats to split telemetry into blocks.
+
+```bash
+cacao-aorun-120-mstat start
+```
+
+Start mkPFXX-Y processes.
+```bash
+cacao-aorun-130-mkPF 0 start
+```
+
+Start applyPFXX-Y processes.
+```bash
+cacao-aorun-140-applyPF 0 start
+```
+
+
 # Cleanup
+
+From main directory (upstream of rootdir) :
 
 ```bash
 cacao-task-manager -C 0 scexao-vispyr-bin2

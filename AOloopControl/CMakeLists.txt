@@ -41,6 +41,8 @@ add_library(${LIBNAME} SHARED ${SRCNAME}.c
 	modalfilter.h
 	modalCTRL_stats.c
 	modalCTRL_stats.h
+	modalstatsTUI.c
+	modalstatsTUI.h
 )
 
 
@@ -93,6 +95,9 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/cacao.tmux
 	scripts/cacao-fpsarchive
 	scripts/cacao-fpslistadd
+	scripts/cacao-fpslistadd-MODALCTRL_STATS
+	scripts/cacao-fpslistadd-MODALFILTERING
+	scripts/cacao-modalstatsTUI
 	scripts/cacao-setDMnolink
 	scripts/cacao_simLHS
 	scripts/cacao-takedark
@@ -121,9 +126,14 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-039-compstrCM
 	scripts/aorun/cacao-aorun-040-compfCM
 	scripts/aorun/cacao-aorun-041-loadCM
+	scripts/aorun/cacao-aorun-041-saveCM
 	scripts/aorun/cacao-aorun-050-wfs2cmval
 	scripts/aorun/cacao-aorun-060-mfilt
 	scripts/aorun/cacao-aorun-070-cmval2dm
+	scripts/aorun/cacao-aorun-100-DMturb
+	scripts/aorun/cacao-aorun-120-mstat
+	scripts/aorun/cacao-aorun-130-mkPF
+	scripts/aorun/cacao-aorun-140-applyPF
 	DESTINATION bin)
 
 install(FILES ${SRCNAME}.h DESTINATION include/${SRCNAME})

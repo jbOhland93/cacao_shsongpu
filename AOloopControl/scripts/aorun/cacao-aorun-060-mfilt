@@ -38,6 +38,9 @@ if [ ${ACTION} == "start" ]; then
 ACTIONOK=1
 
 sendFPScmd "setval mfilt-${CACAO_LOOPNUMBER}.AOloopindex ${CACAO_LOOPNUMBER}"
+sendFPScmd "setval mfilt-${CACAO_LOOPNUMBER}.comp.latencyhardwfr ${CACAO_LATENCYHARDWFR}"
+sendFPScmd "setval mfilt-${CACAO_LOOPNUMBER}.comp.OLmodes ON"
+sendFPScmd "setval mfilt-${CACAO_LOOPNUMBER}.comp.tbuff ON"
 sendFPScmd "confwupdate mfilt-${CACAO_LOOPNUMBER}"
 sendFPScmd "runstart mfilt-${CACAO_LOOPNUMBER}"
 

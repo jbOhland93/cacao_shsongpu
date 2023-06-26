@@ -703,7 +703,7 @@ errno_t AOcontrolLoop_perfTest_TestSystemLatency_FPCONF()
     // ===========================
     FPS_SETUP_INIT(data.FPS_name, data.FPS_CMDCODE);
 
-    FPS2PROCINFOMAP fps2procinfo;
+    //FPS2PROCINFOMAP fps2procinfo;
     fps_add_processinfo_entries(&fps);
 
     // ===========================
@@ -1111,11 +1111,11 @@ errno_t AOcontrolLoop_perfTest_TestSystemLatency_RUN()
              FrameRateWait);
     processinfo_WriteMessage(processinfo, msgstring);
 
-    clock_gettime(CLOCK_REALTIME, &tnow);
+    clock_gettime(CLOCK_MILK, &tnow);
     tdouble_start = 1.0 * tnow.tv_sec + 1.0e-9 * tnow.tv_nsec;
     wfscntstart   = data.image[IDwfs].md[0].cnt0;
     usleep((long)(1000000 * FrameRateWait));
-    clock_gettime(CLOCK_REALTIME, &tnow);
+    clock_gettime(CLOCK_MILK, &tnow);
     tdouble_end = 1.0 * tnow.tv_sec + 1.0e-9 * tnow.tv_nsec;
     wfscntend   = data.image[IDwfs].md[0].cnt0;
     *wfsdt      = (tdouble_end - tdouble_start) / (wfscntend - wfscntstart);
@@ -1174,7 +1174,7 @@ errno_t AOcontrolLoop_perfTest_TestSystemLatency_RUN()
       }
     */
 
-    clock_gettime(CLOCK_REALTIME, &tnow);
+    clock_gettime(CLOCK_MILK, &tnow);
     tdouble_start  = 1.0 * tnow.tv_sec + 1.0e-9 * tnow.tv_nsec;
     wfscntstart    = data.image[IDwfs].md[0].cnt0;
     wfsframeoffset = (long)(0.1 * wfs_NBframesmax);
@@ -1276,7 +1276,7 @@ errno_t AOcontrolLoop_perfTest_TestSystemLatency_RUN()
         }
 
         dt = 0.0;
-        clock_gettime(CLOCK_REALTIME, &tstart);
+        clock_gettime(CLOCK_MILK, &tstart);
         tstartdouble = 1.0 * tstart.tv_sec + 1.0e-9 * tstart.tv_nsec;
         //    tlastdouble = tstartdouble;
 
@@ -1389,7 +1389,7 @@ errno_t AOcontrolLoop_perfTest_TestSystemLatency_RUN()
                 memcpy(ptr, ptr0, sizeof(short) * wfssize);
             }
 
-            clock_gettime(CLOCK_REALTIME, &tarray[wfsframe]);
+            clock_gettime(CLOCK_MILK, &tarray[wfsframe]);
 
             tdouble = 1.0 * tarray[wfsframe].tv_sec +
                       1.0e-9 * tarray[wfsframe].tv_nsec;
@@ -1411,7 +1411,7 @@ errno_t AOcontrolLoop_perfTest_TestSystemLatency_RUN()
                 dmstate = 1;
                 copy_image_ID("_testdm1", dmname, 1);
 
-                clock_gettime(CLOCK_REALTIME, &tnow);
+                clock_gettime(CLOCK_MILK, &tnow);
                 tdouble   = 1.0 * tnow.tv_sec + 1.0e-9 * tnow.tv_nsec;
                 dt        = tdouble - tstartdouble;
                 *dtoffset = dt; // time at which DM command is sent
@@ -1568,7 +1568,7 @@ errno_t AOcontrolLoop_perfTest_TestSystemLatency_RUN()
     }
     fclose(fphwlat);
 
-    clock_gettime(CLOCK_REALTIME, &tnow);
+    clock_gettime(CLOCK_MILK, &tnow);
     tdouble_end = 1.0 * tnow.tv_sec + 1.0e-9 * tnow.tv_nsec;
     wfscntend   = data.image[IDwfs].md[0].cnt0;
 
@@ -2735,7 +2735,7 @@ errno_t AOloopControl_perfTest_mkSyncStreamFiles2(char  *datadir,
     long            NBdatFiles;
 
     FILE *fp;
-    char  fname[stringmaxlen];
+    char  fname[STRINGMAXLEN_FILENAME];
     // long cnt;
     double valf1, valf2;
     long   vald1, vald2, vald3, vald4;
@@ -3064,11 +3064,10 @@ errno_t AOloopControl_perfTest_mkSyncStreamFiles2(char  *datadir,
 
             // LOAD FITS FILE
             long IDc;
-            snprintf(fname,
-                     stringmaxlen,
-                     "%s/%s.fits",
-                     datadirstream,
-                     datfile[i].name);
+            WRITE_FILENAME(fname,
+                           "%s/%s.fits",
+                           datadirstream,
+                           datfile[i].name);
             printf("----------------------[%ld] LOADING FILE %s\n", i, fname);
             load_fits(fname, "im0C", 1, &IDc);
 
@@ -3121,22 +3120,20 @@ errno_t AOloopControl_perfTest_mkSyncStreamFiles2(char  *datadir,
 
             long j;
 
-            snprintf(fname,
-                     stringmaxlen,
-                     "%s/%s.dat",
-                     datadirstream,
-                     datfile[i].name);
+            WRITE_FILENAME(fname,
+                           "%s/%s.dat",
+                           datadirstream,
+                           datfile[i].name);
 
             printf("READING file \"%s\" ... ", fname);
             fflush(stdout);
 
             if((fp = fopen(fname, "r")) == NULL)
             {
-                snprintf(fname,
-                         stringmaxlen,
-                         "%s/%s.txt",
-                         datadirstream,
-                         datfile[i].name);
+                WRITE_FILENAME(fname, "%s/%s.txt",
+                               datadirstream,
+                               datfile[i].name);
+
 
                 if((fp = fopen(fname, "r")) == NULL)
                 {
@@ -3266,104 +3263,104 @@ errno_t AOloopControl_perfTest_mkSyncStreamFiles2(char  *datadir,
 
                     switch(data.image[IDc].md[0].datatype)
                     {
-                        case _DATATYPE_UINT8:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.UI8[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_UINT8:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.UI8[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_INT8:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.SI8[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_INT8:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.SI8[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_UINT16:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.UI16[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_UINT16:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.UI16[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_INT16:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.SI16[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_INT16:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.SI16[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_UINT32:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.UI32[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_UINT32:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.UI32[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_INT32:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.SI32[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_INT32:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.SI32[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_UINT64:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.UI64[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_UINT64:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.UI64[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_INT64:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.SI64[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_INT64:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.SI64[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_FLOAT:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.F[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_FLOAT:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.F[xysize * j + ii];
+                        }
+                        break;
 
-                        case _DATATYPE_DOUBLE:
-                            for(ii = 0; ii < xysize; ii++)
-                            {
-                                data.image[IDout].array.F[xysize * tstep + ii] +=
-                                    expfrac *
-                                    data.image[IDc].array.D[xysize * j + ii];
-                            }
-                            break;
+                    case _DATATYPE_DOUBLE:
+                        for(ii = 0; ii < xysize; ii++)
+                        {
+                            data.image[IDout].array.F[xysize * tstep + ii] +=
+                                expfrac *
+                                data.image[IDc].array.D[xysize * j + ii];
+                        }
+                        break;
 
-                        default:
-                            list_image_ID();
-                            PRINT_ERROR("datatype value not recognised");
-                            printf("ID %ld  datatype = %d\n",
-                                   IDc,
-                                   data.image[IDc].md[0].datatype);
-                            exit(0);
-                            break;
+                    default:
+                        list_image_ID();
+                        PRINT_ERROR("datatype value not recognised");
+                        printf("ID %ld  datatype = %d\n",
+                               IDc,
+                               data.image[IDc].md[0].datatype);
+                        exit(0);
+                        break;
                     }
                     j++;
                 }
@@ -4274,21 +4271,21 @@ errno_t AOloopControl_perfTest_SelectWFSframes_from_PSFframes(char *IDnameWFS,
         // best frame
         switch(EvalMode)
         {
-            case 0:
-                evalarray[kk] = -(ssum / (pow(sum, alpha)));
-                break;
+        case 0:
+            evalarray[kk] = -(ssum / (pow(sum, alpha)));
+            break;
 
-            case 1:
-                evalarray[kk] = -sum;
-                break;
+        case 1:
+            evalarray[kk] = -sum;
+            break;
 
-            case 2:
-                evalarray[kk] = sum;
-                break;
+        case 2:
+            evalarray[kk] = sum;
+            break;
 
-            default:
-                evalarray[kk] = -sum;
-                break;
+        default:
+            evalarray[kk] = -sum;
+            break;
         }
     }
 

@@ -56,9 +56,19 @@ static long   fpi_looplimit;
 static int64_t *compOL;
 static long     fpi_compOL;
 
+// amplitude correction factor on WFS signal
+static float    *psol_WFSfact;
+static long     fpi_psol_WFSfact;
+
+
 // Latency between DM and WFS
-static float *latencyfr;
-static long   fpi_latencyfr;
+static float *latencyhardwfr;
+static long   fpi_latencyhardwfr;
+
+// software latency (usually around 1.5 frame)
+// 1 frame + compute time
+static float *latencysoftwfr;
+static long   fpi_latencysoftwfr;
 
 
 // Shared memory telemetry buffers
@@ -141,8 +151,29 @@ static long      fpi_selfRMnbiter;
 // time to settle after poke
 static uint32_t *selfRMnbsettlestep;
 static long      fpi_selfRMnbsettlestep;
-;
 
+
+
+
+
+static uint64_t *testOL;
+static long      fpi_testOL;
+
+static float *testOLupdategain;
+static long      fpi_testOLupdategain;
+
+
+static uint32_t *testOLmode;
+static long      fpi_testOLmode;
+
+static float *testOLampl;
+static long      fpi_testOLampl;
+
+static uint32_t *testOLnbsample;
+static long      fpi_testOLnbsample;
+
+static uint32_t *testOLcnt;
+static long      fpi_testOLcnt;
 
 
 
@@ -241,12 +272,30 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_FLOAT32,
-        ".comp.latencyfr",
-        "DM to WFS latency [frame]",
+        ".comp.WFSfact",
+        "amplitude correction factor on WFS",
+        "0.893",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &psol_WFSfact,
+        &fpi_psol_WFSfact
+    },
+    {
+        CLIARG_FLOAT32,
+        ".comp.latencyhardwfr",
+        "hardware DM to WFS latency [frame]",
         "1.7",
         CLIARG_HIDDEN_DEFAULT,
-        (void **) &latencyfr,
-        &fpi_latencyfr
+        (void **) &latencyhardwfr,
+        &fpi_latencyhardwfr
+    },
+    {
+        CLIARG_FLOAT32,
+        ".comp.latencysoftwfr",
+        "software latency [frame]",
+        "1.5",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &latencysoftwfr,
+        &fpi_latencysoftwfr
     },
     {
         CLIARG_ONOFF,
@@ -413,6 +462,60 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &selfRMnbsettlestep,
         &fpi_selfRMnbsettlestep
+    },
+    {
+        CLIARG_ONOFF,
+        ".testOL.enable",
+        "OL reconstruction test ON/OFF",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &testOL,
+        &fpi_testOL
+    },
+    {
+        CLIARG_FLOAT32,
+        ".testOL.updategain",
+        "update gain (0=check only)",
+        "0.1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &testOLupdategain,
+        &fpi_testOLupdategain
+    },
+    {
+        CLIARG_UINT32,
+        ".testOL.mode",
+        "mode index",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &testOLmode,
+        &fpi_testOLmode
+    },
+    {
+        CLIARG_FLOAT32,
+        ".testOL.ampl",
+        "amplitude",
+        "0.01",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &testOLampl,
+        &fpi_testOLampl
+    },
+    {
+        CLIARG_UINT32,
+        ".testOL.nbsample",
+        "number of samples",
+        "1000",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &testOLnbsample,
+        &fpi_testOLnbsample
+    },
+    {
+        CLIARG_UINT32,
+        ".testOL.cnt",
+        "samples count",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &testOLcnt,
+        &fpi_testOLcnt
     }
 };
 
@@ -439,7 +542,9 @@ static errno_t customCONFsetup()
 
         data.fpsptr->parray[fpi_comptbuff].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compOL].fpflag |= FPFLAG_WRITERUN;
-        data.fpsptr->parray[fpi_latencyfr].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_psol_WFSfact].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_latencyhardwfr].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_latencysoftwfr].fpflag |= FPFLAG_WRITERUN;
 
         data.fpsptr->parray[fpi_auxDMmvalenable].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_auxDMmvalmixfact].fpflag |= FPFLAG_WRITERUN;
@@ -458,6 +563,12 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_selfRMnbsettlestep].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_selfRMpokeampl].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_selfRMnbiter].fpflag |= FPFLAG_WRITERUN;
+
+        data.fpsptr->parray[fpi_testOL].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_testOLupdategain].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_testOLampl].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_testOLmode].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_testOLnbsample].fpflag |= FPFLAG_WRITERUN;
     }
 
     return RETURN_SUCCESS;
@@ -540,14 +651,14 @@ static errno_t compute_function()
 
     // connect to input mode values array and get number of modes
     //
-    IMGID imgin = mkIMGID_from_name(inmval);
-    resolveIMGID(&imgin, ERRMODE_ABORT);
-    printf("%u modes\n", imgin.md->size[0]);
-    uint32_t NBmode = imgin.md->size[0];
+    IMGID imginWFS = mkIMGID_from_name(inmval);
+    resolveIMGID(&imginWFS, ERRMODE_ABORT);
+    printf("%u modes\n", imginWFS.md->size[0]);
+    uint32_t NBmode = imginWFS.md->size[0];
 
 
     int selfRM_NBmode = (*selfRMnbmode);
-    if(selfRM_NBmode > NBmode)
+    if(selfRM_NBmode > (int) NBmode)
     {
         selfRM_NBmode = NBmode;
     }
@@ -600,6 +711,7 @@ static errno_t compute_function()
     int    NB_DMtstep = 10; // history buffer size
     int    DMtstep    = 0;  // current index
     float *mvalDMbuff = (float *) malloc(sizeof(float) * NBmode * NB_DMtstep);
+    float *mvalDMOL = (float*) malloc(sizeof(float)*NBmode);
 
     IMGID imgOLmval;
     {
@@ -635,6 +747,7 @@ static errno_t compute_function()
 
 
     // connect/create output mode coeffs
+    //
     IMGID imgout = stream_connect_create_2Df32(outmval, NBmode, 1);
     for(uint32_t mi = 0; mi < NBmode; mi++)
     {
@@ -771,6 +884,11 @@ static errno_t compute_function()
     }
 
 
+    // initialization for testOL
+    *testOLcnt = 0;
+    FILE *testOLfp;
+
+
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
@@ -840,7 +958,7 @@ static errno_t compute_function()
             {
 
                 // grab input value from WFS
-                mvalWFS = imgin.im->array.F[mi];
+                mvalWFS = imginWFS.im->array.F[mi];
 
                 // offset from mval to zero point
                 // this is the input zero point
@@ -894,7 +1012,7 @@ static errno_t compute_function()
             //
             if((*compOL) == 1)
             {
-                // write to DM history
+                // write to DM command history
                 //
                 for(uint32_t mi = 0; mi < NBmode; mi++)
                 {
@@ -908,8 +1026,10 @@ static errno_t compute_function()
                     DMtstep = 0;
                 }
 
-                int   latint  = (int)(*latencyfr);
-                float latfrac = (*latencyfr) - latint;
+                float latencytotalfr = (*latencyhardwfr) + (*latencysoftwfr);
+
+                int   latint  = (int) latencytotalfr;
+                float latfrac = latencytotalfr - latint;
 
                 int DMtstep1 = DMtstep - latint;
                 int DMtstep0 = DMtstep1 - 1;
@@ -928,11 +1048,11 @@ static errno_t compute_function()
                     float tmpmDMval = latfrac * mvalDMbuff[DMtstep0 * NBmode + mi];
                     tmpmDMval +=
                         (1.0 - latfrac) * mvalDMbuff[DMtstep1 * NBmode + mi];
+                    mvalDMOL[mi] = tmpmDMval;
 
-                    float tmpmWFSval = imgin.im->array.F[mi];
-                    ;
+                    float tmpmWFSval = imginWFS.im->array.F[mi];
 
-                    imgOLmval.im->array.F[mi] = tmpmWFSval - tmpmDMval;
+                    imgOLmval.im->array.F[mi] = (*psol_WFSfact)*tmpmWFSval - mvalDMOL[mi];
                 }
 
                 uint64_t PFcnt = imgPF.md->cnt0;
@@ -947,15 +1067,15 @@ static errno_t compute_function()
 
                     struct timespec t0;
                     struct timespec t1;
-                    clock_gettime(CLOCK_REALTIME, &t0);
-                    clock_gettime(CLOCK_REALTIME, &t1);
+                    clock_gettime(CLOCK_MILK, &t0);
+                    clock_gettime(CLOCK_MILK, &t1);
                     uint64_t PFcntOK = PFcnt + *PF_NBblock;
                     while(
                         (imgPF.md->cnt0 < PFcntOK) &&
                         (timespec_diff_double(t0, t1) < 1.0e-6 * (*PF_maxwaitus)))
                     {
                         // busy waiting
-                        clock_gettime(CLOCK_REALTIME, &t1);
+                        clock_gettime(CLOCK_MILK, &t1);
                     }
 
                     for(uint32_t mi = 0; mi < NBmode; mi++)
@@ -969,6 +1089,143 @@ static errno_t compute_function()
                            mvaloutapply,
                            sizeof(float) * NBmode);
                     processinfo_update_output_stream(processinfo, imgout.ID);
+                }
+
+
+
+
+                // OL reconstruction test
+                // to be run with low gain and small ampl, and then check with higher gain
+                //
+                if(*testOL == 1)
+                {
+                    processinfo_WriteMessage_fmt(processinfo, "testOL ON %u", *testOLcnt);
+
+                    float *psOL_probe;
+                    float *psOL_estimate;
+
+                    if(*testOLcnt == 0)
+                    {
+                        // initialization
+                        testOLfp = fopen("testOL.log", "w");
+
+                        psOL_probe = (float*) malloc(sizeof(float)*(*testOLnbsample));
+                        psOL_estimate = (float*) malloc(sizeof(float)*(*testOLnbsample));
+
+
+
+                        data.fpsptr->parray[fpi_testOLampl].fpflag &= ~FPFLAG_WRITERUN;
+                        data.fpsptr->parray[fpi_testOLmode].fpflag &= ~FPFLAG_WRITERUN;
+                        data.fpsptr->parray[fpi_testOLnbsample].fpflag &= ~FPFLAG_WRITERUN;
+                    }
+
+                    float x = 1.0*(*testOLcnt)/(*testOLnbsample);
+                    float freqfact = 0.01 + 1.99*x;
+                    imgauxmDM.im->array.F[*testOLmode] =
+                        (*testOLampl) * sin( 1.0*(*testOLcnt)/M_PI/2 * freqfact);
+
+                    psOL_probe[*testOLcnt] = imgauxmDM.im->array.F[*testOLmode];
+                    psOL_estimate[*testOLcnt] = imgOLmval.im->array.F[*testOLmode];
+
+
+                    fprintf(testOLfp, "%5u  %g %g %g %g\n",
+                            *testOLcnt,                                 // frame counter
+                            imgauxmDM.im->array.F[*testOLmode],         // probe applied
+                            -mvalDMOL[*testOLmode],                      // DM applied, time corrected
+                            (*psol_WFSfact) * imginWFS.im->array.F[*testOLmode],          // WFS signal
+                            imgOLmval.im->array.F[*testOLmode]          // pseudo OL reconstruction
+                           );
+
+                    (*testOLcnt) ++;
+                    if(*testOLcnt == *testOLnbsample)
+                    {
+                        // end of acquisition
+                        /// wrap up and process
+                        //
+                        *testOL = 0;
+                        data.fpsptr->parray[fpi_testOL].fpflag &= ~FPFLAG_ONOFF;
+                        *testOLcnt = 0;
+                        fclose(testOLfp);
+                        imgauxmDM.im->array.F[*testOLmode] = 0.0;
+
+                        data.fpsptr->parray[fpi_testOLampl].fpflag |= FPFLAG_WRITERUN;
+                        data.fpsptr->parray[fpi_testOLmode].fpflag |= FPFLAG_WRITERUN;
+                        data.fpsptr->parray[fpi_testOLnbsample].fpflag |= FPFLAG_WRITERUN;
+
+
+
+
+                        // process output - compute residual and optimize delay
+                        //
+                        float latencytotalfr = (*latencyhardwfr) + (*latencysoftwfr);
+                        float latencyoptimal = latencytotalfr;
+                        float WFSfactoptimal = (*psol_WFSfact);
+                        float optval = __FLT32_MAX__;
+                        float psOLdelay_fr_min = 0.5*latencytotalfr;
+                        float psOLdelay_fr_max = 1.5*latencytotalfr;
+                        for(float psOLdelay_fr=psOLdelay_fr_min; psOLdelay_fr < psOLdelay_fr_max; psOLdelay_fr += 0.01)
+                        {
+                            for(float WFSfactval = 0.9*WFSfactoptimal; WFSfactval < 1.1*WFSfactoptimal; WFSfactval += 0.01)
+                            {
+                                double psOLresidual = 0.0;
+                                for(long ii=0; ii < (*testOLnbsample); ii++)
+                                {
+                                    float tframeOL = 1.0*ii + psOLdelay_fr;
+                                    long jj0 = (long) tframeOL;
+                                    float jjfrac = tframeOL - jj0;
+                                    long jj1 = jj0+1;
+                                    if(jj1 < (*testOLnbsample))
+                                    {
+                                        double OLval = (1.0-jjfrac)*psOL_estimate[jj0] + jjfrac*psOL_estimate[jj1];
+                                        double resval = OLval*WFSfactval - psOL_probe[ii];
+                                        psOLresidual += resval*resval;
+                                    }
+                                }
+                                if( psOLresidual < optval)
+                                {
+                                    optval = psOLresidual;
+                                    latencyoptimal = psOLdelay_fr;
+                                    WFSfactoptimal = WFSfactval;
+                                }
+                                //printf("DELAY %8f   RESIDUAL  = %g\n", psOLdelay_fr, psOLresidual);
+                            }
+                        }
+
+
+                        printf("OPTIMAL LATENCY = %f fr ->  latencysoft = %f fr\n",
+                               latencyoptimal, latencyoptimal - (*latencyhardwfr));
+                        printf("OPTIMAL WFSfact = %f\n", WFSfactoptimal);
+
+
+                        // update
+                        float g0 = 1.0 - (*testOLupdategain);
+                        float g1 = (*testOLupdategain);
+                        (*latencysoftwfr) = g0*(*latencysoftwfr) + g1*(latencyoptimal - (*latencyhardwfr));
+                        (*psol_WFSfact) = g0*(*psol_WFSfact) + g1*WFSfactoptimal;
+
+                        free(psOL_probe);
+                        free(psOL_estimate);
+
+
+                        // write results as env variables
+                        {
+                            // file will be sourced by cacao-check-cacaovars
+                            //
+                            char ffname[STRINGMAXLEN_FULLFILENAME];
+                            WRITE_FULLFILENAME(ffname, "%s/cacaovars.bash", data.fpsptr->md->datadir);
+
+                            printf("SAVING TO %s\n", ffname);
+
+                            FILE *fpout;
+                            fpout = fopen(ffname, "w");
+                            fprintf(fpout, "export CACAO_PSOL_WFSFACT=%.3f\n", (*latencysoftwfr));
+                            fprintf(fpout, "export CACAO_LATENCYSOFTWFR=%.3f\n", (*latencysoftwfr));
+                            fprintf(fpout, "export CACAO_LATENCYFR=%.3f\n", (*latencysoftwfr)+(*latencyhardwfr) );
+                            fclose(fpout);
+                        }
+
+                        processinfo_WriteMessage(processinfo, "testOL done");
+                    }
                 }
             }
 
@@ -1012,7 +1269,7 @@ static errno_t compute_function()
                 for(uint32_t mi = 0; mi < NBmode; mi++)
                 {
                     imgtbuff_mvalWFS.im->array.F[kkoffset + mi] =
-                        imgin.im->array.F[mi];
+                        imginWFS.im->array.F[mi];
                     imgtbuff_mvalOL.im->array.F[kkoffset + mi] =
                         imgOLmval.im->array.F[mi];
                 }
@@ -1076,8 +1333,8 @@ static errno_t compute_function()
 
             nanosleep(&twait, NULL);
 
-            memcpy(imgin.im->array.F, imgout.im->array.F, sizeof(float) * NBmode);
-            processinfo_update_output_stream(processinfo, imgin.ID);
+            memcpy(imginWFS.im->array.F, imgout.im->array.F, sizeof(float) * NBmode);
+            processinfo_update_output_stream(processinfo, imginWFS.ID);
         }
 
 
@@ -1151,7 +1408,7 @@ static errno_t compute_function()
                     pindex += NBmode * pkmode;
                     pindex += mi;
                     imgselfRM.im->array.F[pindex] +=
-                        0.5 * signmult * selfRMpokesign * imgin.im->array.F[mi] /
+                        0.5 * signmult * selfRMpokesign * imginWFS.im->array.F[mi] /
                         (*selfRMpokeampl) / (*selfRMnbiter);
                 }
             }
@@ -1175,7 +1432,7 @@ static errno_t compute_function()
             }
 
 
-            if(selfRM_pokemode == selfRM_NBmode)
+            if((int) selfRM_pokemode == selfRM_NBmode)
             {
                 selfRMpokeparity = 1 - selfRMpokeparity;
                 selfRM_pokemode  = 0;
@@ -1197,7 +1454,7 @@ static errno_t compute_function()
                 // testing
                 save_fits(imgselfRM.name, "selfRM.fits");
 
-                 processinfo_WriteMessage(processinfo, "selfRM done");
+                processinfo_WriteMessage(processinfo, "selfRM done");
             }
         }
 
@@ -1211,6 +1468,7 @@ static errno_t compute_function()
     free(mvaloutapply);
     free(mvalDMc);
     free(mvalDMbuff);
+    free(mvalDMOL);
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;

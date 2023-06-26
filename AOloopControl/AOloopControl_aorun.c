@@ -34,9 +34,8 @@
 
 #include <ncurses.h>
 
-#ifdef HAVE_CUDA
-#include "cudacomp/cudacomp.h"
-#endif
+#include "linalgebra/linalgebra.h"
+
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -163,7 +162,7 @@ int AOloopControl_aorun_FPCONF()
     // ===========================
     FPS_SETUP_INIT(data.FPS_name, data.FPS_CMDCODE);
 
-    FPS2PROCINFOMAP fps2procinfo;
+    //FPS2PROCINFOMAP fps2procinfo;
     fps_add_processinfo_entries(&fps); // include real-time settings
 
     // ===========================
@@ -855,7 +854,7 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
 
     AOconf[loop].aorun.initmapping = 0;
     AOconf[loop].aorun.init_CMc    = 0;
-    clock_gettime(CLOCK_REALTIME, &t1);
+    clock_gettime(CLOCK_MILK, &t1);
 
     if(vOK == 1)
     {
@@ -894,7 +893,7 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
             if(timerinit == 1)
             {
                 processinfoUpdate = 1;
-                clock_gettime(CLOCK_REALTIME, &t1);
+                clock_gettime(CLOCK_MILK, &t1);
                 printf("timer init\n");
                 if(data.processinfo == 1)
                 {
@@ -903,7 +902,7 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
                     processinfo_WriteMessage(processinfo, msgstring);
                 }
             }
-            clock_gettime(CLOCK_REALTIME, &t2);
+            clock_gettime(CLOCK_MILK, &t2);
 
             double tdiffv = timespec_diff_double(t1, t2);
 
@@ -939,13 +938,13 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
                     processinfo_WriteMessage(processinfo, "LOOP RUNNING-");
                 }
 
-                clock_gettime(CLOCK_REALTIME,
+                clock_gettime(CLOCK_MILK,
                               &functionTestTimer00); // TEST timing in function
                 if(timerinit == 0)
                 {
                     //      Read_cam_frame(loop, 0,
                     //      AOconf[loop].WFSim.WFSnormalize, 0, 1);
-                    clock_gettime(CLOCK_REALTIME, &t1);
+                    clock_gettime(CLOCK_MILK, &t1);
                     timerinit = 1;
                 }
 
@@ -990,11 +989,11 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
                 }
 
                 clock_gettime(
-                    CLOCK_REALTIME,
+                    CLOCK_MILK,
                     &functionTestTimerStart); // TEST timing in function
 
                 AOconf[loop].AOtiminginfo.status = 12; // 12
-                clock_gettime(CLOCK_REALTIME, &tnow);
+                clock_gettime(CLOCK_MILK, &tnow);
                 tdiffv = timespec_diff_double(
                              data.image[aoloopcontrol_var.aoconfID_looptiming]
                              .md[0]
@@ -1045,7 +1044,7 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
                         }
 
                         AOconf[loop].AOtiminginfo.status = 13; // enforce limits
-                        clock_gettime(CLOCK_REALTIME, &tnow);
+                        clock_gettime(CLOCK_MILK, &tnow);
                         tdiffv = timespec_diff_double(
                                      data.image[aoloopcontrol_var.aoconfID_looptiming]
                                      .md[0]
@@ -1090,7 +1089,7 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
                         }
 
                         AOconf[loop].AOtiminginfo.status = 14; // write to DM
-                        clock_gettime(CLOCK_REALTIME, &tnow);
+                        clock_gettime(CLOCK_MILK, &tnow);
                         tdiffv = timespec_diff_double(
                                      data.image[aoloopcontrol_var.aoconfID_looptiming]
                                      .md[0]
@@ -1131,7 +1130,7 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
                 }
 
                 AOconf[loop].AOtiminginfo.status = 18; // 18
-                clock_gettime(CLOCK_REALTIME, &tnow);
+                clock_gettime(CLOCK_MILK, &tnow);
                 tdiffv = timespec_diff_double(
                              data.image[aoloopcontrol_var.aoconfID_looptiming]
                              .md[0]
@@ -1159,7 +1158,7 @@ errno_t __attribute__((hot)) AOloopControl_aorun()
                     AOconf[loop].aorun.on = 0;
                 }
 
-                clock_gettime(CLOCK_REALTIME, &functionTestTimerEnd);
+                clock_gettime(CLOCK_MILK, &functionTestTimerEnd);
 
                 tdiffv = timespec_diff_double(functionTestTimerStart,
                                               functionTestTimerEnd);

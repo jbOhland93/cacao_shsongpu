@@ -166,7 +166,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_ONOFF,
         ".comp.darksub",
-        "Subtract Dark aolX_wfsdark -> imWFS0",
+        "sub aolX_wfsdark mult aolX_wfsgain -> imWFS0",
         "1",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &compWFSsubdark,
@@ -310,12 +310,14 @@ static errno_t compute_function()
         create_image_ID(name, 2, naxes, _DATATYPE_FLOAT, 1, 0, 0, &ID_imWFS3);
 
 
-        IMGID imgwfsref;
+
         {
+            //IMGID imgwfsref;
             char wfsrefname[STRINGMAXLEN_STREAMNAME];
             WRITE_IMAGENAME(wfsrefname, "aol%u_wfsref", *AOloopindex);
-            imgwfsref = stream_connect_create_2Df32(wfsrefname, sizexWFS, sizeyWFS);
+            stream_connect_create_2Df32(wfsrefname, sizexWFS, sizeyWFS);
         }
+
 
         WRITE_IMAGENAME(name, "aol%u_wfsrefc", *AOloopindex);
         create_image_ID(name, 2, naxes, _DATATYPE_FLOAT, 1, 0, 0, &IDwfsrefc);
@@ -405,6 +407,21 @@ static errno_t compute_function()
         printf("IDwfsdark = %ld\n", IDwfsdark);
     }
 
+    // LOAD WFS MULT
+    imageID IDwfsmult = -1;
+    {
+        char wfsmultname[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(wfsmultname, "aol%u_wfsmult", *AOloopindex);
+        IDwfsmult = image_ID(wfsmultname);
+        if(IDwfsmult == -1)
+        {
+            IDwfsmult = read_sharedmem_image(wfsmultname);
+        }
+        printf("IDwfsmult = %ld\n", IDwfsmult);
+    }
+
+
+
     // LOAD REFERENCE
     imageID IDwfsref = -1;
     {
@@ -424,9 +441,6 @@ static errno_t compute_function()
             stream_connect_create_2Df32(wfszposname, sizexWFS, sizeyWFS);
     }
 
-
-
-
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
         // ===========================================
@@ -445,7 +459,6 @@ static errno_t compute_function()
         }*/
 
         DEBUG_TRACEPOINT(" ");
-
 
 
         char *ptrv;
@@ -476,25 +489,33 @@ static errno_t compute_function()
         }
 
 
-
-        // ===========================================
-        // SUBTRACT DARK -> imWFS0
-        // ===========================================
+        // ===================================================
+        // SUBTRACT WFSDARK AND MULTIPLY BY WFSMULT-> imWFS0
+        // ===================================================
         DEBUG_TRACEPOINT(" ");
 
-        // check dark is to be subtracted
+        // check wfsdark is to be subtracted
         int status_darksub = 0;
+
+
+        // check if wfsmult to be applied
+        //int status_wfsmult = 0;
+
         if(data.fpsptr->parray[fpi_compWFSsubdark].fpflag & FPFLAG_ONOFF)
         {
+
             if(IDwfsdark != -1)
             {
                 status_darksub = 1;
             }
+
+            //if(IDwfsmult != -1)
+            //{
+            //    status_wfsmult = 1;
+            // }
         }
 
         data.image[ID_imWFS0].md[0].write = 1;
-
-
 
         switch(WFSatype)
         {
@@ -502,7 +523,7 @@ static errno_t compute_function()
             if(status_darksub == 0)
             {
                 // no dark subtraction, convert data to float
-                for(uint64_t ii = 0; ii < sizeWFS; ii++)
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
                     data.image[ID_imWFS0].array.F[ii] = ((float) arrayutmp[ii]);
                 }
@@ -510,7 +531,7 @@ static errno_t compute_function()
             else
             {
                 // dark subtraction
-                for(uint64_t ii = 0; ii < sizeWFS; ii++)
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
                     data.image[ID_imWFS0].array.F[ii] =
                         ((float) arrayutmp[ii]) -
@@ -520,11 +541,10 @@ static errno_t compute_function()
             break;
 
         case _DATATYPE_INT16:
-
             if(status_darksub == 0)
             {
                 // no dark subtraction, convert data to float
-                for(uint64_t ii = 0; ii < sizeWFS; ii++)
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
                     data.image[ID_imWFS0].array.F[ii] = ((float) arraystmp[ii]);
                 }
@@ -532,7 +552,7 @@ static errno_t compute_function()
             else
             {
                 // dark subtraction
-                for(uint64_t ii = 0; ii < sizeWFS; ii++)
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
                     data.image[ID_imWFS0].array.F[ii] =
                         ((float) arraystmp[ii]) -
@@ -552,7 +572,7 @@ static errno_t compute_function()
             else
             {
                 // dark subtraction
-                for(uint64_t ii = 0; ii < sizeWFS; ii++)
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
                     data.image[ID_imWFS0].array.F[ii] =
                         arrayftmp[ii] - data.image[IDwfsdark].array.F[ii];
@@ -569,7 +589,16 @@ static errno_t compute_function()
             break;
         }
 
-
+        if(status_darksub == 1)
+        {
+            if(IDwfsmult != -1)
+            {
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                {
+                    data.image[ID_imWFS0].array.F[ii] *= data.image[IDwfsmult].array.F[ii];
+                }
+            }
+        }
 
         processinfo_update_output_stream(processinfo, ID_imWFS0);
 
@@ -595,8 +624,8 @@ static errno_t compute_function()
 
             // Compute image total
             double imtotal = 0.0;
-            uint64_t nelem = data.image[ID_imWFS0].md[0].size[0] *
-                             data.image[ID_imWFS0].md[0].size[1];
+            uint64_t nelem = data.image[ID_imWFS0].md->size[0] *
+                             data.image[ID_imWFS0].md->size[1];
 
             if(IDwfsmask != -1)
             {
@@ -615,6 +644,7 @@ static errno_t compute_function()
             }
             *fluxtotal = imtotal;
 
+            printf("imtotal = %f\n", imtotal);
 
 
             // avoiding division by zero
@@ -711,15 +741,15 @@ static errno_t compute_function()
         // UPDATE wfsrefc
         // ===========================================
 
-        printf("IDwfsref = %ld\n", IDwfsref);
-        fflush(stdout);
+        /*        printf("IDwfsref = %ld\n", IDwfsref);
+                fflush(stdout);
 
-        printf("IDwfsrefc = %ld\n", IDwfsrefc);
-        fflush(stdout);
+                printf("IDwfsrefc = %ld\n", IDwfsrefc);
+                fflush(stdout);
 
-        printf("ID_imWFS3 = %ld\n", ID_imWFS3);
-        fflush(stdout);
-
+                printf("ID_imWFS3 = %ld\n", ID_imWFS3);
+                fflush(stdout);
+        */
 
         int status_wfsrefc = 0;
         if(data.fpsptr->parray[fpi_compWFSrefc].fpflag & FPFLAG_ONOFF)
@@ -762,6 +792,7 @@ static errno_t compute_function()
         );
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
+
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;

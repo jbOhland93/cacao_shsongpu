@@ -423,6 +423,8 @@ function fpssetparamconf {
 
     rm fpssetup.setval.combined.conf
     sed "s/LOOPNUMBER/${LOOPNUMBER}/g" ${CURRDIR}/${fpsSETPARAMCONFfile} | sed "s/DMINDEX/${CACAO_DMINDEX}/g" > fpssetuptmp.tmp
+    sed -i "s/DMSIMINDEX/${CACAO_DMSIMINDEX}/g" fpssetuptmp.tmp
+
     cat ${CURRDIR}/fpssetup.setval.conf fpssetuptmp.tmp > fpssetup.setval.combined.conf
     #rm fpssetuptmp.tmp
     rm ${CURRDIR}/fpssetup.setval.conf
@@ -891,10 +893,12 @@ milk-fpsinit -e cacao -C
 if [ "$UPDATEMODE" = "0" ]; then
 	echo "Running milk-fpsCTRL from tmux session ${fpsCTRLtmuxname}"
     tmux new-session -d -s ${fpsCTRLtmuxname}
-    tmux send-keys -t ${fpsCTRLtmuxname} "x" C-m  &>> ${LOGFILENAME} # in case previous instance is running, exit from it
-    tmux send-keys -t ${fpsCTRLtmuxname} "TMUX=" C-m  &>> ${LOGFILENAME}   # ensures that tmux sessions can be created from fpsCTRL
+    # in case previous instance is running, exit from it
+    tmux send-keys -t ${fpsCTRLtmuxname} "x" C-m  &>> ${LOGFILENAME}
+    # ensures that tmux sessions can be created from fpsCTRL
+    tmux send-keys -t ${fpsCTRLtmuxname} "TMUX=" C-m  &>> ${LOGFILENAME}
     rm -f ${fpsCTRLfifo} &> /dev/null # remove old fifo
-
+    tmux send-keys -t ${fpsCTRLtmuxname} "source ../fpstmuxenv" C-m  &>> ${LOGFILENAME}
     tmux send-keys -t ${fpsCTRLtmuxname} "milk-fpsCTRL -s -f ${fpsCTRLfifo}" C-m  &>> ${LOGFILENAME}
 else
 	echo "Updating milk-fpsCTRL from tmux session ${fpsCTRLtmuxname}"
