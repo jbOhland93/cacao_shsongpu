@@ -101,6 +101,7 @@ public:
             throw std::runtime_error("SGR_ImageHandler::setKeyword: Index is larger than the number of available keywords.");
         IMAGE_KEYWORD kw;
         std::strncpy(kw.name, name.c_str(), name.length());
+        printf("In: %s; Out %s\n", name.c_str(), kw.name);
         kw.type = 'L';
         kw.value.numl = data;
         mImage.kw[index] = kw;
@@ -565,8 +566,12 @@ template <typename T>
 int SGR_ImageHandler<T>::getKWindex(std::string name)
 {
     for (int i = 0; i < mImage.md->NBkw; i++)
-        if (name == mImage.kw[i].name)
+    {
+        std::string kwName = mImage.kw[i].name;
+        kwName.pop_back();
+        if (name == kwName)
             return i;
+    }
     return 0;
 }
 

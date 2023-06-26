@@ -181,6 +181,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
     }
     
     try {
+        printf("Trying\n");
         // Initialize the  image handlers for the evaluation
         spImageHandler(float) IHavgI = SGR_ImageHandler<float>::newImageHandler(
             makeStreamname("7_Eval-AVGintensity"), mGridSize.mX, mGridSize.mY);
@@ -284,6 +285,8 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // Store fits files
         // Generate image streams on GPU
         // Load 1D arrays onto GPU
+
+        
 
         mState = RECSTATE::FINISH;
 
