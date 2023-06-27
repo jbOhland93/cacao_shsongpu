@@ -5,26 +5,18 @@
 #ifndef SGR_IMAGEHANDLER_HPP
 #define SGR_IMAGEHANDLER_HPP
 
-#include "ImageStreamIO/ImageStreamIO.h"
-#include <string>
+#include "SGR_ImageHandlerBase.hpp"
 #include <memory>
 #include <vector>
-#include <exception>
 #include <limits>
-#include <cstring>
-#include <algorithm>
-#include "../util/Rectangle.hpp"
 
 #define spImageHandler(type) std::shared_ptr<SGR_ImageHandler<type>>
 #define newImHandlerFrmIm(type, name, image) SGR_ImageHandler<type>::newHandlerfrmImage(name, image)
 
 template <typename T>
-class SGR_ImageHandler
+class SGR_ImageHandler : public SGR_ImageHandlerBase
 {
 public:
-    const uint32_t mWidth;
-    const uint32_t mHeight;
-    const uint32_t mNumPx;
 
 // ========== FACTORY FUNCTIONS ==========
     static spImageHandler(T) newImageHandler(
@@ -32,15 +24,14 @@ public:
         size_t width,
         size_t height,
         uint8_t numKeywords = 0,
-        uint32_t circBufSize = 0);
+        uint32_t circBufSize = 0,
+        int32_t gpuDevice = -1);
     // Creates a new image of the same size, but converts the data.
     static spImageHandler(T) newHandlerfrmImage(
         std::string name,
         IMAGE* im,
         uint8_t numKeywords = 0,
         uint32_t circBufSize = 0);
-    
-    ~SGR_ImageHandler();
 
 // ========== IMAGE HANDLING ==========    
     // Copies the data from im and converts to own datatype
@@ -57,136 +48,31 @@ public:
     void cpy_convolve(IMAGE* A, IMAGE* K);
 
 // ========== READING/WRITING MEMBER DATA ==========
-    // Returns the image object
-    IMAGE* getImage() { return &mImage; }
+    // Returns the write buffer
+    T* getWriteBuffer() { return mpBuffer; }
     // Reads the element at x/y from the last written buffer
     T read(uint32_t x, uint32_t y)
-        { return mpBuffer[toROIy(y)*mWidth + toROIx(x)]; }
+        { throwIfGPU("read"); return mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)]; }
     // Writes the given element at teh x/y position into the write buffer
     void write(T e, uint32_t x, uint32_t y)
-        { mpBuffer[toROIy(y)*mWidth + toROIx(x)] = e; }
+        { throwIfGPU("write"); mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)] = e; }
     // Reads all the samples at x/y from the circular buffer
     std::vector<T> readCircularBufAt(uint32_t x, uint32_t y)
     {
+        throwIfGPU("readCircularBufAt");
         std::vector<T> v;
         T* cbBuf = (T*) mImage.CBimdata;
         for (int i = 0; i < mImage.md->CBsize; i++)
             v.push_back(cbBuf[i*mNumPx + y*mWidth + x]);
         return v;
     }
-    // Setting a ROI
-    void setROI(Rectangle<uint32_t> roi)
-    {
-        if (roi.x()+roi.w() >= mWidth || roi.y()+roi.h() >= mHeight)
-            throw std::runtime_error("SGR_ImageHandler::setROI: out of range.");
-        else
-            mROI = roi;
-    }
-    // Setting a ROI
-    void setROI(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
-        { setROI(Rectangle<uint32_t>(x,y,w,h)); }
-    // Resetting the ROI
-    void unsetROI() { mROI = Rectangle<uint32_t>(0,0, mWidth, mHeight); }
-    Rectangle<uint32_t> getROI() { return mROI; }
-    // Makes the image stream stay after destruction
-    void setPersistent(bool persistent) { mPersistent = persistent; }
-    // Setting a keyword
-    template <typename U>
-    void setKeyword(int index, std::string name, U data)
-    { throw std::runtime_error("SGR_ImageHandler::setKeyword: Only int64_t, double and string supported."); }
-    //template<>
-    void setKeyword(int index, std::string name, int64_t data)
-    {
-        if (index >= mImage.md->NBkw)
-            throw std::runtime_error("SGR_ImageHandler::setKeyword: Index is larger than the number of available keywords.");
-        IMAGE_KEYWORD kw;
-        std::strncpy(kw.name, name.c_str(), name.length());
-        printf("In: %s; Out %s\n", name.c_str(), kw.name);
-        kw.type = 'L';
-        kw.value.numl = data;
-        mImage.kw[index] = kw;
-    }
-    //template<>
-    void setKeyword(int index, std::string name, double data)
-    {
-        if (index >= mImage.md->NBkw)
-            throw std::runtime_error("SGR_ImageHandler::setKeyword: Index is larger than the number of available keywords.");
-        IMAGE_KEYWORD kw;
-        std::strncpy(kw.name, name.c_str(), name.length());
-        kw.type = 'D';
-        kw.value.numf = data;
-        mImage.kw[index] = kw;
-    }
-    //template<>
-    void setKeyword(int index, std::string name, std::string data)
-    {
-        if (index >= mImage.md->NBkw)
-            throw std::runtime_error("SGR_ImageHandler::setKeyword: Index is larger than the number of available keywords.");
-        IMAGE_KEYWORD kw;
-        std::strncpy(kw.name, name.c_str(), name.length());
-        kw.type = 'S';
-        std::strncpy(kw.value.valstr, data.c_str(), std::min(16, (int)data.length()));
-        mImage.kw[index] = kw;
-    }
-    // Reading a keyword
-    template <typename U>
-    bool getKeyword(std::string name, U* dst)
-    { throw std::runtime_error("SGR_ImageHandler::getKeyword: Only int64_t, double and string supported."); }
-    bool getKeyword(std::string name, int64_t* dst)
-    {
-        int kwIdx = getKWindex(name);
-        if (kwIdx >= 0)
-        {   
-            IMAGE_KEYWORD kw = mImage.kw[kwIdx];
-            if (kw.type == 'L')
-            {
-                *dst = kw.value.numl;
-                return true;
-            }
-        }
-        return false;
-    }
-    //template<>
-    bool getKeyword(std::string name, double* dst)
-    {
-        int kwIdx = getKWindex(name);
-        if (kwIdx >= 0)
-        {   
-            IMAGE_KEYWORD kw = mImage.kw[kwIdx];
-            if (kw.type == 'D')
-            {
-                *dst = kw.value.numf;
-                return true;
-            }
-        }
-        return false;
-    }
-    //template<>
-    bool getKeyword(std::string name, std::string* dst)
-    {
-        int kwIdx = getKWindex(name);
-        if (kwIdx >= 0)
-        {   
-            IMAGE_KEYWORD kw = mImage.kw[kwIdx];
-            if (kw.type == 'S')
-            {
-                std::string tmp(kw.value.valstr);
-                *dst = tmp;
-                return true;
-            }
-        }
-        return false;
-    }
+    
 
 // ========== OPERATIONS ==========
-    // Updates the image and gets the new write buffer
-    void updateWrittenImage()
-        { ImageStreamIO_UpdateIm(&mImage); }
-    // Get the number of pixels in the current ROI
-    uint32_t getPxInROI() { return mROI.w() * mROI.h(); }
     // Sums all the pixels in the current ROI
     double getSumOverROI()
     {
+        throwIfGPU("getSumOverROI");
         double sum = 0;
         for (uint32_t ix = 0; ix < mROI.w(); ix++)
             for (uint32_t iy = 0; iy < mROI.h(); iy++)
@@ -196,6 +82,7 @@ public:
     // Gets the maximum pixel value in the current ROI
     T getMaxInROI(uint32_t* maxposX = nullptr, uint32_t* maxposY= nullptr)
     {
+        throwIfGPU("getMaxInROI");
         T max = std::numeric_limits<T>::min();
         T cur;
         for (uint32_t ix = 0; ix < mROI.w(); ix++)
@@ -217,10 +104,7 @@ public:
     uint32_t erode(std::vector<Point<uint32_t>>* d = nullptr);
     
 private:
-    IMAGE mImage;
     T* mpBuffer = nullptr;
-    bool mPersistent = false;
-    Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
 // ========== CONSTRUCTORS ==========
     SGR_ImageHandler(); // No publically available default ctor
     SGR_ImageHandler(
@@ -229,25 +113,10 @@ private:
         uint32_t height,
         uint8_t atype,
         uint8_t numKeywords,
-        uint32_t circBufSize = 10);
+        uint32_t circBufSize = 10,
+        int32_t gpuDevice = -1);
 
 // ========== HELPER FUNCTIONS ==========
-    // Transform from ROI coordinates to image coordinates
-    uint32_t toROIx(uint32_t x)
-    {
-        if (x >= mROI.w()) // x is uint3_t, thus always > 0
-            throw std::runtime_error("SGR_ImageHandler::toROIx: x is out of range.");
-        else
-            return x + mROI.x();
-    }
-    // Transform from image coordinates to ROI coordinates
-    uint32_t toROIy(uint32_t y)
-    {
-        if (y >= mROI.h()) // y is uint3_t, thus always > 0
-            throw std::runtime_error("SGR_ImageHandler::toROIx: x is out of range.");
-        else
-            return y + mROI.y();
-    }
     // Conversion for foreign element access
     template <typename U>
     U cvtElmt(void* ptr, uint8_t atype, uint32_t index)
@@ -271,7 +140,7 @@ private:
     {
         return cvtElmt<T>(ptr, atype, index);
     }
-    int getKWindex(std::string name);
+    void throwIfGPU(std::string operationName);
 };
 
 // ######################################
@@ -287,7 +156,8 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newImageHandler(
     size_t width,
     size_t height,
     uint8_t numKeywords,
-    uint32_t circBufSize)
+    uint32_t circBufSize,
+    int32_t gpuDevice)
 {
     throw std::runtime_error(
         "SGR_ImageHandler<T>::newImageHandler: Type not supported.");
@@ -302,7 +172,8 @@ inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
     size_t width,                                                       \
     size_t height,                                                      \
     uint8_t numKeywords,                                                \
-    uint32_t circBufSize)                                               \
+    uint32_t circBufSize,                                               \
+    int32_t gpuDevice)                                                 \
 {                                                                       \
     spImageHandler(type) sp(new SGR_ImageHandler<type>(                 \
         name,                                                           \
@@ -310,7 +181,8 @@ inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
         height,                                                         \
         atype,                                                          \
         numKeywords,                                                    \
-        circBufSize));                                                  \
+        circBufSize,                                                    \
+        gpuDevice));                                                    \
     return sp;                                                          \
 }
 IH_FACTORY(uint8_t, _DATATYPE_UINT8);
@@ -337,14 +209,6 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerfrmImage(
         newImageHandler(name, size[0], size[1], numKeywords, circBufSize);
     spIH->cpy(im);
     return spIH;
-}
-
-// ===== Destructor =====
-template <typename T>
-inline SGR_ImageHandler<T>::~SGR_ImageHandler()
-{
-    if (!mPersistent)
-        ImageStreamIO_destroyIm(&mImage);
 }
 
 // ===== specifications for image handling =====
@@ -476,26 +340,29 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
         uint32_t height,
         uint8_t atype,
         uint8_t numKeywords,
-        uint32_t circBufSize)
+        uint32_t circBufSize,
+        int32_t gpuDevice)
         :
-        mWidth(width),
-        mHeight(height),
-        mNumPx(width*height),
-        mROI(0,0,width,height)
+        SGR_ImageHandlerBase(width, height, gpuDevice)
 {
     int naxis = 2;
     uint32_t * imsize = new uint32_t[naxis]();
-    imsize[0] = width;
-    imsize[1] = height;
+    imsize[0] = mWidth;
+    imsize[1] = mHeight;
     int shared = 1; // image will be in shared memory
-    ImageStreamIO_createIm(&mImage,
-                            name.c_str(),
-                            naxis,
-                            imsize,
-                            atype,
-                            shared,
-                            numKeywords,
-                            circBufSize);
+    ImageStreamIO_createIm_gpu(
+            &mImage,
+            name.c_str(),
+            naxis,
+            imsize,
+            atype,
+            mDevice,            // -1: CPU RAM, 0+ : GPU
+            shared,             // shared?
+            10,                 // # of semaphores
+            numKeywords,        // # of keywords
+            0,                  // Imagetype - unknown
+            circBufSize // circular buffer size (if shared), 0 if not used
+        );
     delete imsize;
     ImageStreamIO_writeBuffer(&mImage, (void**) &mpBuffer);
 }
@@ -503,6 +370,7 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
 template <typename T>
 uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
 {
+    throwIfGPU("erode");
     uint32_t remainingPixels = 0;
     int x;
     int y;
@@ -525,8 +393,8 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
     for (uint32_t ix = 0; ix < mROI.w(); ix++)
         for (uint32_t iy = 0; iy < mROI.h(); iy++)
         {   
-            x = toROIx(ix);
-            y = toROIy(iy);
+            x = fromROIxToImX(ix);
+            y = fromROIyToImY(iy);
             // Only consider pixel if it is greater than 0
             if (mpBuffer[y*mWidth + x] > 0)
             {   // Count the neighbours
@@ -563,16 +431,14 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
 }
 
 template <typename T>
-int SGR_ImageHandler<T>::getKWindex(std::string name)
+void SGR_ImageHandler<T>::throwIfGPU(std::string operationName)
 {
-    for (int i = 0; i < mImage.md->NBkw; i++)
+    if (mDevice >= 0)
     {
-        std::string kwName = mImage.kw[i].name;
-        kwName.pop_back();
-        if (name == kwName)
-            return i;
+        printf("\n\n#### ERROR ####\nThis operation is currently not supported for images in device memory.\n");
+        printf("Operation name: %s\n\n", operationName.c_str());
+        throw std::runtime_error("SGR_ImageHandler: Illegal operation on GPU stream.");
     }
-    return 0;
 }
 
 #endif // SGR_IMAGEHANDLER_HPP

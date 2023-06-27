@@ -5,6 +5,9 @@
 #include "../util/SpotFitter.hpp"
 
 #include <string>
+#include <cuda.h>
+#include <iostream>
+#include <fstream>
 
 extern "C"
 {
@@ -44,6 +47,11 @@ SGR_Recorder::SGR_Recorder(
             // Initialize parameters
             mApertureDiameter_px = mlaPitch_um/mPxSize_um;
             mGridRectSize = floor(mApertureDiameter_px);
+            // Calculate the SHS device constant
+            // This constant can transfer the shift of each SHS-spot in pixels
+            // to a local gradient, i.e. the WF variation in micrometers over
+            // the current subaperture.
+            mSlopeToGradConstant = mPxSize_um * mMlaPitch_um / mMlaDist_um;
 
             // Prepare the actual spotfinding
             prepareSpotFinding();
@@ -181,11 +189,23 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
     }
     
     try {
-        printf("Trying\n");
+        // Prepare final reference names
+        std::string refBaseName = makeStreamname(mpInput->name);
+        refBaseName.append("_");
+        std::string refNameSuffix = "Ref";
+        std::string maskNameSuffix = "Mask";
+        std::string intensityNameSuffix = "Intensity";
+        std::string refName = refBaseName;
+        std::string maskName = refBaseName;
+        std::string intensityName = refBaseName;
+        refName.append(refNameSuffix);
+        maskName.append(maskNameSuffix);
+        intensityName.append(intensityNameSuffix);
+
         // Initialize the  image handlers for the evaluation
         spImageHandler(float) IHavgI = SGR_ImageHandler<float>::newImageHandler(
-            makeStreamname("7_Eval-AVGintensity"), mGridSize.mX, mGridSize.mY);
-        IHavgI->setPersistent(mVisualize);
+            intensityName, mGridSize.mX, mGridSize.mY, 9);
+        IHavgI->setPersistent(true);
         spImageHandler(float) IHavgP = SGR_ImageHandler<float>::newImageHandler(
             makeStreamname("7_Eval-AVGpos"), mGridSize.mX*2, mGridSize.mY);
         IHavgP->setPersistent(mVisualize);
@@ -193,13 +213,13 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
             makeStreamname("7_Eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
         spImageHandler(uint8_t) IHspotMask = SGR_ImageHandler<uint8_t>::newImageHandler(
-            makeStreamname("7_Eval-SpotMask"), mGridSize.mX, mGridSize.mY);
+            maskName, mGridSize.mX, mGridSize.mY, 9);
         IHspotMask->setPersistent(true);
 
         // Calculate the stability threshold for the mask
         float deflectionPrecision = mMlaDist_um * tan(uradPrecisionThresh*1e-6);
         float pxPrecision = deflectionPrecision / mPxSize_um;
-        printf("Demanded spot stability: %.1f µrad == %.4f px. Generating mask...\n",
+        printf("Demanded spot stability: %.1f µrad == %.4f px.\n\n",
             uradPrecisionThresh, pxPrecision);
         
         // Size of the circular buffer == # of frames recorded
@@ -252,43 +272,79 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
                     IHspotMask->write(0, ix, iy);
             }
 
+        // Update images
         IHavgI->updateWrittenImage();
         IHavgP->updateWrittenImage();
         IHstdDvP->updateWrittenImage();
         IHspotMask->updateWrittenImage();
+        printf("Intensity map generated.\n\t=> Stream name: %s\n", IHavgI->getImage()->name);
         printf("Mask generated. %d valid subapertures detected.\n", numOfValidSpots);
-        printf("\nTODOs: Generate 1D arrays of centroids, search rects, and the kernel, load them to GPU.\n\n");
+        printf("\t=> Stream name: %s\n", IHspotMask->getImage()->name);
 
-        // Make GPU reference
+        // == Make GPU reference ==
 
-        std::string refName = makeStreamname(mpInput->name);
-        std::string maskName = refName;
-        refName.append("_Ref");
-        maskName.append("_Mask");
+        // The reference is an image with 2 lines:
+        // First line holds the average X positions of the spots within the mask
+        // Second line holds the average Y positions of the spots within the mask
+        // ... One ref for the GPU ...
+        spImageHandler(float) IHgpuRef = SGR_ImageHandler<float>::newImageHandler(
+            refName, numOfValidSpots, 2, 9, 0, 0);
+        IHgpuRef->setPersistent(true);
+        // ... And one for the CPU!
+        std::string refNameCPU = refName;
+        refNameCPU.append("_CPU");
+        spImageHandler(float) IHcpuRef = SGR_ImageHandler<float>::newImageHandler(
+            refNameCPU, numOfValidSpots, 2, 9);
+        IHcpuRef->setPersistent(true);
+
+        // Store the (valid) average positions in the reference stream
+        int numWritten = 0;
+        for (uint32_t ix = 0; ix < mGridSize.mX; ix++)
+            for (uint32_t iy = 0; iy < mGridSize.mY; iy++)
+                if (IHspotMask->read(ix, iy))
+                {
+                    float posX = IHavgP->read(ix, iy);
+                    float posY = IHavgP->read(ix+mGridSize.mX, iy);
+                    IHcpuRef->write(posX, numWritten, 0);
+                    IHcpuRef->write(posY, numWritten, 1);
+                    numWritten++;
+                }
+        IHcpuRef->updateWrittenImage();
+        cudaMemcpy(IHgpuRef->getWriteBuffer(), IHcpuRef->getWriteBuffer(), numOfValidSpots*2*sizeof(float), cudaMemcpyHostToDevice);
+        IHgpuRef->updateWrittenImage();
+        printf("Reference generated.\n\t=> Stream name: %s\n", IHgpuRef->getImage()->name);
+
+        // Set keywords to streams - include relevant metadata
+        std::vector<std::shared_ptr<SGR_ImageHandlerBase>> IHs;
+        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHavgI));
+        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHspotMask));
+        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHcpuRef));
+        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHgpuRef));
+        for (int i = 0; i < IHs.size(); i++)
+        {
+            IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, mKernelStdDev);
+            IHs.at(i)->setKeyword(1, REF_KW_KERNEL_SIZE, (int64_t) mKernelSize);
+            IHs.at(i)->setKeyword(2, REF_KW_INPUT_NAME, std::string(mpInput->name));
+            IHs.at(i)->setKeyword(3, REF_KW_DARK_NAME, std::string(mpDark->name));
+            int64_t suffixLen = (int64_t) (std::string(IHs.at(i)->getImage()->name).length() - refBaseName.length());
+            IHs.at(i)->setKeyword(4, REF_KW_SUFFIX_LEN, suffixLen);
+            IHs.at(i)->setKeyword(5, REF_KW_REF_SUFFIX, refNameSuffix);
+            IHs.at(i)->setKeyword(6, REF_KW_MASK_SUFFIX, maskNameSuffix);
+            IHs.at(i)->setKeyword(7, REF_KW_INTENSITY_SUFFIX, intensityNameSuffix);
+            IHs.at(i)->setKeyword(8, REF_KW_SLOPE_2_GRAD_CONST, mSlopeToGradConstant);
+        }
+        printf("Metadata written to ISIO keywords.\n");
         
-
-        IMAGE gpuRef;
-        ImageStreamIO_createIm_gpu(
-            &gpuRef,
-            refName.c_str(),
-            mpInput->md->naxis,
-            mpInput->md->size,
-            _DATATYPE_FLOAT,
-            mDevice,            // -1: CPU RAM, 0+ : GPU
-            1,                  // shared?
-            0,                  // # of semaphores
-            5,                  // # of keywords
-            mpDark->md->imagetype,
-            0 // circular buffer size (if shared), 0 if not used
-        );
-        // Make 1D arrays
-        // Store fits files
-        // Generate image streams on GPU
-        // Load 1D arrays onto GPU
-
-        
+        // Store stream names
+        std::ofstream fileSNames("tmp-refnames.txt");
+        fileSNames << IHavgI->getImage()->name << "\n";
+        fileSNames << IHspotMask->getImage()->name << "\n";
+        fileSNames << IHcpuRef->getImage()->name << "\n";
+        fileSNames.close();
+        printf("Stream names saved for external fits saving.\n\t=> File name: tmp-refnames.txt\n");
 
         mState = RECSTATE::FINISH;
+        printf("\n\n=== SGR_Recorder: Evaluation done! ===\n\n");
 
         return RETURN_SUCCESS;
     } catch (std::runtime_error e)
@@ -454,9 +510,9 @@ void SGR_Recorder::prepareSpotFinding()
 
         // Generate a gaussian convolution kernel which matches the stdDev
         // of the spots in the image
-        double stdDeviation = spotFitter.getAvgStdDev();
-        printf("Average standard deviation of spot PSF: %.3f\n", stdDeviation);
-        buildKernel(stdDeviation);
+        mKernelStdDev = spotFitter.getAvgStdDev();
+        printf("Average standard deviation of spot PSF: %.3f\n", mKernelStdDev);
+        buildKernel();
     }
     catch (std::runtime_error e)
     {
@@ -584,37 +640,37 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
     }
 }
 
-void SGR_Recorder::buildKernel(double stdDev)
+void SGR_Recorder::buildKernel()
 {
     // Determine the kernel size
     // => Include 4 stdDevs
-    uint32_t kernelSize = ceil(4*stdDev);
-    if ((kernelSize % 2) == 0)
-        kernelSize ++;  // The kernel size should be odd
-    float kernelCenter = floor(kernelSize/2);
-    printf("Kernel size = %d, kernel center @ %.0f\n", kernelSize, kernelCenter);
+    mKernelSize = ceil(4*mKernelStdDev);
+    if ((mKernelSize % 2) == 0)
+        mKernelSize ++;  // The kernel size should be odd
+    float kernelCenter = floor(mKernelSize/2);
+    printf("Kernel size = %d, kernel center @ %.0f\n", mKernelSize, kernelCenter);
     
     // Generate the kernel image handler
     mIHkernel = SGR_ImageHandler<float>::newImageHandler(
-        makeStreamname("4-kernel"), kernelSize, kernelSize);
+        makeStreamname("4-kernel"), mKernelSize, mKernelSize);
     mIHkernel->setPersistent(mVisualize);
     
     // Build the kernel
     float kernelSum = 0;
-    for (uint32_t ix = 0; ix < kernelSize; ix++)
-        for (uint32_t iy = 0; iy < kernelSize; iy++)
+    for (uint32_t ix = 0; ix < mKernelSize; ix++)
+        for (uint32_t iy = 0; iy < mKernelSize; iy++)
         {
             float x = ix-kernelCenter;
             float y = iy-kernelCenter;
-            float val = exp(-(x*x+y*y)/(2*stdDev*stdDev));
+            float val = exp(-(x*x+y*y)/(2*mKernelStdDev*mKernelStdDev));
             mIHkernel->write(val, ix, iy);
             kernelSum += val;
         }
     mIHkernel->updateWrittenImage();
 
     // Normalize the kernel to its energy
-    for (uint32_t ix = 0; ix < kernelSize; ix++)
-        for (uint32_t iy = 0; iy < kernelSize; iy++)
+    for (uint32_t ix = 0; ix < mKernelSize; ix++)
+        for (uint32_t iy = 0; iy < mKernelSize; iy++)
             mIHkernel->write(mIHkernel->read(ix, iy)/kernelSum, ix, iy);
     mIHkernel->updateWrittenImage();
 }

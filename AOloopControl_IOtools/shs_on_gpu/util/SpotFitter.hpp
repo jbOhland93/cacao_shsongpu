@@ -97,8 +97,8 @@ inline void SpotFitter::setROIs<uint32_t>(std::vector<Point<uint32_t>> centers, 
     {
         Point<uint32_t> root = centers.at(i) - roiOffset;
         Rectangle<uint32_t> roi(root, size, size);
-        if (root.mX >= 0 || root.mX + size < mImageHandler->mWidth ||
-            root.mY >= 0 || root.mY + size < mImageHandler->mHeight)
+        if (root.mX + size < mImageHandler->mWidth || // root.mx and root.my are >= 0 (unsigned)
+            root.mY + size < mImageHandler->mHeight)
             mSpotROIs.push_back(roi);
     }
 

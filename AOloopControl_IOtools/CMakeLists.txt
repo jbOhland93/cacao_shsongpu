@@ -17,8 +17,9 @@ set(SOURCEFILES
     WFScamsim.c
     WFSmap.c
     shs_on_gpu/shs_gpu_ref.c
-    shs_on_gpu/ref_recorder/SGR_Recorder.cpp
+    shs_on_gpu/ref_recorder/SGR_Recorder.cu
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
+    shs_on_gpu/ref_recorder/SGR_ImageHandlerBase.cpp
     shs_on_gpu/ref_recorder/SGR_ImageHandler.cpp
     shs_on_gpu/util/SpotFitter.cpp
     shs_on_gpu/util/OneDGaussianFit.cpp
@@ -38,6 +39,7 @@ set(INCLUDEFILES
     shs_on_gpu/shs_gpu_ref.h
     shs_on_gpu/ref_recorder/SGR_Recorder.hpp
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.h
+    shs_on_gpu/ref_recorder/SGR_ImageHandlerBase.hpp
     shs_on_gpu/ref_recorder/SGR_ImageHandler.hpp
     shs_on_gpu/util/Point.hpp
     shs_on_gpu/util/Rectangle.hpp

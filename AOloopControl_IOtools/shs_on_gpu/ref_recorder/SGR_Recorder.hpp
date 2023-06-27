@@ -7,6 +7,16 @@
 #include <memory>
 #include <vector>
 
+#define REF_KW_KERNEL_STDDEV        std::string("kernelStdDev....")
+#define REF_KW_KERNEL_SIZE          std::string("kernelSize......")
+#define REF_KW_INPUT_NAME           std::string("inputSName......")
+#define REF_KW_DARK_NAME            std::string("darkSName.......")
+#define REF_KW_SUFFIX_LEN           std::string("sNameSuffixLen..")
+#define REF_KW_REF_SUFFIX           std::string("refPosSFX.......")
+#define REF_KW_MASK_SUFFIX          std::string("spotMaskSFX.....")
+#define REF_KW_INTENSITY_SUFFIX     std::string("intnstyMapSFX...")
+#define REF_KW_SLOPE_2_GRAD_CONST   std::string("slope2GradCnst..")
+
 // A class for recording SHS references
 class SGR_Recorder
 {
@@ -61,6 +71,11 @@ private:
     float mMlaPitch_um;
     float mMlaDist_um;
     float mApertureDiameter_px;
+    double mSlopeToGradConstant;
+
+// Intermediary results
+    double mKernelStdDev;
+    uint32_t mKernelSize;
     
 // Image streams / ImageHandlers
     IMAGE* mpInput;
@@ -111,7 +126,7 @@ private:
     // Spans a regular grid, matching the given unsorted spots
     void spanCoarseGrid(std::vector<Point<double>> fitSpots);
     // Makes a gaussian kernel with the given standard deviation
-    void buildKernel(double stdDev);
+    void buildKernel();
 };
 
 #endif // SGR_RECORDER_HPP

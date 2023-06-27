@@ -249,22 +249,22 @@ static errno_t compute_function()
     
     // === SET UP REF RECORDER HERE
     // Allocate a buffer for the stream prefix
-    uint8_t lnLen = strlen(loopname);
-    const char* funPrefix = "_shsRefRec_";
+    // uint8_t lnLen = strlen(loopname);
+    const char* funPrefix = "_shsRef_";
     uint8_t fpLen = strlen(funPrefix);
     char loopPrefix[(int)((
         3                           // "aol"
         +ceil(log10(*loopnumber))   // loopnumber
-        +1                          // "_"
-        +lnLen                      // loopname
+        //+1                          // "_"
+        // +lnLen                      // loopname
         +fpLen                      // function prefix
         )*sizeof(char))];
     // Build the stream prefix
-    sprintf(loopPrefix, "%s%d%s%s%s",
+    sprintf(loopPrefix, "%s%d%s",
         "aol",
         *loopnumber,
-        "_",
-        loopname,
+        //"_",
+        //loopname,
         funPrefix);
     // Construct the recorder
     SGRRHandle recorder = create_SGR_Recorder(
@@ -277,7 +277,7 @@ static errno_t compute_function()
         loopPrefix,
         *visualize);
     printf("\nSGR recorder status: %s", get_SGRR_state_descr(recorder));
-    // ===
+    // === RECORDER SETUP DONE
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
@@ -290,7 +290,8 @@ static errno_t compute_function()
     //processinfo_update_output_stream(processinfo, outimg.ID);
     free_SGR_Recorder(recorder);
     recorder = NULL;
-    // ===
+    printf("\nEvaluation done, exiting.\n");
+    // === EVAULATION DONE
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;
