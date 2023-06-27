@@ -219,7 +219,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // Calculate the stability threshold for the mask
         float deflectionPrecision = mMlaDist_um * tan(uradPrecisionThresh*1e-6);
         float pxPrecision = deflectionPrecision / mPxSize_um;
-        printf("Demanded spot stability: %.1f µrad == %.4f px.\n\n",
+        printf("Demanded spot stability: %.1f µrad == %.4f px.\n",
             uradPrecisionThresh, pxPrecision);
         
         // Size of the circular buffer == # of frames recorded
@@ -286,15 +286,8 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // The reference is an image with 2 lines:
         // First line holds the average X positions of the spots within the mask
         // Second line holds the average Y positions of the spots within the mask
-        // ... One ref for the GPU ...
-        spImageHandler(float) IHgpuRef = SGR_ImageHandler<float>::newImageHandler(
-            refName, numOfValidSpots, 2, 9, 0, 0);
-        IHgpuRef->setPersistent(true);
-        // ... And one for the CPU!
-        std::string refNameCPU = refName;
-        refNameCPU.append("_CPU");
         spImageHandler(float) IHcpuRef = SGR_ImageHandler<float>::newImageHandler(
-            refNameCPU, numOfValidSpots, 2, 9);
+            refName, numOfValidSpots, 2, 9);
         IHcpuRef->setPersistent(true);
 
         // Store the (valid) average positions in the reference stream
@@ -310,16 +303,13 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
                     numWritten++;
                 }
         IHcpuRef->updateWrittenImage();
-        cudaMemcpy(IHgpuRef->getWriteBuffer(), IHcpuRef->getWriteBuffer(), numOfValidSpots*2*sizeof(float), cudaMemcpyHostToDevice);
-        IHgpuRef->updateWrittenImage();
-        printf("Reference generated.\n\t=> Stream name: %s\n", IHgpuRef->getImage()->name);
+        printf("Reference generated.\n\t=> Stream name: %s\n", IHcpuRef->getImage()->name);
 
         // Set keywords to streams - include relevant metadata
         std::vector<std::shared_ptr<SGR_ImageHandlerBase>> IHs;
         IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHavgI));
         IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHspotMask));
         IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHcpuRef));
-        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHgpuRef));
         for (int i = 0; i < IHs.size(); i++)
         {
             IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, mKernelStdDev);
