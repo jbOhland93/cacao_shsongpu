@@ -4,12 +4,14 @@
 extern "C"
 {
     SGEEHandle create_SGE_Evaluator(
-        IMAGE* in,
-        IMAGE* dark)
+        IMAGE* ref,
+        IMAGE* shscam,
+        IMAGE* shsdark)
     {
         return new SGE_Evaluator(
-            in,
-            dark);
+            ref,
+            shscam,
+            shsdark);
     }
 
     void free_SGE_Evaluator(SGEEHandle p)

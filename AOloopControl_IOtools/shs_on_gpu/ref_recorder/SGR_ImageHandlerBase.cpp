@@ -3,7 +3,9 @@
 SGR_ImageHandlerBase::~SGR_ImageHandlerBase()
 {
     if (!mPersistent)
-        ImageStreamIO_destroyIm(&mImage);
+        ImageStreamIO_destroyIm(mpImage);
+    
+    delete mpImage;
 }
 
 void SGR_ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
@@ -34,7 +36,9 @@ SGR_ImageHandlerBase::SGR_ImageHandlerBase(
         mNumPx(width*height),
         mROI(0,0,width,height),
         mDevice(gpuDevice)
-{}
+{
+    mpImage = new IMAGE();
+}
 
 uint32_t SGR_ImageHandlerBase::fromROIxToImX(uint32_t x)
 {
@@ -54,9 +58,9 @@ uint32_t SGR_ImageHandlerBase::fromROIyToImY(uint32_t y)
 
 int SGR_ImageHandlerBase::getKWindex(std::string name)
 {
-    for (int i = 0; i < mImage.md->NBkw; i++)
+    for (int i = 0; i < mpImage->md->NBkw; i++)
     {
-        std::string kwName = mImage.kw[i].name;
+        std::string kwName = mpImage->kw[i].name;
         while(kwName.length() > name.length())
             kwName.pop_back();
         if (name == kwName)

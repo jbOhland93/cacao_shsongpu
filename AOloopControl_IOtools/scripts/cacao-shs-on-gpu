@@ -26,7 +26,9 @@ RequiredDirs=()
 # SCRIPT MANDATORY ARGUMENTS
 # syntax: "name:type(s)/test(s):description"
 #
-MSarg+=( "streamInName:string:stream input name" )
+MSarg+=( "refName:string:stream name of the reference" )
+MSarg+=( "camName:string:stream name of the shs camera trigger" )
+MSarg+=( "darkName:string:stream name of the shs dark frame" )
 MSarg+=( "nbframe:int:number of frames to stay alive (TEMP)" )
 
 # SCRIPT OPTIONS
@@ -57,21 +59,26 @@ else
 fi
 echo "Loop ${AOLOOPNAME}"
 
-instream="${inputMSargARRAY[0]}"
-nbframe="${inputMSargARRAY[1]}"
-echo "Stream in: ${instream}"
+refstream="${inputMSargARRAY[0]}"
+camstream="${inputMSargARRAY[1]}"
+darkstream="${inputMSargARRAY[2]}"
+nbframe="${inputMSargARRAY[3]}"
+echo "Reference stream: ${refstream}"
+echo "SHS camera stream: ${camstream}"
+echo "SHS dark stream: ${darkstream}"
 echo "Number of frame: ${nbframe}"
 
 milk-all << EOF
 mload cacaoAOloopControlIOtools
 cmd? cacaoio.shsGpuEval
 
-readshmim ${instream}
-readshmim ${instream}_AVG
+readshmim ${refstream}
+readshmim ${camstream}
+readshmim ${darkstream}
 cacaoio.shsGpuEval ..procinfo 1
 cacaoio.shsGpuEval ..triggermode 3
-cacaoio.shsGpuEval ..triggersname ${instream}
+cacaoio.shsGpuEval ..triggersname ${camstream}
 cacaoio.shsGpuEval ..loopcntMax ${nbframe}
-cacaoio.shsGpuEval ${instream} ${instream}_AVG
+cacaoio.shsGpuEval ${refstream} ${camstream} ${darkstream}
 exitCLI
 EOF

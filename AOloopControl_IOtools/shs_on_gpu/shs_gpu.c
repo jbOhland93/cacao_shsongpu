@@ -20,29 +20,40 @@ static int cmdindex;
 //#include "CommandLineInterface/timeutils.h"
 
 // Local variables pointers
-
-static char *inimname;
-
-static char *darkimname;
+// stream name of the SHS reference positions
+static char *refname;
+// stream name of the SHS camera
+static char *camname;
+// stream name of the SHS dark frame
+static char *darkname;
 
 static CLICMDARGDEF farg[] =
 {
     {
         CLIARG_IMG,
-        ".in_name",
-        "input image",
+        ".ref_name",
+        "reference image",
         "cam",
         CLIARG_VISIBLE_DEFAULT,
-        (void **) &inimname,
+        (void **) &refname,
         NULL
     },
     {
         CLIARG_IMG,
-        ".dark",
-        "darkframe",
-        "dark",
+        ".shscam",
+        "shs camera image",
+        "shscam",
         CLIARG_VISIBLE_DEFAULT,
-        (void **) &darkimname,
+        (void **) &camname,
+        NULL
+    },
+    {
+        CLIARG_IMG,
+        ".shsdark",
+        "shs camera dark image",
+        "shsdark",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &darkname,
         NULL
     }
 };
@@ -144,9 +155,11 @@ static errno_t compute_function()
 {
     DEBUG_TRACE_FSTART();
 
-    IMGID inimg = mkIMGID_from_name(inimname);
-    resolveIMGID(&inimg, ERRMODE_ABORT);
-    IMGID darkimg = mkIMGID_from_name(darkimname);
+    IMGID refimg = mkIMGID_from_name(refname);
+    resolveIMGID(&refimg, ERRMODE_ABORT);
+    IMGID camimg = mkIMGID_from_name(camname);
+    resolveIMGID(&camimg, ERRMODE_ABORT);
+    IMGID darkimg = mkIMGID_from_name(darkname);
     resolveIMGID(&darkimg, ERRMODE_ABORT);
 
     printf(" COMPUTE Flags = %ld\n", CLIcmddata.cmdsettings->flags);
@@ -162,9 +175,9 @@ static errno_t compute_function()
     // === SET UP EVALUATOR HERE
     // Construct the recorder
     SGEEHandle evaluator = create_SGE_Evaluator(
-        inimg.im,
+        refimg.im,
+        camimg.im,
         darkimg.im);
-;
     // ===
     
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART

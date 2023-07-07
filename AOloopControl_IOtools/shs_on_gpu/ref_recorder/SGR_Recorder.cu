@@ -1,7 +1,6 @@
 #include "SGR_Recorder.hpp"
 #include "milkDebugTools.h"
 
-#include "SGR_ImageHandler.hpp"
 #include "../util/SpotFitter.hpp"
 
 #include <string>
@@ -314,14 +313,20 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         {
             IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, mKernelStdDev);
             IHs.at(i)->setKeyword(1, REF_KW_KERNEL_SIZE, (int64_t) mKernelSize);
-            IHs.at(i)->setKeyword(2, REF_KW_INPUT_NAME, std::string(mpInput->name));
-            IHs.at(i)->setKeyword(3, REF_KW_DARK_NAME, std::string(mpDark->name));
+            std::string inName = std::string(mpInput->name);
+            if (inName.length() > 16)
+                inName = inName.substr(0, 16);
+            IHs.at(i)->setKeyword(2, REF_KW_INPUT_NAME, inName);
+            std::string darkName = std::string(mpDark->name);
+            if (darkName.length() > 16)
+                darkName = darkName.substr(0, 16);
+            IHs.at(i)->setKeyword(3, REF_KW_DARK_NAME, darkName);
             int64_t suffixLen = (int64_t) (std::string(IHs.at(i)->getImage()->name).length() - refBaseName.length());
             IHs.at(i)->setKeyword(4, REF_KW_SUFFIX_LEN, suffixLen);
             IHs.at(i)->setKeyword(5, REF_KW_REF_SUFFIX, refNameSuffix);
             IHs.at(i)->setKeyword(6, REF_KW_MASK_SUFFIX, maskNameSuffix);
             IHs.at(i)->setKeyword(7, REF_KW_INTENSITY_SUFFIX, intensityNameSuffix);
-            IHs.at(i)->setKeyword(8, REF_KW_SLOPE_2_GRAD_CONST, mSlopeToGradConstant);
+            IHs.at(i)->setKeyword(8, REF_KW_SHIFT_2_GRAD_CONST, mSlopeToGradConstant);
         }
         printf("Metadata written to ISIO keywords.\n");
         

@@ -12,8 +12,9 @@ class SGE_Evaluator
 public:
     // Ctor, doing the initialization
     SGE_Evaluator(
-        IMAGE* in,          // Raw camera stream
-        IMAGE* dark,        // Stream holding a dark for subtraction
+        IMAGE* ref,         // Stream holding the reference data
+        IMAGE* cam,         // Camera stream
+        IMAGE* dark,        // Dark stream
         int deviceID = 0);  // ID of the GPU device
     // Dtor
     ~SGE_Evaluator();
@@ -38,12 +39,13 @@ private:
     int* m_dp_convCoordsX;
     int* m_dp_convCoordsY;
 
-    cudaEvent_t m_cuEvtStart, m_cuEvtStop;
-    IMAGE m_imDebug;
-    IMAGE m_imDebug_GPU;
-    int m_debugBufSize;
-    float* m_hp_debug;
-    float* m_dp_debug;
+    // Members for debugging
+    cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing
+    IMAGE m_imDebug;    // Debug image in host memory
+    IMAGE m_imDebug_GPU;// Debug image in device memory
+    int m_debugBufSize; // Size of the debug buffer
+    float* m_hp_debug;  // Debug array in host memory
+    float* m_dp_debug;  // Debug array in device memory
 
     void emulateReferenceInput();
     void writeApertureConvolutionCoordToGPU();

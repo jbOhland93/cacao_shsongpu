@@ -9,6 +9,7 @@
 #include <memory>
 #include <vector>
 #include <limits>
+#include "../util/atypeUtil.hpp"
 
 #define spImageHandler(type) std::shared_ptr<SGR_ImageHandler<type>>
 #define newImHandlerFrmIm(type, name, image) SGR_ImageHandler<type>::newHandlerfrmImage(name, image)
@@ -32,6 +33,9 @@ public:
         IMAGE* im,
         uint8_t numKeywords = 0,
         uint32_t circBufSize = 0);
+    // Creates an image handler that operates on an already existing image.
+    // Throws an error if the generic type does not match the image type.
+    static spImageHandler(T) newHandlerAdoptImage(std::string imName);
 
 // ========== IMAGE HANDLING ==========    
     // Copies the data from im and converts to own datatype
@@ -61,8 +65,8 @@ public:
     {
         throwIfGPU("readCircularBufAt");
         std::vector<T> v;
-        T* cbBuf = (T*) mImage.CBimdata;
-        for (int i = 0; i < mImage.md->CBsize; i++)
+        T* cbBuf = (T*) mpImage->CBimdata;
+        for (int i = 0; i < mpImage->md->CBsize; i++)
             v.push_back(cbBuf[i*mNumPx + y*mWidth + x]);
         return v;
     }
@@ -115,30 +119,13 @@ private:
         uint8_t numKeywords,
         uint32_t circBufSize = 10,
         int32_t gpuDevice = -1);
+    SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, int8_t location);
 
 // ========== HELPER FUNCTIONS ==========
-    // Conversion for foreign element access
-    template <typename U>
-    U cvtElmt(void* ptr, uint8_t atype, uint32_t index)
-    {
-        switch(atype) {
-            case _DATATYPE_UINT8: return (U)(*(((uint8_t*)ptr)+index));
-            case _DATATYPE_INT8: return (U)(*(((int8_t*)ptr)+index));
-            case _DATATYPE_UINT16: return (U)(*(((uint16_t*)ptr)+index));
-            case _DATATYPE_INT16: return (U)(*(((int16_t*)ptr)+index));
-            case _DATATYPE_UINT32: return (U)(*(((uint32_t*)ptr)+index));
-            case _DATATYPE_INT32: return (U)(*(((int32_t*)ptr)+index));
-            case _DATATYPE_UINT64: return (U)(*(((uint64_t*)ptr)+index));
-            case _DATATYPE_INT64: return (U)(*(((int64_t*)ptr)+index));
-            case _DATATYPE_FLOAT: return (U)(*(((float*)ptr)+index));
-            case _DATATYPE_DOUBLE: return (U)(*(((double*)ptr)+index));
-            default:
-            throw std::runtime_error("SGR_ImageHandler::cvtElmt: No case for this data type.\n");
-        }
-    }
+    
     T cvtElmt(void* ptr, uint8_t atype, uint32_t index)
     {
-        return cvtElmt<T>(ptr, atype, index);
+        return convertAtypeArrayElement<T>(ptr, atype, index);
     }
     void throwIfGPU(std::string operationName);
 };
@@ -211,6 +198,26 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerfrmImage(
     return spIH;
 }
 
+template <typename T>
+inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerAdoptImage(std::string imName)
+{
+    IMAGE im;
+    errno_t err = ImageStreamIO_openIm(&im, imName.c_str());
+    if (err != 0)
+        throw std::runtime_error("SGR_ImageHandler::newHandlerAdoptImage: could not open image.");
+
+    // Check if the call has been done correctly
+    uint8_t atypeIm = im.md->datatype;
+    uint8_t atypeArg = getAtype<T>();
+    if (atypeIm != atypeArg)
+        throw std::runtime_error("SGR_ImageHandler::newHandlerAdoptImage: image atype does not match the generic type of this call.");
+    
+    spImageHandler(T) sp(new SGR_ImageHandler<T>(im.name, im.md->size[0], im.md->size[1], im.md->location));
+
+    ImageStreamIO_closeIm(&im);
+    return sp;
+}
+
 // ===== specifications for image handling =====
 
 template <typename T>
@@ -276,7 +283,7 @@ inline void SGR_ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
     // Convert
     uint8_t atype = im->md->datatype;
     for (int i = 0; i < mNumPx; i++)
-        mpBuffer[i] = cvtElmt<double>(readBuffer, atype, i) > thresh;
+        mpBuffer[i] = convertAtypeArrayElement<double>(readBuffer, atype, i) > thresh;
     
     updateWrittenImage();
 }
@@ -316,13 +323,13 @@ inline void SGR_ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
             for (int32_t kx = -kcX; kx < kw-kcX; kx++)
                 for (int32_t ky = -kcY; ky < kh-kcY; ky++)
                 {
-                    if (ix+kx >= 0 && ix+kx < mWidth         // Only inside of A
+                    if (ix+kx >= 0 && ix+kx < mWidth                            // Only inside of A
                         && iy+ky >= 0 && iy+ky < mHeight)
                     {
-                        bi = (ky+kcY)*kw + kx+kcX;           // Kernel index
-                        k = cvtElmt<float>(bK, tK, bi);      // Kernel value
-                        bi = (iy+ky)*mWidth + ix+kx;         // Image index
-                        r += cvtElmt<float>(bA, tA, bi) * k; // Convolution value
+                        bi = (ky+kcY)*kw + kx+kcX;                              // Kernel index
+                        k = convertAtypeArrayElement<float>(bK, tK, bi);        // Kernel value
+                        bi = (iy+ky)*mWidth + ix+kx;                            // Image index
+                        r += convertAtypeArrayElement<float>(bA, tA, bi) * k;   // Convolution value
                     }
                 }
             mpBuffer[iy*mWidth + ix] = (T) r;
@@ -351,7 +358,7 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
     imsize[1] = mHeight;
     int shared = 1; // image will be in shared memory
     ImageStreamIO_createIm_gpu(
-            &mImage,
+            mpImage,
             name.c_str(),
             naxis,
             imsize,
@@ -364,7 +371,19 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
             circBufSize // circular buffer size (if shared), 0 if not used
         );
     delete imsize;
-    ImageStreamIO_writeBuffer(&mImage, (void**) &mpBuffer);
+    ImageStreamIO_writeBuffer(mpImage, (void**) &mpBuffer);
+}
+
+// Implementation of adoption ctor
+template<typename T>
+inline SGR_ImageHandler<T>::SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, int8_t location)
+    : SGR_ImageHandlerBase(sizeX, sizeY, location)
+{
+    // Open the image
+    ImageStreamIO_openIm(mpImage, imName.c_str());
+    ImageStreamIO_writeBuffer(mpImage, (void**) &mpBuffer);
+    // Make the image persistent as default
+    setPersistent(true);
 }
 
 template <typename T>

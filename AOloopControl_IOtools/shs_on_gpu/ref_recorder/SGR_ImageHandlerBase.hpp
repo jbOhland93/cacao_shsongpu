@@ -23,7 +23,7 @@ public:
     ~SGR_ImageHandlerBase();
 
     // Returns the image object
-    IMAGE* getImage() { return &mImage; }
+    IMAGE* getImage() { return mpImage; }
 
     // Makes the image stream stay after destruction
     void setPersistent(bool persistent) { mPersistent = persistent; }
@@ -41,22 +41,16 @@ public:
     // Setting a keyword
     template <typename U>
     void setKeyword(int index, std::string name, U data);
-/*    void setKeyword(int index, std::string name, int64_t data);
-    void setKeyword(int index, std::string name, double data);
-    void setKeyword(int index, std::string name, std::string data);*/
     // Reading a keyword
     template <typename U>
     bool getKeyword(std::string name, U* dst);
-/*    bool getKeyword(std::string name, int64_t* dst);
-    bool getKeyword(std::string name, double* dst);
-    bool getKeyword(std::string name, std::string* dst);*/
 
     // Updates the image
-    void updateWrittenImage() { ImageStreamIO_UpdateIm(&mImage); }
+    void updateWrittenImage() { ImageStreamIO_UpdateIm(mpImage); }
 
 protected:
     // The image, managed by this class
-    IMAGE mImage;
+    IMAGE* mpImage;
     // The index of the device: -1 = CPU, 0 or greater = GPU index
     int32_t mDevice = -1;
     // If false, the image will be destoyed with the desturction of this instance
@@ -95,31 +89,31 @@ inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, U data
 template <>
 inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, int64_t data)
 {
-    if (index >= mImage.md->NBkw)
+    if (index >= mpImage->md->NBkw)
         throw std::runtime_error("SGR_ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'L';
     kw.value.numl = data;
-    mImage.kw[index] = kw;
+    mpImage->kw[index] = kw;
 }
 
 template <>
 inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, double data)
 {
-    if (index >= mImage.md->NBkw)
+    if (index >= mpImage->md->NBkw)
         throw std::runtime_error("SGR_ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'D';
     kw.value.numf = data;
-    mImage.kw[index] = kw;
+    mpImage->kw[index] = kw;
 }
 
 template <>
 inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, std::string data)
 {
-    if (index >= mImage.md->NBkw)
+    if (index >= mpImage->md->NBkw)
         throw std::runtime_error("SGR_ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
@@ -127,7 +121,7 @@ inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, std::s
     int dataLen = std::min((int) data.length(), 16); // Max string length is 16
     std::strncpy(kw.value.valstr, data.c_str(), dataLen);
     sprintf(kw.comment, "%d", (int)data.length()); // Store the string length in the comment for easier access
-    mImage.kw[index] = kw;
+    mpImage->kw[index] = kw;
 }
 
 
@@ -143,7 +137,7 @@ inline bool SGR_ImageHandlerBase::getKeyword(std::string name, int64_t* dst)
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
     {   
-        IMAGE_KEYWORD kw = mImage.kw[kwIdx];
+        IMAGE_KEYWORD kw = mpImage->kw[kwIdx];
         if (kw.type == 'L')
         {
             *dst = kw.value.numl;
@@ -159,7 +153,7 @@ inline bool SGR_ImageHandlerBase::getKeyword(std::string name, double* dst)
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
     {   
-        IMAGE_KEYWORD kw = mImage.kw[kwIdx];
+        IMAGE_KEYWORD kw = mpImage->kw[kwIdx];
         if (kw.type == 'D')
         {
             *dst = kw.value.numf;
@@ -175,7 +169,7 @@ inline bool SGR_ImageHandlerBase::getKeyword(std::string name, std::string* dst)
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
     {   
-        IMAGE_KEYWORD kw = mImage.kw[kwIdx];
+        IMAGE_KEYWORD kw = mpImage->kw[kwIdx];
         if (kw.type == 'S')
         {
             std::string tmp(kw.value.valstr);

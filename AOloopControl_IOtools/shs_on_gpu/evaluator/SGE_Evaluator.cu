@@ -6,13 +6,30 @@
 
 #include "SGE_GridLayout.hpp"
 #include "SGE_Kernel.hpp"
+#include "SGE_ReferenceManager.hpp"
+#include "../util/atypeUtil.hpp"
+#include "../ref_recorder/SGR_Recorder.hpp"
 
 SGE_Evaluator::SGE_Evaluator(
-        IMAGE* in,          // Raw camera stream
-        IMAGE* dark,        // Stream holding a dark for subtraction
-        int deviceID)       // ID of the GPU
-    : mp_im(in), mp_imDark(dark), m_deviceID(deviceID)
+        IMAGE* ref,         // Stream holding the reference data
+        IMAGE* cam,         // Stream holding the current SHS frame
+        IMAGE* dark,        // Stream holding the dark frame of the SHS
+        int deviceID)       // ID of the GPU device
+    : m_deviceID(deviceID)
 {
+    printf("\n\n\n\n\n\nSTARTING CHECK!!!!!! - deviceid = %d\n\n", deviceID);
+    SGE_ReferenceManager manager(ref, cam, dark, deviceID);
+    
+    
+    /*spImageHandler<
+    ref->kw
+    Also, make a facfun for an image handler, taking only the pointer to the image as input. Something like "adoptImage".
+    This makes browsing the keywords a lot easier ...
+
+    TODO: read keywords from ref, resolve images, check cam stream against trigger stream!
+    Set mp_im(in), mp_imDark(dark), if everything matches.
+*/
+
     cudaError err;
     err = cudaSetDevice(m_deviceID);
     printCE(err);
@@ -21,12 +38,12 @@ SGE_Evaluator::SGE_Evaluator(
     err = cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
     printCE(err);
 
-    emulateReferenceInput();
+    //emulateReferenceInput();
 
-    mp_GridLayout = std::make_shared<SGE_GridLayout>(m_deviceID, m_numSpots, m_kernelSize);
-    writeApertureConvolutionCoordToGPU();
-    copyDarkToGPU();
-    initDebugFields();
+    //mp_GridLayout = std::make_shared<SGE_GridLayout>(m_deviceID, m_numSpots, m_kernelSize);
+    //writeApertureConvolutionCoordToGPU();
+    //copyDarkToGPU();
+    //initDebugFields();
 }
 
 errno_t SGE_Evaluator::evaluateDo()

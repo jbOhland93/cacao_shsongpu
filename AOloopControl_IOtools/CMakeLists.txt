@@ -27,6 +27,7 @@ set(SOURCEFILES
     shs_on_gpu/evaluator/SGE_Evaluator.cu
     shs_on_gpu/evaluator/SGE_Evaluator_interface.cpp
     shs_on_gpu/evaluator/SGE_GridLayout.cu
+    shs_on_gpu/evaluator/SGE_ReferenceManager.cpp
 )
 
 set(INCLUDEFILES
@@ -41,6 +42,7 @@ set(INCLUDEFILES
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.h
     shs_on_gpu/ref_recorder/SGR_ImageHandlerBase.hpp
     shs_on_gpu/ref_recorder/SGR_ImageHandler.hpp
+    shs_on_gpu/util/atypeUtil.hpp
     shs_on_gpu/util/Point.hpp
     shs_on_gpu/util/Rectangle.hpp
     shs_on_gpu/util/SpotFitter.hpp
@@ -51,6 +53,7 @@ set(INCLUDEFILES
     shs_on_gpu/evaluator/SGE_Evaluator_interface.h
     shs_on_gpu/evaluator/SGE_GridLayout.hpp
     shs_on_gpu/evaluator/SGE_Kernel.hpp
+    shs_on_gpu/evaluator/SGE_ReferenceManager.hpp
 )
 
 
