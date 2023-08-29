@@ -211,7 +211,8 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         spImageHandler(float) IHstdDvP = SGR_ImageHandler<float>::newImageHandler(
             makeStreamname("7_Eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
-        spImageHandler(uint8_t) IHspotMask = SGR_ImageHandler<uint8_t>::newImageHandler(
+        printf("SGR_RECORDER: <TAG-TODO> - change the mask data type to uint8_t.\n");
+        spImageHandler(float) IHspotMask = SGR_ImageHandler<float>::newImageHandler(
             maskName, mGridSize.mX, mGridSize.mY, 9);
         IHspotMask->setPersistent(true);
 
