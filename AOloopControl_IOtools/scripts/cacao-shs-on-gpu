@@ -75,10 +75,14 @@ mload cacaoAOloopControlIOtools
 readshmim ${refstream}
 readshmim ${camstream}
 readshmim ${darkstream}
+cacaoio.shsGpuEval .loopnumber ${AOLOOPNUMBER}
+cacaoio.shsGpuEval .loopname ${AOLOOPNAME}
 cacaoio.shsGpuEval ..procinfo 1
 cacaoio.shsGpuEval ..triggermode 3
 cacaoio.shsGpuEval ..triggersname ${camstream}
 cacaoio.shsGpuEval ..loopcntMax ${nbframe}
+
+
 cacaoio.shsGpuEval ${refstream} ${camstream} ${darkstream}
 exitCLI
 EOF

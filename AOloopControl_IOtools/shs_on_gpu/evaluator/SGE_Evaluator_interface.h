@@ -12,9 +12,10 @@ extern "C" {
 typedef void * SGEEHandle;
 // Constructor
 SGEEHandle create_SGE_Evaluator(
-    IMAGE* ref,         // Stream with SHS reference positions
-    IMAGE* shscam,      // Stream of the SHS camera
-    IMAGE* shsdark);    // Stream containing the darkframe for the SHS camera
+    IMAGE* ref,                 // Stream with SHS reference positions
+    IMAGE* shscam,              // Stream of the SHS camera
+    IMAGE* shsdark,             // Stream containing the darkframe for the SHS camera
+    const char* streamPrefix);  // Prefix for the ISIO streams
     
 // Desctructor
 void free_SGE_Evaluator(SGEEHandle);

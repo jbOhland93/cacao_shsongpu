@@ -6,6 +6,21 @@
 #include "../util/CudaSGEutil.hpp"
 #include "../ref_recorder/SGR_ReferenceKW.hpp"
 
+spRefManager SGE_ReferenceManager::makeReferenceManager(
+        IMAGE* ref,         // Stream holding the reference data
+        IMAGE* cam,         // Camera stream
+        IMAGE* dark,        // Dark stream
+        std::string prefix) // Stream prefix
+{
+    return spRefManager(new SGE_ReferenceManager(ref, cam, dark, prefix));
+}
+
+
+SGE_ReferenceManager::~SGE_ReferenceManager()
+{
+    if (mdp_dark != nullptr)
+        cudaFree(mdp_dark);
+}
 
 SGE_ReferenceManager::SGE_ReferenceManager(
         IMAGE* ref,         // Stream holding the reference data
@@ -14,20 +29,14 @@ SGE_ReferenceManager::SGE_ReferenceManager(
         std::string prefix) // Stream prefix
     : m_streamPrefix(prefix)
 {
-    printf("SGE_ReferenceManager Todo: Make factory functionto return shared ptr\n");
-
+    printf("\nSetting up reference manager ...\n");
     checkInputStreamCoherence(ref, cam, dark);
     checkInputNamingCoherence(cam, dark);
     adoptReferenceStreamsFromKW();
     readShiftToGradConstantFromKW();
     generateGPUkernel();
     copyDarkToGPU(dark);
-}
-
-SGE_ReferenceManager::~SGE_ReferenceManager()
-{
-    if (mdp_dark != nullptr)
-        cudaFree(mdp_dark);
+    printf("Reference manager setup completed.\n");
 }
 
 void SGE_ReferenceManager::checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMAGE* dark)

@@ -3,6 +3,7 @@
 
 #include "../ref_recorder/SGR_ImageHandler.hpp"
 #include <errno.h>
+#include "SGE_ReferenceManager.hpp"
 
 class SGE_GridLayout;
 
@@ -12,10 +13,11 @@ class SGE_Evaluator
 public:
     // Ctor, doing the initialization
     SGE_Evaluator(
-        IMAGE* ref,         // Stream holding the reference data
-        IMAGE* cam,         // Camera stream
-        IMAGE* dark,        // Dark stream
-        int deviceID = 0);  // ID of the GPU device
+        IMAGE* ref,                 // Stream holding the reference data
+        IMAGE* cam,                 // Camera stream
+        IMAGE* dark,                // Dark stream
+        const char* streamPrefix,   // Prefix for the ISIO streams
+        int deviceID = 0);          // ID of the GPU device
     // Dtor
     ~SGE_Evaluator();
 
@@ -23,6 +25,8 @@ public:
     errno_t evaluateDo();
 private:
     int m_deviceID;
+    std::string m_streamPrefix;
+    spRefManager mp_refManager;
     IMAGE* mp_im;
     IMAGE* mp_imDark;
     IMAGE m_imDarkGPU;

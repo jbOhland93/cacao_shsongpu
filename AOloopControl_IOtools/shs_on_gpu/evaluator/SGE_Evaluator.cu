@@ -11,12 +11,14 @@
 #include "../ref_recorder/SGR_Recorder.hpp"
 
 SGE_Evaluator::SGE_Evaluator(
-        IMAGE* ref,         // Stream holding the reference data
-        IMAGE* cam,         // Stream holding the current SHS frame
-        IMAGE* dark,        // Stream holding the dark frame of the SHS
-        int deviceID)       // ID of the GPU device
-    : m_deviceID(deviceID)
+        IMAGE* ref,                 // Stream holding the reference data
+        IMAGE* cam,                 // Stream holding the current SHS frame
+        IMAGE* dark,                // Stream holding the dark frame of the SHS
+        const char* streamPrefix,   // Prefix for the ISIO streams
+        int deviceID)               // ID of the GPU device
+    : m_streamPrefix(streamPrefix), m_deviceID(deviceID)
 {
+    // Set up cuda environment
     cudaError err;
     err = cudaSetDevice(m_deviceID);
     printCE(err);
@@ -25,7 +27,12 @@ SGE_Evaluator::SGE_Evaluator(
     err = cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
     printCE(err);
 
-    SGE_ReferenceManager manager(ref, cam, dark, "loop-prefix");
+    // Load the reference
+    mp_refManager = SGE_ReferenceManager::makeReferenceManager(
+                                            ref,
+                                            cam,
+                                            dark,
+                                            streamPrefix);
     
     
     /*spImageHandler<

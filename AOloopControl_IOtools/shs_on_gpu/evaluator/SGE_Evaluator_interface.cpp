@@ -6,12 +6,14 @@ extern "C"
     SGEEHandle create_SGE_Evaluator(
         IMAGE* ref,
         IMAGE* shscam,
-        IMAGE* shsdark)
+        IMAGE* shsdark,
+        const char* streamPrefix)
     {
         return new SGE_Evaluator(
             ref,
             shscam,
-            shsdark);
+            shsdark,
+            streamPrefix);
     }
 
     void free_SGE_Evaluator(SGEEHandle p)

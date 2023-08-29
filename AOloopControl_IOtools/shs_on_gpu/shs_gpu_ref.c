@@ -249,7 +249,6 @@ static errno_t compute_function()
     
     // === SET UP REF RECORDER HERE
     // Allocate a buffer for the stream prefix
-    // uint8_t lnLen = strlen(loopname);
     const char* funPrefix = "_shsRef_";
     uint8_t fpLen = strlen(funPrefix);
     char loopPrefix[(int)((

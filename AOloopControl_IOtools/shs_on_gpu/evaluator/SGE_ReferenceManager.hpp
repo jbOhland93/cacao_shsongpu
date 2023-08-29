@@ -5,12 +5,14 @@
 #include <errno.h>
 #include "../util/GaussianKernel.hpp"
 
+#define spRefManager std::shared_ptr<SGE_ReferenceManager>
+
 // A class for evaluating SHS images on a GPU
 class SGE_ReferenceManager
 {
 public:
-    // Ctor, doing the initialization
-    SGE_ReferenceManager(
+    // Factory function
+    static spRefManager makeReferenceManager(
         IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Camera stream
         IMAGE* dark,        // Dark stream
@@ -37,6 +39,14 @@ private:
     float* mdp_dark = nullptr;
     // Base name of the reference
     std::string m_baseName;
+
+    SGE_ReferenceManager(); // No publically available Ctor
+    // Ctor, doing the initialization
+    SGE_ReferenceManager(
+        IMAGE* ref,         // Stream holding the reference data
+        IMAGE* cam,         // Camera stream
+        IMAGE* dark,        // Dark stream
+        std::string prefix);// Stream prefix
 
     // Helper functions
     void checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMAGE* dark);

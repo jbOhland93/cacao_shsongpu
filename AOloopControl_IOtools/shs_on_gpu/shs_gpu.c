@@ -27,6 +27,12 @@ static char *camname;
 // stream name of the SHS dark frame
 static char *darkname;
 
+static uint32_t *loopnumber;
+static long      fpi_loopnumber = -1;
+
+static char *loopname;
+static long      fpi_loopname = -1;
+
 static CLICMDARGDEF farg[] =
 {
     {
@@ -55,6 +61,24 @@ static CLICMDARGDEF farg[] =
         CLIARG_VISIBLE_DEFAULT,
         (void **) &darkname,
         NULL
+    },
+    {
+        CLIARG_UINT32,
+        ".loopnumber",
+        "The number of the AO loop, used for stream naming",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &loopnumber,
+        &fpi_loopnumber
+    },
+    {
+        CLIARG_STR,
+        ".loopname",
+        "The name of the AO loop, used for stream naming",
+        "",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &loopname,
+        &fpi_loopname
     }
 };
 
@@ -173,11 +197,29 @@ static errno_t compute_function()
     }
 
     // === SET UP EVALUATOR HERE
-    // Construct the recorder
+    // Allocate a buffer for the stream prefix
+    const char* funPrefix = "_shsEval_";
+    uint8_t fpLen = strlen(funPrefix);
+    char loopPrefix[(int)((
+        3                           // "aol"
+        +ceil(log10(*loopnumber))   // loopnumber
+        //+1                          // "_"
+        // +lnLen                      // loopname
+        +fpLen                      // function prefix
+        )*sizeof(char))];
+    // Build the stream prefix
+    sprintf(loopPrefix, "%s%d%s",
+        "aol",
+        *loopnumber,
+        //"_",
+        //loopname,
+        funPrefix);
+    // Construct the evaluator
     SGEEHandle evaluator = create_SGE_Evaluator(
         refimg.im,
         camimg.im,
-        darkimg.im);
+        darkimg.im,
+        loopPrefix);
     // ===
     
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
