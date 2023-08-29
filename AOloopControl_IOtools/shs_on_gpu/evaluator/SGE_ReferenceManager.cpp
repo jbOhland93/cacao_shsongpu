@@ -14,12 +14,15 @@ SGE_ReferenceManager::SGE_ReferenceManager(
         int deviceID)       // ID of the GPU device
     : m_deviceID(deviceID)
 {
+    printf("SGE_ReferenceManager Todo: Make factory functionto return shared ptr\n");
+
     checkInputStreamCoherence(ref, cam, dark);
     checkInputNamingCoherence(cam, dark);
     adoptReferenceStreamsFromKW();
     readShiftToGradConstantFromKW();
     generateGPUkernel();
 
+    printf("SGE_ReferenceManager Todo: Build kernel and copy dark to GPU\n");
     // Todo: Build kernel and copy dark to GPU
 
     cudaError err;

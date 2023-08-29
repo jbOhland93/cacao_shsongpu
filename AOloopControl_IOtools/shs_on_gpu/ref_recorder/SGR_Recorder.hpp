@@ -7,6 +7,7 @@
 #include <memory>
 #include <vector>
 #include "SGR_ReferenceKW.hpp"
+#include "../util/GaussianKernel.hpp"
 
 
 // A class for recording SHS references
@@ -66,8 +67,9 @@ private:
     double mSlopeToGradConstant;
 
 // Intermediary results
-    double mKernelStdDev;
-    uint32_t mKernelSize;
+//  double mKernelStdDev;
+//  uint32_t mKernelSize;
+    spGKernel mpKernel;
     
 // Image streams / ImageHandlers
     IMAGE* mpInput;
@@ -83,8 +85,6 @@ private:
     spImageHandler(uint8_t) mIHthresh;
     // Stream for erosion of thresh to estimate spot positions
     spImageHandler(uint8_t) mIHerode;
-    // Stream for the gaussian convolution kernel
-    spImageHandler(float) mIHkernel;
     // Stream for the convolution of darkSubtract and kernel
     spImageHandler(float) mIHconvolution;
     // Recording stream for the spot intensities
@@ -117,8 +117,6 @@ private:
         double minDistance);
     // Spans a regular grid, matching the given unsorted spots
     void spanCoarseGrid(std::vector<Point<double>> fitSpots);
-    // Makes a gaussian kernel with the given standard deviation
-    void buildKernel();
 };
 
 #endif // SGR_RECORDER_HPP

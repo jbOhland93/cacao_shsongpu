@@ -84,7 +84,8 @@ errno_t SGR_Recorder::sampleDo()
         mIHdarkSubtract->cpy_subtract(mpInput, mpDark);
         // Convolve the dark-subtracted image with the gaussian kernel
         mIHconvolution->cpy_convolve(
-            mIHdarkSubtract->getImage(), mIHkernel->getImage());
+            mIHdarkSubtract->getImage(),
+            mpKernel->getKernelIH()->getImage());
 
         // Do Spotfinding with subpixel precision
         for (int gX = 0; gX < mGridSize.mX; gX++)
@@ -312,8 +313,8 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHcpuRef));
         for (int i = 0; i < IHs.size(); i++)
         {
-            IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, mKernelStdDev);
-            IHs.at(i)->setKeyword(1, REF_KW_KERNEL_SIZE, (int64_t) mKernelSize);
+            IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, (double) mpKernel->getStdDev());
+            IHs.at(i)->setKeyword(1, REF_KW_KERNEL_SIZE, (int64_t) mpKernel->getKernelSize());
             std::string inName = std::string(mpInput->name);
             if (inName.length() > 16)
                 inName = inName.substr(0, 16);
@@ -506,9 +507,12 @@ void SGR_Recorder::prepareSpotFinding()
 
         // Generate a gaussian convolution kernel which matches the stdDev
         // of the spots in the image
-        mKernelStdDev = spotFitter.getAvgStdDev();
-        printf("Average standard deviation of spot PSF: %.3f\n", mKernelStdDev);
-        buildKernel();
+        printf("Average standard deviation of spot PSF: %.3f\n", spotFitter.getAvgStdDev());
+        mpKernel = GaussianKernel::makeKernel(
+            spotFitter.getAvgStdDev(),
+            makeStreamname("4-kernel"),
+            mVisualize
+        );
     }
     catch (std::runtime_error e)
     {
@@ -634,41 +638,6 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
             }
         mIHgridVisualization->updateWrittenImage();        
     }
-}
-
-void SGR_Recorder::buildKernel()
-{
-    // Determine the kernel size
-    // => Include 4 stdDevs
-    mKernelSize = ceil(4*mKernelStdDev);
-    if ((mKernelSize % 2) == 0)
-        mKernelSize ++;  // The kernel size should be odd
-    float kernelCenter = floor(mKernelSize/2);
-    printf("Kernel size = %d, kernel center @ %.0f\n", mKernelSize, kernelCenter);
-    
-    // Generate the kernel image handler
-    mIHkernel = SGR_ImageHandler<float>::newImageHandler(
-        makeStreamname("4-kernel"), mKernelSize, mKernelSize);
-    mIHkernel->setPersistent(mVisualize);
-    
-    // Build the kernel
-    float kernelSum = 0;
-    for (uint32_t ix = 0; ix < mKernelSize; ix++)
-        for (uint32_t iy = 0; iy < mKernelSize; iy++)
-        {
-            float x = ix-kernelCenter;
-            float y = iy-kernelCenter;
-            float val = exp(-(x*x+y*y)/(2*mKernelStdDev*mKernelStdDev));
-            mIHkernel->write(val, ix, iy);
-            kernelSum += val;
-        }
-    mIHkernel->updateWrittenImage();
-
-    // Normalize the kernel to its energy
-    for (uint32_t ix = 0; ix < mKernelSize; ix++)
-        for (uint32_t iy = 0; iy < mKernelSize; iy++)
-            mIHkernel->write(mIHkernel->read(ix, iy)/kernelSum, ix, iy);
-    mIHkernel->updateWrittenImage();
 }
 
 }
