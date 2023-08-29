@@ -48,8 +48,8 @@ GaussianKernel::GaussianKernel(float standardDeviation,
     
     // Build the kernel
     float kernelSum = 0;
-    for (size_t ix = 0; ix < mKernelSize; ix++)
-        for (size_t iy = 0; iy < mKernelSize; iy++)
+    for (int ix = 0; ix < (int) mKernelSize; ix++)
+        for (int iy = 0; iy < (int) mKernelSize; iy++)
         {
             float x = ix-mKernelCenter;
             float y = iy-mKernelCenter;

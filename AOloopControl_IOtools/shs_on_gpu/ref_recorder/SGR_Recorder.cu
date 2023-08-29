@@ -207,10 +207,10 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
             intensityName, mGridSize.mX, mGridSize.mY, 9);
         IHavgI->setPersistent(true);
         spImageHandler(float) IHavgP = SGR_ImageHandler<float>::newImageHandler(
-            makeStreamname("7_Eval-AVGpos"), mGridSize.mX*2, mGridSize.mY);
+            makeStreamname("7_eval-AVGpos"), mGridSize.mX*2, mGridSize.mY);
         IHavgP->setPersistent(mVisualize);
         spImageHandler(float) IHstdDvP = SGR_ImageHandler<float>::newImageHandler(
-            makeStreamname("7_Eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
+            makeStreamname("7_eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
         printf("SGR_RECORDER: <TAG-TODO> - change the mask data type to uint8_t.\n");
         spImageHandler(float) IHspotMask = SGR_ImageHandler<float>::newImageHandler(
@@ -536,7 +536,7 @@ void SGR_Recorder::prepareSpotFinding()
                 mSamplesExpected);
         mIHintensityREC->setPersistent(mVisualize);
         mIHposREC = SGR_ImageHandler<float>::newImageHandler(
-                makeStreamname("6-RecordSpotPos"),
+                makeStreamname("6-recordSpotPos"),
                 mGridSize.mX*2,
                 mGridSize.mY,
                 0,
