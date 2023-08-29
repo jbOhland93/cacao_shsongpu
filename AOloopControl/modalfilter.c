@@ -52,6 +52,11 @@ static long   fpi_looplimit;
 
 
 
+
+
+
+
+
 // Compute open loop modes
 static int64_t *compOL;
 static long     fpi_compOL;
@@ -76,6 +81,25 @@ static int64_t *comptbuff;
 static long     fpi_comptbuff;
 
 static uint32_t *tbuffsize;
+
+
+// autoset modal limits
+
+// toggle ON / OFF
+static uint64_t *autolim;
+static long      fpi_autolim;
+
+// gain on sigma probing
+static float *autolimprobegain;
+static long   fpi_autolimprobegain;
+
+// sigma-clipping factor
+static float *autolimsigmafact;
+static long   fpi_autolimsigmafact;
+
+
+
+
 
 
 
@@ -174,6 +198,24 @@ static long      fpi_testOLnbsample;
 
 static uint32_t *testOLcnt;
 static long      fpi_testOLcnt;
+
+
+
+// offload modal output
+//
+static uint64_t *offload;
+static long      fpi_offload;
+
+static float *offloadloopgain;
+static long   fpi_offloadloopgain;
+
+static float *offloadloopmult;
+static long   fpi_offloadloopmult;
+
+static float *offloadlooplimit;
+static long   fpi_offloadlooplimit;
+
+
 
 
 
@@ -305,6 +347,33 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &comptbuff,
         &fpi_comptbuff
+    },
+    {
+        CLIARG_ONOFF,
+        ".comp.autolim",
+        "automatic modal limits",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &autolim,
+        &fpi_autolim
+    },
+    {
+        CLIARG_FLOAT32,
+        ".comp.autolimprobegain",
+        "sigma measurement gain",
+        "0.1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &autolimprobegain,
+        &fpi_autolimprobegain
+    },
+    {
+        CLIARG_FLOAT32,
+        ".comp.autolimsigmafact",
+        "autolimit sigma clipping factor",
+        "2.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &autolimsigmafact,
+        &fpi_autolimsigmafact
     },
     {
         CLIARG_UINT32,
@@ -516,6 +585,42 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &testOLcnt,
         &fpi_testOLcnt
+    },
+    {
+        CLIARG_ONOFF,
+        ".offload.enable",
+        "offload output ON/OFF",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &offload,
+        &fpi_offload
+    },
+    {
+        CLIARG_FLOAT32,
+        ".offload.loopgain",
+        "offload loop gain",
+        "0.01",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &offloadloopgain,
+        &fpi_offloadloopgain
+    },
+    {
+        CLIARG_FLOAT32,
+        ".offload.loopmult",
+        "offload loop mult",
+        "0.95",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &offloadloopmult,
+        &fpi_offloadloopmult
+    },
+    {
+        CLIARG_FLOAT32,
+        ".offload.looplimit",
+        "offload loop limit",
+        "1.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &offloadlooplimit,
+        &fpi_offloadlooplimit
     }
 };
 
@@ -545,6 +650,10 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_psol_WFSfact].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_latencyhardwfr].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_latencysoftwfr].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_autolim].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_autolimprobegain].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_autolimsigmafact].fpflag |= FPFLAG_WRITERUN;
+
 
         data.fpsptr->parray[fpi_auxDMmvalenable].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_auxDMmvalmixfact].fpflag |= FPFLAG_WRITERUN;
@@ -554,6 +663,8 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_enablePF].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_PF_NBblock].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_PF_maxwaitus].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_PFmixcoeff].fpflag |= FPFLAG_WRITERUN;
+
 
         data.fpsptr->parray[fpi_autoloopenable].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_autoloopsleep].fpflag |= FPFLAG_WRITERUN;
@@ -569,6 +680,11 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_testOLampl].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_testOLmode].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_testOLnbsample].fpflag |= FPFLAG_WRITERUN;
+
+        data.fpsptr->parray[fpi_offload].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_offloadloopgain].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_offloadloopmult].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_offloadlooplimit].fpflag |= FPFLAG_WRITERUN;
     }
 
     return RETURN_SUCCESS;
@@ -705,6 +821,9 @@ static errno_t compute_function()
 
 
 
+
+
+
     // OPEN LOOP MODE VALUES
     //
     // allocate memory for DM modes history
@@ -786,15 +905,32 @@ static errno_t compute_function()
 
 
 
+    // connect/create output offload mode coeffs to DM
+    //
+    IMGID imgmvaloffloadDM;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mvaloffloadDM", *AOloopindex);
+        imgmvaloffloadDM = stream_connect_create_2Df32(name, NBmode, 1);
+        for(uint32_t mi = 0; mi < NBmode; mi++)
+        {
+            imgmvaloffloadDM.im->array.F[mi] = 0.0;
+        }
+    }
+
+
+
+
+
 
     // ========================= MODAL GAIN ===========================
     printf("Setting up modal gain\n");
 
     IMGID imgmgain;
     {
-        char mgainname[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(mgainname, "aol%lu_mgain", *AOloopindex);
-        imgmgain = stream_connect_create_2Df32(mgainname, NBmode, 1);
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mgain", *AOloopindex);
+        imgmgain = stream_connect_create_2Df32(name, NBmode, 1);
     }
     list_image_ID();
     printf(" mgain ID = %ld\n", imgmgain.ID);
@@ -805,9 +941,9 @@ static errno_t compute_function()
     // allows for single-parameter gain tuning
     IMGID imgmgainfact;
     {
-        char mgainfactname[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(mgainfactname, "aol%lu_mgainfact", *AOloopindex);
-        imgmgainfact = stream_connect_create_2Df32(mgainfactname, NBmode, 1);
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mgainfact", *AOloopindex);
+        imgmgainfact = stream_connect_create_2Df32(name, NBmode, 1);
         printf("%s  ID = %ld\n", imgmgainfact.name, imgmgainfact.ID);
         list_image_ID();
         for(uint32_t mi = 0; mi < NBmode; mi++)
@@ -817,15 +953,50 @@ static errno_t compute_function()
     }
 
 
+    IMGID imgoffloadmgain;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_offloadmgain", *AOloopindex);
+        imgoffloadmgain = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+    list_image_ID();
+    printf(" offloadmgain ID = %ld\n", imgoffloadmgain.ID);
+    fflush(stdout);
+
+    // offload modal gains factors
+    // to be multiplied by overal gain to become offloadmgain
+    // allows for single-parameter gain tuning
+    IMGID imgoffloadmgainfact;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_offloadmgainfact", *AOloopindex);
+        imgoffloadmgainfact = stream_connect_create_2Df32(name, NBmode, 1);
+        printf("%s  ID = %ld\n", imgoffloadmgainfact.name, imgoffloadmgainfact.ID);
+        list_image_ID();
+        for(uint32_t mi = 0; mi < NBmode; mi++)
+        {
+            imgoffloadmgainfact.im->array.F[mi] = 1.0;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
 
     // ========================= MODAL MULT ==========================
     printf("Setting up modal mult\n");
 
     IMGID imgmmult;
     {
-        char mmultname[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(mmultname, "aol%lu_mmult", *AOloopindex);
-        imgmmult = stream_connect_create_2Df32(mmultname, NBmode, 1);
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mmult", *AOloopindex);
+        imgmmult = stream_connect_create_2Df32(name, NBmode, 1);
     }
 
     // modal multiiplicative factors
@@ -833,9 +1004,9 @@ static errno_t compute_function()
     // allows for single-parameter mult tuning
     IMGID imgmmultfact;
     {
-        char mmultfactname[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(mmultfactname, "aol%lu_mmultfact", *AOloopindex);
-        imgmmultfact = stream_connect_create_2Df32(mmultfactname, NBmode, 1);
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mmultfact", *AOloopindex);
+        imgmmultfact = stream_connect_create_2Df32(name, NBmode, 1);
         for(uint32_t mi = 0; mi < NBmode; mi++)
         {
             imgmmultfact.im->array.F[mi] = 1.0;
@@ -843,14 +1014,38 @@ static errno_t compute_function()
     }
 
 
+    IMGID imgoffloadmmult;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_offloadmmult", *AOloopindex);
+        imgoffloadmmult = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+
+    // offload modal multiiplicative factors
+    // to be multiplied by overal mult to become offloadmmult
+    // allows for single-parameter offloadmult tuning
+    IMGID imgoffloadmmultfact;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_offloadmmultfact", *AOloopindex);
+        imgoffloadmmultfact = stream_connect_create_2Df32(name, NBmode, 1);
+        for(uint32_t mi = 0; mi < NBmode; mi++)
+        {
+            imgoffloadmmultfact.im->array.F[mi] = 1.0;
+        }
+    }
+
+
+
+
     // ========================= MODAL ZEROPOINT ==========================
     printf("Setting up modal zero point\n");
 
     IMGID imgmzeropoint;
     {
-        char mzeropointname[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(mzeropointname, "aol%lu_mzeropoint", *AOloopindex);
-        imgmzeropoint = stream_connect_create_2Df32(mzeropointname, NBmode, 1);
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mzeropoint", *AOloopindex);
+        imgmzeropoint = stream_connect_create_2Df32(name, NBmode, 1);
         for(uint32_t mi = 0; mi < NBmode; mi++)
         {
             imgmzeropoint.im->array.F[mi] = 0.0;
@@ -864,9 +1059,9 @@ static errno_t compute_function()
 
     IMGID imgmlimit;
     {
-        char mlimitname[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(mlimitname, "aol%lu_mlimit", *AOloopindex);
-        imgmlimit = stream_connect_create_2Df32(mlimitname, NBmode, 1);
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mlimit", *AOloopindex);
+        imgmlimit = stream_connect_create_2Df32(name, NBmode, 1);
     }
 
     // modal multiiplicative factors
@@ -874,14 +1069,118 @@ static errno_t compute_function()
     // allows for single-parameter mult tuning
     IMGID imgmlimitfact;
     {
-        char mlimitfactname[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(mlimitfactname, "aol%lu_mlimitfact", *AOloopindex);
-        imgmlimitfact = stream_connect_create_2Df32(mlimitfactname, NBmode, 1);
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mlimitfact", *AOloopindex);
+        imgmlimitfact = stream_connect_create_2Df32(name, NBmode, 1);
         for(uint32_t mi = 0; mi < NBmode; mi++)
         {
             imgmlimitfact.im->array.F[mi] = 1.0;
         }
     }
+
+
+    IMGID imgoffloadmlimit;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_offloadmlimit", *AOloopindex);
+        imgoffloadmlimit = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+
+    // modal multiiplicative factors
+    // to be multiplied by overal mult to become mmult
+    // allows for single-parameter mult tuning
+    IMGID imgoffloadmlimitfact;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_offloadmlimitfact", *AOloopindex);
+        imgoffloadmlimitfact = stream_connect_create_2Df32(name, NBmode, 1);
+        for(uint32_t mi = 0; mi < NBmode; mi++)
+        {
+            imgoffloadmlimitfact.im->array.F[mi] = 1.0;
+        }
+    }
+
+
+
+
+
+    // ========================= MODAL LIMIT COUNTER ==================
+    long * mlimitcntarray = (long*) malloc(sizeof(long)*NBmode);
+    long modal_limit_counter = 0;
+    for(uint32_t mi = 0; mi < NBmode; mi++)
+    {
+        mlimitcntarray[mi] = 0;
+    }
+
+    IMGID imgmlimitcntfrac;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mlimitcntfrac", *AOloopindex);
+        imgmlimitcntfrac = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+
+
+
+
+    // ========================= STATS ==================
+    // accumulated and reported for each log buffer duration
+    //
+    double * mvalDMave = (double*) malloc(sizeof(double)*NBmode);
+    double * mvalDMrms = (double*) malloc(sizeof(double)*NBmode);
+    double * mvalWFSave = (double*) malloc(sizeof(double)*NBmode);
+    double * mvalWFSrms = (double*) malloc(sizeof(double)*NBmode);
+    double * mvalOLave = (double*) malloc(sizeof(double)*NBmode);
+    double * mvalOLrms = (double*) malloc(sizeof(double)*NBmode);
+
+    IMGID imgmvalDMave;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mvalDMave", *AOloopindex);
+        imgmvalDMave = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+    IMGID imgmvalDMrms;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mvalDMrms", *AOloopindex);
+        imgmvalDMrms = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+
+    IMGID imgmvalWFSave;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mvalWFSave", *AOloopindex);
+        imgmvalWFSave = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+    IMGID imgmvalWFSrms;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mvalWFSrms", *AOloopindex);
+        imgmvalWFSrms = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+
+    IMGID imgmvalOLave;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mvalOLave", *AOloopindex);
+        imgmvalOLave = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+    IMGID imgmvalOLrms;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_mvalOLrms", *AOloopindex);
+        imgmvalOLrms = stream_connect_create_2Df32(name, NBmode, 1);
+    }
+
+
+
+    double * autolimDMsigma = (double*) malloc(sizeof(double)*NBmode);
+
+
+
+
+
+
+
 
 
     // initialization for testOL
@@ -967,22 +1266,20 @@ static errno_t compute_function()
                 // multiply by GAIN
                 dmval *= imgmgain.im->array.F[mi];
 
-
-                // this is the goal position
-                mvalDMc[mi] += dmval;
-
-                // multiply goal position by MULT
-                mvalDMc[mi] *= imgmmult.im->array.F[mi];
+                //add the new delta command to the integrated command with leak: this is the goal position
+                mvalDMc[mi] = dmval + mvalDMc[mi]*imgmmult.im->array.F[mi];
 
                 // apply LIMIT
                 limit = imgmlimit.im->array.F[mi];
                 if(mvalDMc[mi] > limit)
                 {
                     mvalDMc[mi] = limit;
+                    mlimitcntarray[mi] ++;
                 }
                 if(mvalDMc[mi] < -limit)
                 {
                     mvalDMc[mi] = -limit;
+                    mlimitcntarray[mi] ++;
                 }
 
 
@@ -998,14 +1295,55 @@ static errno_t compute_function()
                 }
                 mvaloutapply[mi] = mvalout[mi] + selfRMpokecmd[mi];
             }
+            // increment modal limit step counter
+            modal_limit_counter ++;
 
 
 
             if(*enablePF == 0)
             {
+                // if not running PF, apply modes to output
+                //
                 memcpy(imgout.im->array.F, mvaloutapply, sizeof(float) * NBmode);
                 processinfo_update_output_stream(processinfo, imgout.ID);
             }
+
+
+
+
+
+            // OFFLOAD LOOP
+            //
+            if((*offload) == 1)
+            {
+                for(uint32_t mi = 0; mi < NBmode; mi++)
+                {
+                    float val = imgmvaloffloadDM.im->array.F[mi];
+                    val += imgoffloadmgain.im->array.F[mi] * imgout.im->array.F[mi];
+                    val *= imgoffloadmmult.im->array.F[mi];
+                    // apply LIMIT
+                    limit = imgoffloadmlimit.im->array.F[mi];
+                    if(val > limit)
+                    {
+                        val = limit;
+                    }
+                    if(val < -limit)
+                    {
+                       val = -limit;
+                    }
+                    imgmvaloffloadDM.im->array.F[mi] = val;
+
+                }
+                processinfo_update_output_stream(processinfo, imgmvaloffloadDM.ID);
+            }
+
+
+
+
+
+
+
+
 
 
             // Compute pseudo open-loop mode coefficients
@@ -1060,6 +1398,10 @@ static errno_t compute_function()
                 processinfo_update_output_stream(processinfo, imgOLmval.ID);
 
 
+
+
+
+
                 if(*enablePF == 1)
                 {
                     // wait for PF blocks to complete
@@ -1090,6 +1432,8 @@ static errno_t compute_function()
                            sizeof(float) * NBmode);
                     processinfo_update_output_stream(processinfo, imgout.ID);
                 }
+
+
 
 
 
@@ -1218,7 +1562,12 @@ static errno_t compute_function()
 
                             FILE *fpout;
                             fpout = fopen(ffname, "w");
-                            fprintf(fpout, "export CACAO_PSOL_WFSFACT=%.3f\n", (*latencysoftwfr));
+
+                            char timestring[TIMESTRINGLEN];
+                            mkUTtimestring_microsec_now(timestring);
+                            fprintf(fpout, "# %s\n", timestring);
+
+                            fprintf(fpout, "export CACAO_PSOL_WFSFACT=%.3f\n", (*psol_WFSfact));
                             fprintf(fpout, "export CACAO_LATENCYSOFTWFR=%.3f\n", (*latencysoftwfr));
                             fprintf(fpout, "export CACAO_LATENCYFR=%.3f\n", (*latencysoftwfr)+(*latencyhardwfr) );
                             fclose(fpout);
@@ -1259,6 +1608,35 @@ static errno_t compute_function()
             processinfo_update_output_stream(processinfo, imgmlimit.ID);
 
 
+
+            for(uint32_t mi = 0; mi < NBmode; mi++)
+            {
+                imgoffloadmgain.im->array.F[mi] =
+                    imgoffloadmgainfact.im->array.F[mi] * (*offloadloopgain);
+            }
+            processinfo_update_output_stream(processinfo, imgoffloadmgain.ID);
+
+
+            for(uint32_t mi = 0; mi < NBmode; mi++)
+            {
+                imgoffloadmmult.im->array.F[mi] =
+                    imgoffloadmmultfact.im->array.F[mi] * (*offloadloopmult);
+            }
+            processinfo_update_output_stream(processinfo, imgoffloadmmult.ID);
+
+
+            for(uint32_t mi = 0; mi < NBmode; mi++)
+            {
+                imgoffloadmlimit.im->array.F[mi] =
+                    imgoffloadmlimitfact.im->array.F[mi] * (*offloadlooplimit);
+            }
+            processinfo_update_output_stream(processinfo, imgoffloadmlimit.ID);
+
+
+
+
+
+
             // Fill telemetry buffers
             //
             if((*comptbuff) == 1)
@@ -1291,6 +1669,17 @@ static errno_t compute_function()
                     }
                 }
 
+                for(uint32_t mi = 0; mi < NBmode; mi++)
+                {
+                    mvalDMave[mi] += mvalout[mi];
+                    mvalDMrms[mi] += mvalout[mi]*mvalout[mi];
+
+                    mvalWFSave[mi] += imginWFS.im->array.F[mi];
+                    mvalWFSrms[mi] += imginWFS.im->array.F[mi]*imginWFS.im->array.F[mi];
+
+                    mvalOLave[mi] += imgOLmval.im->array.F[mi];
+                    mvalOLrms[mi] += imgOLmval.im->array.F[mi]*imgOLmval.im->array.F[mi];
+                }
 
                 tbuffindex++;
                 if(tbuffindex == (*tbuffsize))
@@ -1314,6 +1703,100 @@ static errno_t compute_function()
                     {
                         tbuffslice = 0;
                     }
+
+
+
+                    // Measure fraction of commands truncated by limit
+                    //
+                    for(uint32_t mi = 0; mi < NBmode; mi++)
+                    {
+                        imgmlimitcntfrac.im->array.F[mi] = (1.0*mlimitcntarray[mi]) / modal_limit_counter;
+                        mlimitcntarray[mi] = 0;
+                    }
+                    processinfo_update_output_stream(processinfo, imgmlimitcntfrac.ID);
+
+
+
+                    // Update buffer stats
+
+                    // DM buffer stats
+
+
+                    for(uint32_t mi = 0; mi < NBmode; mi++)
+                    {
+                        imgmvalDMave.im->array.F[mi] = mvalDMave[mi] / modal_limit_counter;
+                        mvalDMave[mi] = 0;
+                    }
+                    processinfo_update_output_stream(processinfo, imgmvalDMave.ID);
+
+                    for(uint32_t mi = 0; mi < NBmode; mi++)
+                    {
+                        imgmvalDMrms.im->array.F[mi] = sqrt ( mvalDMrms[mi] / modal_limit_counter );
+                        mvalDMrms[mi] = 0;
+                    }
+                    processinfo_update_output_stream(processinfo, imgmvalDMrms.ID);
+
+
+                    // WFS buffer stats
+
+
+                    for(uint32_t mi = 0; mi < NBmode; mi++)
+                    {
+                        imgmvalWFSave.im->array.F[mi] = mvalWFSave[mi] / modal_limit_counter;
+                        mvalWFSave[mi] = 0;
+                    }
+                    processinfo_update_output_stream(processinfo, imgmvalWFSave.ID);
+
+                    for(uint32_t mi = 0; mi < NBmode; mi++)
+                    {
+                        imgmvalWFSrms.im->array.F[mi] = sqrt ( mvalWFSrms[mi] / modal_limit_counter );
+                        mvalWFSrms[mi] = 0;
+                    }
+                    processinfo_update_output_stream(processinfo, imgmvalWFSrms.ID);
+
+
+
+                    // OL buffer stats
+
+                    for(uint32_t mi = 0; mi < NBmode; mi++)
+                    {
+                        imgmvalOLave.im->array.F[mi] = mvalOLave[mi] / modal_limit_counter;
+                        mvalOLave[mi] = 0;
+                    }
+                    processinfo_update_output_stream(processinfo, imgmvalOLave.ID);
+
+                    for(uint32_t mi = 0; mi < NBmode; mi++)
+                    {
+                        imgmvalOLrms.im->array.F[mi] = sqrt ( mvalOLrms[mi] / modal_limit_counter );
+                        mvalOLrms[mi] = 0;
+                    }
+                    processinfo_update_output_stream(processinfo, imgmvalOLrms.ID);
+
+
+                    modal_limit_counter = 0;
+
+
+
+
+
+                    if((*autolim) == 1)
+                    {
+                        // autolimit
+
+                        for(uint32_t mi = 0; mi < NBmode; mi++)
+                        {
+
+                            autolimDMsigma[mi] = (1.0 - (*autolimprobegain))* autolimDMsigma[mi]
+                                                 + (*autolimprobegain)*imgmvalDMrms.im->array.F[mi];
+
+                            float cliplim = (*autolimsigmafact) * autolimDMsigma[mi];
+
+
+                            imgmlimitfact.im->array.F[mi] = cliplim / (*looplimit);
+                        }
+                    }
+
+
                 }
             }
         }
@@ -1469,6 +1952,17 @@ static errno_t compute_function()
     free(mvalDMc);
     free(mvalDMbuff);
     free(mvalDMOL);
+
+    free(mlimitcntarray);
+
+    free(mvalDMave);
+    free(mvalDMrms);
+    free(mvalWFSave);
+    free(mvalWFSrms);
+    free(mvalOLave);
+    free(mvalOLrms);
+
+    free(autolimDMsigma);
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;

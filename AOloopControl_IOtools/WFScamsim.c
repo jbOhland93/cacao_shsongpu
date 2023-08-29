@@ -145,10 +145,10 @@ static errno_t customCONFsetup()
     if(data.fpsptr != NULL)
     {
         data.fpsptr->parray[fpi_compdarkadd].fpflag |= FPFLAG_WRITERUN;
-        data.fpsptr->parray[fpi_fluxtotal].fpflag |= FPFLAG_WRITERUN;
-        data.fpsptr->parray[fpi_camgain].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_fluxtotal].fpflag   |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_camgain].fpflag     |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compphnoise].fpflag |= FPFLAG_WRITERUN;
-        data.fpsptr->parray[fpi_camRON].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_camRON].fpflag      |= FPFLAG_WRITERUN;
     }
 
     return RETURN_SUCCESS;
@@ -207,6 +207,7 @@ static errno_t compute_function()
     //
     IMGID wfsoutimg;
     {
+        printf("CONNECTING / CREATING output stream\n");
         wfsoutimg =
             stream_connect_create_2D(wfsim_out, sizexWFS, sizeyWFS, _DATATYPE_UINT16);
     }
@@ -298,6 +299,10 @@ static errno_t compute_function()
             if(tmpval < 0.0)
             {
                 wfsoutimg.im->array.UI16[ii] = 0;
+            }
+            else if (tmpval > 65535)
+            {
+                wfsoutimg.im->array.UI16[ii] = 65535;
             }
             else
             {
