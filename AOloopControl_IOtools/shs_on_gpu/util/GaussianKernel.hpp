@@ -21,10 +21,11 @@ public:
     // Returns the image handler of the kernel
     spImageHandler(float) getKernelIH() { return mp_IHkernel; }
 
-    // Copies the image array to device memory.
+    // Returns a pointer to a kernel copy on the device.
+    // If no copy exists yet, the data is copied to the device.
     // ATTENTION: If persistent is set to true, this memory
     // will not be freed upon destruction!
-    void copyKernelToGPU();
+    float* getPointerToDeviceCopy();
 
 private:
     float mStandardDeviation;

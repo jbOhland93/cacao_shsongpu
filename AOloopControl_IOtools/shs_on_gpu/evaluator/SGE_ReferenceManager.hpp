@@ -3,6 +3,7 @@
 
 #include "../ref_recorder/SGR_ImageHandler.hpp"
 #include <errno.h>
+#include "../util/GaussianKernel.hpp"
 
 // A class for evaluating SHS images on a GPU
 class SGE_ReferenceManager
@@ -13,30 +14,27 @@ public:
         IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Camera stream
         IMAGE* dark,        // Dark stream
-        int deviceID = 0);  // ID of the GPU device
+        std::string prefix);// Stream prefix
     // Dtor
     ~SGE_ReferenceManager();
 
-    int getDeviceID() { return m_deviceID; }
     uint16_t getNumSpots() { return m_numSpots; }
-    int64_t getKernelSize() { return m_kernelSize; }
+    int64_t getKernelSize() { return mp_kernel->getKernelSize(); }
     float* getGPUdarkBuffer() { return mdp_dark; }
-    float* getGPUkernelBuffer() { return mdp_kernel; }
+    float* getGPUkernelBuffer() { return mp_kernel->getPointerToDeviceCopy(); }
 
 private:
-    int m_deviceID;
+    std::string m_streamPrefix;
     uint16_t m_numSpots;
-    double m_kernelStdDev;
-    int64_t m_kernelSize;
     double m_shiftToGradConstant;
+    spGKernel mp_kernel;
 
     // Reference images, adopted
     spImageHandler(float) mp_IHreference = nullptr;
-    spImageHandler(uint8_t) mp_IHmask = nullptr;
+    spImageHandler(float) mp_IHmask = nullptr; // Change back to uint8_t once fits writing is fixed
     spImageHandler(float) mp_IHintensity = nullptr;
     // Image arrays on device
     float* mdp_dark = nullptr;
-    float* mdp_kernel = nullptr;
     // Base name of the reference
     std::string m_baseName;
 

@@ -9,7 +9,6 @@ spGKernel GaussianKernel::makeKernel(float standardDeviation,
     std::string streamName,
     bool persistent)
 {
-    printf("===== LETS MAKE A KERNEL =)===\n");
     return spGKernel(new GaussianKernel(standardDeviation, streamName, persistent));
 }
 
@@ -19,13 +18,16 @@ GaussianKernel::~GaussianKernel()
         cudaFree(d_kernel);
 }
 
-void GaussianKernel::copyKernelToGPU()
+float* GaussianKernel::getPointerToDeviceCopy()
 {
-    int memsize = sizeof(float)*mKernelSize*mKernelSize;
-    if (d_kernel != nullptr)
+    if (d_kernel == nullptr)
+    {
+        int memsize = sizeof(float)*mKernelSize*mKernelSize;
         cudaMalloc(&d_kernel, memsize);
-    float* src = mp_IHkernel->getWriteBuffer();
-    cudaMemcpy(d_kernel, src, memsize, cudaMemcpyKind::cudaMemcpyHostToDevice);
+        float* src = mp_IHkernel->getWriteBuffer();
+        cudaMemcpy(d_kernel, src, memsize, cudaMemcpyKind::cudaMemcpyHostToDevice);
+    }
+    return d_kernel;
 }
 
 GaussianKernel::GaussianKernel(float standardDeviation,
@@ -39,7 +41,10 @@ GaussianKernel::GaussianKernel(float standardDeviation,
     if ((mKernelSize % 2) == 0)
         mKernelSize ++;  // The kernel size should be odd
     mKernelCenter = (int) floor(mKernelSize/2.);
-    printf("Kernel size = %zu, kernel center @ %d\n", mKernelSize, mKernelCenter);
+    printf("Kernel: stddev = %.3f, size = %zu, kernel center @ %d\n",
+        mStandardDeviation,
+        mKernelSize,
+        mKernelCenter);
     
     // Generate the kernel image handler
     mp_IHkernel = SGR_ImageHandler<float>::newImageHandler(

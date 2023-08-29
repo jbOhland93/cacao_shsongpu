@@ -17,8 +17,15 @@ SGE_Evaluator::SGE_Evaluator(
         int deviceID)       // ID of the GPU device
     : m_deviceID(deviceID)
 {
-    printf("\n\n\n\n\n\nSTARTING CHECK!!!!!! - deviceid = %d\n\n", deviceID);
-    SGE_ReferenceManager manager(ref, cam, dark, deviceID);
+    cudaError err;
+    err = cudaSetDevice(m_deviceID);
+    printCE(err);
+    err = cudaSetDeviceFlags(cudaDeviceMapHost);
+    printCE(err);
+    err = cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
+    printCE(err);
+
+    SGE_ReferenceManager manager(ref, cam, dark, "loop-prefix");
     
     
     /*spImageHandler<
@@ -30,13 +37,7 @@ SGE_Evaluator::SGE_Evaluator(
     Set mp_im(in), mp_imDark(dark), if everything matches.
 */
 
-    cudaError err;
-    err = cudaSetDevice(m_deviceID);
-    printCE(err);
-    err = cudaSetDeviceFlags(cudaDeviceMapHost);
-    printCE(err);
-    err = cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
-    printCE(err);
+    
 
     //emulateReferenceInput();
 

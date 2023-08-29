@@ -11,8 +11,8 @@ SGE_ReferenceManager::SGE_ReferenceManager(
         IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Stream holding the current SHS frame
         IMAGE* dark,        // Stream holding the dark frame of the SHS
-        int deviceID)       // ID of the GPU device
-    : m_deviceID(deviceID)
+        std::string prefix) // Stream prefix
+    : m_streamPrefix(prefix)
 {
     printf("SGE_ReferenceManager Todo: Make factory functionto return shared ptr\n");
 
@@ -21,18 +21,6 @@ SGE_ReferenceManager::SGE_ReferenceManager(
     adoptReferenceStreamsFromKW();
     readShiftToGradConstantFromKW();
     generateGPUkernel();
-
-    printf("SGE_ReferenceManager Todo: Build kernel and copy dark to GPU\n");
-    // Todo: Build kernel and copy dark to GPU
-
-    cudaError err;
-    err = cudaSetDevice(m_deviceID);
-    printCE(err);
-    err = cudaSetDeviceFlags(cudaDeviceMapHost);
-    printCE(err);
-    err = cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
-    printCE(err);
-
     copyDarkToGPU(dark);
 }
 
@@ -40,8 +28,6 @@ SGE_ReferenceManager::~SGE_ReferenceManager()
 {
     if (mdp_dark != nullptr)
         cudaFree(mdp_dark);
-    if (mdp_kernel != nullptr)
-        cudaFree(mdp_kernel);
 }
 
 void SGE_ReferenceManager::checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMAGE* dark)
@@ -130,7 +116,8 @@ void SGE_ReferenceManager::adoptReferenceStreamsFromKW()
         {
             std::string maskName = m_baseName;
             maskName.append(maskSuffix);
-            mp_IHmask = SGR_ImageHandler<uint8_t>::newHandlerAdoptImage(maskName.c_str());
+            printf("== TODO == ReferenceManager::adoptReferenceStreamsFromKW: Change mask type back to float once fits writing is fixed.\n");
+            mp_IHmask = SGR_ImageHandler<float>::newHandlerAdoptImage(maskName.c_str());
             printf("\tAdopted the mask stream: %s\n", maskName.c_str());
         }
         
@@ -156,14 +143,13 @@ void SGE_ReferenceManager::readShiftToGradConstantFromKW()
 void SGE_ReferenceManager::generateGPUkernel()
 {
     printf("Generating correlation kernel ...\n");
-    if (!mp_IHreference->getKeyword(REF_KW_KERNEL_SIZE, &m_kernelSize))
+    double kernelStdDev;
+    if (!mp_IHreference->getKeyword(REF_KW_KERNEL_STDDEV, &kernelStdDev))
         throw std::runtime_error("SGE_ReferenceManager: kernel size not found in KWs. Cannot build correlation kernel.");
-    if (!mp_IHreference->getKeyword(REF_KW_KERNEL_STDDEV, &m_kernelStdDev))
-        throw std::runtime_error("SGE_ReferenceManager: kernel standard deviation not found in KWs. Cannot build correlation kernel.");
-    printf("\tKernel properties found in KWs.\n");
-    printf("Todo: Generate the kernel array and copy it to the GPU - store ptr in mdp_kernel.\n");
+    printf("\tKernel properties found in KWs.\n\t");
+    std::string kernelStreamname = m_streamPrefix.append("_kernel");
+    mp_kernel = GaussianKernel::makeKernel((float) kernelStdDev, kernelStreamname.c_str(), false);
     printf("\tKernel generated in host memory.\n");
-    printf("\tKernel copied to device.\n");
 }
 
 void SGE_ReferenceManager::copyDarkToGPU(IMAGE* imDark)

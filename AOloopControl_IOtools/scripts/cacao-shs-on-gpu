@@ -49,7 +49,8 @@ else
 	echo "Error: no LOOPNUMBER file. Are we running this from the correct directory ?"
     exit
 fi
-echo "Loop ${AOLOOPNUMBER}"
+printf "\n"
+echo "Loopnumber: ${AOLOOPNUMBER}"
 
 if [ -f LOOPNAME ]; then
     AOLOOPNAME=$( head -1 LOOPNAME )
@@ -57,7 +58,7 @@ else
 	echo "Error: no LOOPNAME file. Are we running this from the correct directory ?"
     exit
 fi
-echo "Loop ${AOLOOPNAME}"
+echo "Loopname: ${AOLOOPNAME}"
 
 refstream="${inputMSargARRAY[0]}"
 camstream="${inputMSargARRAY[1]}"
@@ -66,11 +67,10 @@ nbframe="${inputMSargARRAY[3]}"
 echo "Reference stream: ${refstream}"
 echo "SHS camera stream: ${camstream}"
 echo "SHS dark stream: ${darkstream}"
-echo "Number of frame: ${nbframe}"
+echo "Number of frames (temp): ${nbframe}"
 
-milk-all << EOF
+MILK_QUIET=1 milk << EOF
 mload cacaoAOloopControlIOtools
-cmd? cacaoio.shsGpuEval
 
 readshmim ${refstream}
 readshmim ${camstream}
