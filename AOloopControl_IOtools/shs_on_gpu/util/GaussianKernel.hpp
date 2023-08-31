@@ -25,7 +25,7 @@ public:
     // If no copy exists yet, the data is copied to the device.
     // ATTENTION: If persistent is set to true, this memory
     // will not be freed upon destruction!
-    float* getPointerToDeviceCopy();
+    float* getPointerToDeviceCopy() { return mp_IHkernel->getGPUCopy(); }
 
 private:
     float mStandardDeviation;

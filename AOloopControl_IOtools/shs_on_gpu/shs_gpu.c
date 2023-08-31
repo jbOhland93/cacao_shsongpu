@@ -1,12 +1,12 @@
 /**
- * @file    shs_gpu_ref.c
- * @brief   reference recording for shs evaluation on gpu
+ * @file    shs_gpu.c
+ * @brief   shs evaluation on a gpu
  *
  */
 
 #include "CommandLineInterface/CLIcore.h"
 #include "evaluator/SGE_Evaluator_interface.h"
-//#include <math.h>
+#include <math.h>
 
 static int cmdindex;
 

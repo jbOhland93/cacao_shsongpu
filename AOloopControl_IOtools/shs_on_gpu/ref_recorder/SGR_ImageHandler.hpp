@@ -25,8 +25,7 @@ public:
         size_t width,
         size_t height,
         uint8_t numKeywords = 0,
-        uint32_t circBufSize = 0,
-        int32_t gpuDevice = -1);
+        uint32_t circBufSize = 0);
     // Creates a new image of the same size, but converts the data.
     static spImageHandler(T) newHandlerfrmImage(
         std::string name,
@@ -54,16 +53,25 @@ public:
 // ========== READING/WRITING MEMBER DATA ==========
     // Returns the write buffer
     T* getWriteBuffer() { return mpBuffer; }
+    // Returns the current data copy that resides in device emory
+    // Updates the copy if the image size does not match prior to returning.
+    // This memory will be freed on destruction, even if persistent is set.
+    T* getGPUCopy() { return (T*) getDeviceCopy(); }
+    // Updates the GPU copy and returns the new device pointer.
+    // This memory will be freed on destruction, even if persistent is set.
+    T* updateGPUCopy() { updateDeviceCopy(); return getGPUCopy(); }
+    // Reads the image data from the GPU and updates the current image.
+    // Throws an error if no GPU copy is present.
+    void updateFromGPU() { updateFromDevice(); }
     // Reads the element at x/y from the last written buffer
     T read(uint32_t x, uint32_t y)
-        { throwIfGPU("read"); return mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)]; }
+        { return mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)]; }
     // Writes the given element at teh x/y position into the write buffer
     void write(T e, uint32_t x, uint32_t y)
-        { throwIfGPU("write"); mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)] = e; }
+        { mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)] = e; }
     // Reads all the samples at x/y from the circular buffer
     std::vector<T> readCircularBufAt(uint32_t x, uint32_t y)
     {
-        throwIfGPU("readCircularBufAt");
         std::vector<T> v;
         T* cbBuf = (T*) mpImage->CBimdata;
         for (int i = 0; i < mpImage->md->CBsize; i++)
@@ -76,7 +84,6 @@ public:
     // Sums all the pixels in the current ROI
     double getSumOverROI()
     {
-        throwIfGPU("getSumOverROI");
         double sum = 0;
         for (uint32_t ix = 0; ix < mROI.w(); ix++)
             for (uint32_t iy = 0; iy < mROI.h(); iy++)
@@ -86,7 +93,6 @@ public:
     // Gets the maximum pixel value in the current ROI
     T getMaxInROI(uint32_t* maxposX = nullptr, uint32_t* maxposY= nullptr)
     {
-        throwIfGPU("getMaxInROI");
         T max = std::numeric_limits<T>::min();
         T cur;
         for (uint32_t ix = 0; ix < mROI.w(); ix++)
@@ -117,9 +123,8 @@ private:
         uint32_t height,
         uint8_t atype,
         uint8_t numKeywords,
-        uint32_t circBufSize = 10,
-        int32_t gpuDevice = -1);
-    SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, int8_t location);
+        uint32_t circBufSize = 10);
+    SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY);
 
 // ========== HELPER FUNCTIONS ==========
     
@@ -127,7 +132,6 @@ private:
     {
         return convertAtypeArrayElement<T>(ptr, atype, index);
     }
-    void throwIfGPU(std::string operationName);
 };
 
 // ######################################
@@ -143,8 +147,7 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newImageHandler(
     size_t width,
     size_t height,
     uint8_t numKeywords,
-    uint32_t circBufSize,
-    int32_t gpuDevice)
+    uint32_t circBufSize)
 {
     throw std::runtime_error(
         "SGR_ImageHandler<T>::newImageHandler: Type not supported.");
@@ -159,8 +162,7 @@ inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
     size_t width,                                                       \
     size_t height,                                                      \
     uint8_t numKeywords,                                                \
-    uint32_t circBufSize,                                               \
-    int32_t gpuDevice)                                                 \
+    uint32_t circBufSize)                                               \
 {                                                                       \
     spImageHandler(type) sp(new SGR_ImageHandler<type>(                 \
         name,                                                           \
@@ -168,8 +170,7 @@ inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
         height,                                                         \
         atype,                                                          \
         numKeywords,                                                    \
-        circBufSize,                                                    \
-        gpuDevice));                                                    \
+        circBufSize));                                                  \
     return sp;                                                          \
 }
 IH_FACTORY(uint8_t, _DATATYPE_UINT8);
@@ -212,7 +213,7 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerAdoptImage(std::string i
     if (atypeIm != atypeArg)
         throw std::runtime_error("SGR_ImageHandler::newHandlerAdoptImage: image atype does not match the generic type of this call.");
     
-    spImageHandler(T) sp(new SGR_ImageHandler<T>(im.name, im.md->size[0], im.md->size[1], im.md->location));
+    spImageHandler(T) sp(new SGR_ImageHandler<T>(im.name, im.md->size[0], im.md->size[1]));
 
     ImageStreamIO_closeIm(&im);
     return sp;
@@ -246,7 +247,7 @@ inline void SGR_ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
     // Check image sizes
     uint32_t* sizeA = A->md->size;
     uint32_t* sizeB = B->md->size;
-    if (sizeA[0] != mWidth
+    if (   sizeA[0] != mWidth
         || sizeB[0] != mWidth
         || sizeA[1] != mHeight
         || sizeB[1] != mHeight)
@@ -347,10 +348,9 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
         uint32_t height,
         uint8_t atype,
         uint8_t numKeywords,
-        uint32_t circBufSize,
-        int32_t gpuDevice)
+        uint32_t circBufSize)
         :
-        SGR_ImageHandlerBase(width, height, gpuDevice)
+        SGR_ImageHandlerBase(width, height)
 {
     int naxis = 2;
     uint32_t * imsize = new uint32_t[naxis]();
@@ -363,7 +363,7 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
             naxis,
             imsize,
             atype,
-            mDevice,            // -1: CPU RAM, 0+ : GPU
+            -1,                 // -1: CPU RAM, 0+ : GPU
             shared,             // shared?
             10,                 // # of semaphores
             numKeywords,        // # of keywords
@@ -376,8 +376,8 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
 
 // Implementation of adoption ctor
 template<typename T>
-inline SGR_ImageHandler<T>::SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, int8_t location)
-    : SGR_ImageHandlerBase(sizeX, sizeY, location)
+inline SGR_ImageHandler<T>::SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY)
+    : SGR_ImageHandlerBase(sizeX, sizeY)
 {
     // Open the image
     ImageStreamIO_openIm(mpImage, imName.c_str());
@@ -389,7 +389,6 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(std::string imName, uint32_t sizeX,
 template <typename T>
 uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
 {
-    throwIfGPU("erode");
     uint32_t remainingPixels = 0;
     int x;
     int y;
@@ -447,17 +446,6 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
     
     updateWrittenImage();
     return remainingPixels;
-}
-
-template <typename T>
-void SGR_ImageHandler<T>::throwIfGPU(std::string operationName)
-{
-    if (mDevice >= 0)
-    {
-        printf("\n\n#### ERROR ####\nThis operation is currently not supported for images in device memory.\n");
-        printf("Operation name: %s\n\n", operationName.c_str());
-        throw std::runtime_error("SGR_ImageHandler: Illegal operation on GPU stream.");
-    }
 }
 
 #endif // SGR_IMAGEHANDLER_HPP

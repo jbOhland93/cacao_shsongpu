@@ -24,6 +24,8 @@ public:
 
     // Returns the image object
     IMAGE* getImage() { return mpImage; }
+    // Returns the image array size in memory
+    size_t getBufferSize() { return mpImage->md->imdatamemsize; }
 
     // Makes the image stream stay after destruction
     void setPersistent(bool persistent) { mPersistent = persistent; }
@@ -47,19 +49,31 @@ public:
 
     // Updates the image
     void updateWrittenImage() { ImageStreamIO_UpdateIm(mpImage); }
-
+    
 protected:
     // The image, managed by this class
     IMAGE* mpImage;
-    // The index of the device: -1 = CPU, 0 or greater = GPU index
-    int32_t mDevice = -1;
     // If false, the image will be destoyed with the desturction of this instance
     bool mPersistent = false;
+    // The cnt0 value of the last frame that has been copied to the GPU.
+    uint64_t mCnt0deviceCopy = std::numeric_limits<uint64_t>::max();
     // The region of interest. May be used by processing routines.
     Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
 
     // Ctor
-    SGR_ImageHandlerBase(uint32_t width, uint32_t height, int32_t device = -1);
+    SGR_ImageHandlerBase(uint32_t width, uint32_t height);
+
+    // Returns a device memory pointer to a copy on the GPU.
+    // Automatically updates the copy beforehand if the size does not match.
+    // This memory will be freed on destruction, even if persistent is set.
+    void* getDeviceCopy();
+    // Updates the GPU copy of the image data.
+    // The pointer may change, so make sure to use the new one.
+    // This memory will be freed on destruction, even if persistent is set.
+    void updateDeviceCopy();
+    // Reads the image data from the device and updates the current image.
+    // Throws an error if no GPU copy is present.
+    void updateFromDevice();
 
     // Transform from ROI coordinates to image coordinates
     uint32_t fromROIxToImX(uint32_t x);
@@ -68,6 +82,10 @@ protected:
 
     
 private:
+    // A copy of the image data that resides on the GPU.
+    int m_gpuCopySize = 0;
+    void* mpd_dataGPU = nullptr;
+
     SGR_ImageHandlerBase(); // No publically available default ctor
 
     // Returns the index of the keyword with the corresponding name.

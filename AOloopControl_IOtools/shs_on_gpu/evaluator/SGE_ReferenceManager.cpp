@@ -22,6 +22,28 @@ SGE_ReferenceManager::~SGE_ReferenceManager()
         cudaFree(mdp_dark);
 }
 
+void SGE_ReferenceManager::initGPUSearchPositions(
+    uint16_t** d_searchPosX, uint16_t** d_searchPosY)
+{
+    uint16_t searchPosX[m_numSpots];
+    uint16_t searchPosY[m_numSpots];
+
+    unsigned long bufsize = sizeof(uint16_t)*m_numSpots;
+    cudaMalloc((void**)d_searchPosX, bufsize);
+    cudaMalloc((void**)d_searchPosY, bufsize);
+
+    float* ref = mp_IHreference->getWriteBuffer();
+
+    for (uint16_t i = 0; i < m_numSpots; i++)
+    {
+        searchPosX[i] = (uint16_t) round(ref[i]);
+        searchPosY[i] = (uint16_t) round(ref[i+m_numSpots]); 
+    }
+
+    cudaMemcpy(*d_searchPosX, searchPosX, bufsize, cudaMemcpyHostToDevice);
+    cudaMemcpy(*d_searchPosY, searchPosY, bufsize, cudaMemcpyHostToDevice);
+}
+
 SGE_ReferenceManager::SGE_ReferenceManager(
         IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Stream holding the current SHS frame
@@ -35,7 +57,6 @@ SGE_ReferenceManager::SGE_ReferenceManager(
     adoptReferenceStreamsFromKW();
     readShiftToGradConstantFromKW();
     generateGPUkernel();
-    copyDarkToGPU(dark);
     printf("Reference manager setup completed.\n");
 }
 
@@ -156,23 +177,7 @@ void SGE_ReferenceManager::generateGPUkernel()
     if (!mp_IHreference->getKeyword(REF_KW_KERNEL_STDDEV, &kernelStdDev))
         throw std::runtime_error("SGE_ReferenceManager: kernel size not found in KWs. Cannot build correlation kernel.");
     printf("\tKernel properties found in KWs.\n\t");
-    std::string kernelStreamname = m_streamPrefix.append("_kernel");
+    std::string kernelStreamname = m_streamPrefix.append("kernel");
     mp_kernel = GaussianKernel::makeKernel((float) kernelStdDev, kernelStreamname.c_str(), false);
     printf("\tKernel generated in host memory.\n");
-}
-
-void SGE_ReferenceManager::copyDarkToGPU(IMAGE* imDark)
-{
-    printf("Copying darkframe to GPU ...\n");
-    float* readBuf;
-    ImageStreamIO_readLastWroteBuffer(imDark, (void**)&readBuf);
-
-    cudaError_t err;
-    cudaMalloc((void**)&mdp_dark, imDark->md->imdatamemsize);
-    printCE(err);
-    
-    err = cudaMemcpy(mdp_dark, readBuf, imDark->md->imdatamemsize, cudaMemcpyHostToDevice);
-    printCE(err);
-
-    printf("\tDarkframe copied to device.\n");
 }

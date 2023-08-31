@@ -15,8 +15,8 @@ set(SOURCEFILES
     shs_on_gpu/shs_gpu_ref.c
     shs_on_gpu/ref_recorder/SGR_Recorder.cu
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
-    shs_on_gpu/ref_recorder/SGR_ImageHandlerBase.cpp
-    shs_on_gpu/ref_recorder/SGR_ImageHandler.cpp
+    shs_on_gpu/ref_recorder/SGR_ImageHandlerBase.cu
+    shs_on_gpu/ref_recorder/SGR_ImageHandler.cu
     shs_on_gpu/util/SpotFitter.cpp
     shs_on_gpu/util/OneDGaussianFit.cpp
     shs_on_gpu/util/GaussianKernel.cu

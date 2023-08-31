@@ -5,15 +5,28 @@
 #include <string>
 #include <stdexcept>
 
-SGE_GridLayout::SGE_GridLayout(
-    int device,
-    int numSubapertures,
-    int kernelSize)
-    : mNumSubapertures(numSubapertures),
-      mKernelSize(kernelSize),
-      mNumKernelPx(kernelSize*kernelSize),
+spGridLayout SGE_GridLayout::makeGridLayout(int device, spRefManager refManager)
+{
+    return spGridLayout(new SGE_GridLayout(device, refManager));
+}
+
+SGE_GridLayout::~SGE_GridLayout()
+{
+    // Delete the device copy from device memory
+    cudaFree(mpd_deviceCopy);
+
+    // Delete the correlation offsets from device memory
+    cudaFree(mp_d_CorrelationOffsetsX);
+    cudaFree(mp_d_CorrelationOffsetsY);
+}
+
+SGE_GridLayout::SGE_GridLayout(int device, spRefManager refManager)
+    : mNumSubapertures(refManager->getNumSpots()),
+      mKernelSize(refManager->getKernelSize()),
+      mNumKernelPx(refManager->getKernelSize()*refManager->getKernelSize()),
       mDeviceID(device)
 {
+    // Set up grid layout based on the GPU properies
     getGPUproperties();
     calcGridProperties();
     setSHMlayout();
@@ -22,43 +35,11 @@ SGE_GridLayout::SGE_GridLayout(
     cudaMalloc(&mpd_deviceCopy, sizeof(SGE_GridLayout));
     cudaMemcpy(mpd_deviceCopy, this, sizeof(SGE_GridLayout), cudaMemcpyHostToDevice);
 
+    // Write the correlation offsets to the GPU
+    writeCorrelOffsetsFromWindowRootToDevice();
+
     // Finally, print a report about the grid layout.
     printReport();
-}
-
-SGE_GridLayout::~SGE_GridLayout()
-{
-    // Delete the device copy from GPU memory
-    cudaFree(mpd_deviceCopy);
-}
-
-void SGE_GridLayout::gnrtCorrelOffsetsFrmRoots(int* xOff, int* yOff)
-{
-    for(int i = 0;
-        i < SGE_GridLayout::getNumConvolutionsPerAp();
-        i++)
-    {
-        if (i < 2)
-        {
-            xOff[i] = mCorrelMargin + i + 1;
-            yOff[i] = mCorrelMargin;
-        }
-        else if (i < 6)
-        {
-            xOff[i] = mCorrelMargin + i - 2;
-            yOff[i] = mCorrelMargin + 1;
-        }
-        else if (i < 10)
-        {
-            xOff[i] = mCorrelMargin + i - 6;
-            yOff[i] = mCorrelMargin + 2;
-        }
-        else if (i < 12)
-        {
-            xOff[i] = mCorrelMargin + i - 9;
-            yOff[i] = mCorrelMargin + 3;
-        }
-    }
 }
 
 void SGE_GridLayout::getGPUproperties()
@@ -160,6 +141,45 @@ void SGE_GridLayout::setSHMlayout()
 
     // Convert the size to bytes
     mShmSize *= sizeof(float); // Note that sizeof(float) == sizeof(int)
+}
+
+void SGE_GridLayout::writeCorrelOffsetsFromWindowRootToDevice()
+{   
+    int xOff[SGE_GridLayout::getNumConvolutionsPerAp()];
+    int yOff[SGE_GridLayout::getNumConvolutionsPerAp()];
+
+    for(int i = 0;
+        i < SGE_GridLayout::getNumConvolutionsPerAp();
+        i++)
+    {
+        if (i < 2)
+        {
+            xOff[i] = mCorrelMargin + i + 1;
+            yOff[i] = mCorrelMargin;
+        }
+        else if (i < 6)
+        {
+            xOff[i] = mCorrelMargin + i - 2;
+            yOff[i] = mCorrelMargin + 1;
+        }
+        else if (i < 10)
+        {
+            xOff[i] = mCorrelMargin + i - 6;
+            yOff[i] = mCorrelMargin + 2;
+        }
+        else if (i < 12)
+        {
+            xOff[i] = mCorrelMargin + i - 9;
+            yOff[i] = mCorrelMargin + 3;
+        }
+    }
+
+    // Copy the values to the device
+    int bufsize = SGE_GridLayout::getNumConvolutionsPerAp()*sizeof(int);
+    cudaMalloc(&mp_d_CorrelationOffsetsX, bufsize);
+    cudaMalloc(&mp_d_CorrelationOffsetsY, bufsize);
+    cudaMemcpy(mp_d_CorrelationOffsetsX, xOff, bufsize, cudaMemcpyHostToDevice);
+    cudaMemcpy(mp_d_CorrelationOffsetsY, yOff, bufsize, cudaMemcpyHostToDevice);
 }
 
 void SGE_GridLayout::printReport()

@@ -21,9 +21,14 @@ public:
     ~SGE_ReferenceManager();
 
     uint16_t getNumSpots() { return m_numSpots; }
+
     int64_t getKernelSize() { return mp_kernel->getKernelSize(); }
-    float* getGPUdarkBuffer() { return mdp_dark; }
-    float* getGPUkernelBuffer() { return mp_kernel->getPointerToDeviceCopy(); }
+    float* getKernelBufferGPU() { return mp_kernel->getPointerToDeviceCopy(); }
+
+    // Creates two arrays in device memory, containing the initial inter pixel
+    // positions for the spot centroid finding algorithm.
+    // The size of the arrays equals the value returned by getNumSpots().
+    void initGPUSearchPositions(uint16_t** d_searchPosX, uint16_t** d_searchPosY);
 
 private:
     std::string m_streamPrefix;
@@ -54,7 +59,6 @@ private:
     void adoptReferenceStreamsFromKW();
     void readShiftToGradConstantFromKW();
     void generateGPUkernel();
-    void copyDarkToGPU(IMAGE* imDark);
 };
 
 #endif // SGE_REFERENCEMANAGER_HPP

@@ -26,37 +26,24 @@ public:
 private:
     int m_deviceID;
     std::string m_streamPrefix;
+
+    spImageHandler(uint16_t) mp_IHcam;
+    spImageHandler(float) mp_IHdark;
     spRefManager mp_refManager;
-    IMAGE* mp_im;
-    IMAGE* mp_imDark;
-    IMAGE m_imDarkGPU;
-    uint16_t m_numSpots;
-    uint16_t m_kernelSize;
     std::shared_ptr<SGE_GridLayout> mp_GridLayout;
 
-    uint16_t* m_hp_ROIx;
-    uint16_t* m_hp_ROIy;
-    uint16_t* m_dp_ROIx;
-    uint16_t* m_dp_ROIy;
-    float* m_dp_kernel;
-
-    int* m_dp_convCoordsX;
-    int* m_dp_convCoordsY;
+    uint16_t* mp_d_SearchPosX;
+    uint16_t* mp_d_SearchPosY;
 
     // Members for debugging
     cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing
-    IMAGE m_imDebug;    // Debug image in host memory
-    IMAGE m_imDebug_GPU;// Debug image in device memory
+    spImageHandler(float) mp_IHdebug;    // Debug image in host memory
     int m_debugBufSize; // Size of the debug buffer
-    float* m_hp_debug;  // Debug array in host memory
-    float* m_dp_debug;  // Debug array in device memory
+    float* mp_h_debug;  // Debug array in host memory
+    float* mp_d_debug;  // Debug array in device memory
 
-    void emulateReferenceInput();
     void writeApertureConvolutionCoordToGPU();
-    void copyDarkToGPU();
     void initDebugFields();
-    float* copyDebugImgToGPU();
-    float* copyDebugImgFrmGPU();
 };
 
 #endif // SGR_RECORDER_HPP

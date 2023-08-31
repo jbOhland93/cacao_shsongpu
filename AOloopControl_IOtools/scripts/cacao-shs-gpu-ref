@@ -71,7 +71,7 @@ nbframe="${inputMSargARRAY[1]}"
 uradThresh="${inputMSargARRAY[2]}"
 ARCHDIR="${inputMSargARRAY[3]}"
 echo "Input stream: ${instream}"
-echo "Number of frame: ${nbframe}"
+echo "Number of frames: ${nbframe}"
 echo "Demanded spot precision: ${uradThresh}"
 echo "Fits destination: ${ARCHDIR}"
 

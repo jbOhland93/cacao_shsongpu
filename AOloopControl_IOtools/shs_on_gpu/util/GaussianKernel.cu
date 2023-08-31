@@ -18,18 +18,6 @@ GaussianKernel::~GaussianKernel()
         cudaFree(d_kernel);
 }
 
-float* GaussianKernel::getPointerToDeviceCopy()
-{
-    if (d_kernel == nullptr)
-    {
-        int memsize = sizeof(float)*mKernelSize*mKernelSize;
-        cudaMalloc(&d_kernel, memsize);
-        float* src = mp_IHkernel->getWriteBuffer();
-        cudaMemcpy(d_kernel, src, memsize, cudaMemcpyKind::cudaMemcpyHostToDevice);
-    }
-    return d_kernel;
-}
-
 GaussianKernel::GaussianKernel(float standardDeviation,
     std::string streamName,
     bool persistent)

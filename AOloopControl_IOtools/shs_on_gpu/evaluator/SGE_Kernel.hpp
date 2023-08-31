@@ -6,8 +6,8 @@ __global__ void evaluateSpots(
     float* d_darkData,
     int imW,
     SGE_GridLayout* d_GridLayout,
-    uint16_t* d_windowRootsX,
-    uint16_t* d_windowRootsY,
+    uint16_t* d_windowCentersX,
+    uint16_t* d_windowCentersY,
     float* d_kernel,
     int* d_convCoordsX,
     int* d_convCoordsY,
@@ -21,8 +21,8 @@ __global__ void evaluateSpots(
     SGE_GridLayout* GL = (SGE_GridLayout*)glBuf;
     *GL = *d_GridLayout;
     // Get the root of the current window
-    int windowRootX = d_windowRootsX[blockIdx.x];
-    int windowRootY = d_windowRootsY[blockIdx.x];
+    int windowRootX = d_windowCentersX[blockIdx.x] - GL->mWindowSize/2;
+    int windowRootY = d_windowCentersY[blockIdx.x] - GL->mWindowSize/2;
 
 // == Chop up dynamic shared memory
     extern __shared__ float shm[];
@@ -135,7 +135,7 @@ __global__ void evaluateSpots(
 
     int offX = 5;
 // ## Sanity check: Feed convoluted pixels into output image
-    if (threadIdx.x < GL->mNumCorrelPosPerAp)
+/*    if (threadIdx.x < GL->mNumCorrelPosPerAp)
     {
         int convCoordX = convCoordsX[threadIdx.x];
         int convCoordY = convCoordsY[threadIdx.x];
@@ -144,7 +144,7 @@ __global__ void evaluateSpots(
         // For better visibility: Negate the ovolution result.
         d_debugImage[imY*imW+imX+offX] = -convResults[threadIdx.x];
         d_debugImage[imY*imW+imX-offX] = -convResults[threadIdx.x];
-    }
+    }*/
 
 
 // == Determine the spot center from the convolution result
@@ -190,7 +190,7 @@ __global__ void evaluateSpots(
         }
         else
         {   // Lost track of the spot
-            // For now, just assume the spot did not wanter too far and that the
+            // For now, just assume the spot did not wander too far and that the
             // max value of the convolution area points towards the spot center.
             // Therefore, setting the position of the max value as spot center,
             // The search window will drift towards the spot, hopefully catching it
@@ -202,7 +202,7 @@ __global__ void evaluateSpots(
         float spotPositionX = windowRootX + spotPosXInWindow;
         float spotPositionY = windowRootY + spotPosYInWindow;
 
-        d_debugImage[((int)spotPositionY)*imW + (int)spotPositionX + offX] = 1000;
+        //d_debugImage[((int)spotPositionY)*imW + (int)spotPositionX + offX] = 1000;
         /*d_debugImage[(maxIdxY + windowRootY)*imW + maxIdxX + windowRootX] = 1000;
         for (int i = 0; i < GL->mNumCorrelPosPerAp; i++)
         {
@@ -214,14 +214,14 @@ __global__ void evaluateSpots(
         // If the spot drifted out of the center of the tracking rectangle,
         // update the window root positions accordingly.
         if (spotPosXInWindow < ((float)centerIndex))
-            d_windowRootsX[blockIdx.x]--;
+            d_windowCentersX[blockIdx.x]--;
         else if (spotPosXInWindow > centerIndex+1.f)
-            d_windowRootsX[blockIdx.x]++;
+            d_windowCentersX[blockIdx.x]++;
 
         if (spotPosYInWindow < ((float)centerIndex))
-            d_windowRootsY[blockIdx.x]--;
+            d_windowCentersY[blockIdx.x]--;
         else if (spotPosYInWindow > centerIndex+1.f)
-            d_windowRootsY[blockIdx.x]++;
+            d_windowCentersY[blockIdx.x]++;
 
         if (threadIdx.x == 0)
         {
