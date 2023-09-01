@@ -28,6 +28,7 @@ private:
     std::string m_streamPrefix;
 
     spImageHandler(uint16_t) mp_IHcam;
+    uint16_t* mp_h_camArrayMappedCpy = nullptr;
     spImageHandler(float) mp_IHdark;
     spRefManager mp_refManager;
     std::shared_ptr<SGE_GridLayout> mp_GridLayout;
@@ -37,13 +38,22 @@ private:
 
     // Members for debugging
     cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing
-    spImageHandler(float) mp_IHdebug;    // Debug image in host memory
+    spImageHandler(float) mp_IHdebug = nullptr; // Debug image in host memory
     int m_debugBufSize; // Size of the debug buffer
     float* mp_h_debug;  // Debug array in host memory
     float* mp_d_debug;  // Debug array in device memory
 
-    void writeApertureConvolutionCoordToGPU();
+    // Helper functions
+    // Returns the pointer to the camera data in mapped memory
+    // If the image array is not already in mapped memory,
+    // the image will be copied and a warning printed.
+    uint16_t* getCamInputArrPtr();
+
+    // Debugging functions
     void initDebugFields();
+    void startRecordingTime();
+    float* prepareDebugImageDevicePtr();
+    void provideDebugOutputAfterEval();
 };
 
 #endif // SGR_RECORDER_HPP

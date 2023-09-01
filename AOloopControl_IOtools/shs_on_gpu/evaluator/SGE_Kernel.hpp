@@ -1,6 +1,30 @@
 #include <cuda.h>
 #include "SGE_GridLayout.hpp"
 
+
+// === VISUAL DEBUG FLAGS ===
+// Write output to the debug image array for visual inspection.
+// Remember to define ENABLE_DEBUG_IMAGE in SGE_Evaluator.cu,
+// otherwise it's a nullptr.
+// Note: If you define more than one flag, the output may become messy.
+// ===================
+
+// visual inspection of the streaming process
+//#define DEBUG_SHOW_STREAMED_PX
+
+// visual inspection of the local convolution
+//#define DEBUG_SHOW_LOCAL_CONVOLUTION
+
+// visual inspection of the peak detection coordinates
+//#define DEBUG_SHOW_MAX_PIXEL_COORDS
+
+// === DEBUG FLAGS ===
+// Provide commandline output for debugging purpose.
+// Remember to define ENABLE_DEBUG_ARRAY in SGE_Evaluator.cu,
+// otherwise it's a  nullptr.
+// ===================
+//#define DEBUG_ARRAY_OUTPUT
+
 __global__ void evaluateSpots(
     uint16_t* h_imageData,
     float* d_darkData,
@@ -66,14 +90,17 @@ __global__ void evaluateSpots(
         convCoordsY[idx] = d_convCoordsY[idx];
     }
     __syncthreads();
-// ## Sanity check: Feed streamed pixels into output image
-/*    if (threadIdx.x < GL->mNumWindowPx)
+
+#ifdef DEBUG_SHOW_STREAMED_PX
+// ## Sanity check: Feed streamed pixels back into output image
+// ## using an offset for visual inspection of the streaming process
+    if (threadIdx.x < GL->mNumWindowPx)
     {
         int imX = windowRootX + threadIdx.x % GL->mWindowSize;
         int imY = windowRootY + threadIdx.x / GL->mWindowSize;
-        d_debugImage[imY*imW+imX] = imData[threadIdx.x]-10;
-    }*/
-
+        d_debugImage[imY*imW+imX] = imData[threadIdx.x]-100;
+    }
+#endif
 
 // == Do convolution for the selected locations
     // Each thread performs exactly one multiplication of a pixel and a kernel value
@@ -133,25 +160,27 @@ __global__ void evaluateSpots(
         convResults[convCoordIdx] = dstBuffer[threadIdx.x];
     __syncthreads();
 
-    int offX = 5;
+#ifdef DEBUG_SHOW_LOCAL_CONVOLUTION
 // ## Sanity check: Feed convoluted pixels into output image
-/*    if (threadIdx.x < GL->mNumCorrelPosPerAp)
+// ## to visually inspect the local convolution
+    int offX = 5; // Lateral offset in x-direction for comparison with original spot
+    if (threadIdx.x < GL->mNumCorrelPosPerAp)
     {
         int convCoordX = convCoordsX[threadIdx.x];
         int convCoordY = convCoordsY[threadIdx.x];
         int imX = windowRootX + convCoordX;
         int imY = windowRootY + convCoordY;
-        // For better visibility: Negate the ovolution result.
-        d_debugImage[imY*imW+imX+offX] = -convResults[threadIdx.x];
-        d_debugImage[imY*imW+imX-offX] = -convResults[threadIdx.x];
-    }*/
-
+        d_debugImage[imY*imW+imX+offX] = convResults[threadIdx.x];
+    }
+#endif
 
 // == Determine the spot center from the convolution result
     // There's not much to be parallelized here, so let's do it single threaded.
     if (threadIdx.x == 0)
     {
-        int maxPosIdx = 0;
+        // The index of max. convolution value, operates on the 1D array of convResults
+        int maxPosIdx = 0; 
+        // The maximum of the convolution value
         float maxVal = convResults[maxPosIdx];
         float curVal = maxVal;
         for (int i = 0; i < GL->mNumCorrelPosPerAp; i++)
@@ -163,12 +192,16 @@ __global__ void evaluateSpots(
                 maxPosIdx = i;
             }
             // Copy the colvoluted values to the shm array of image data for 2D access
+            // Yes, we overwrite the (GPU-)shared memory camera data, but we don't need it anymore.
             imData[convCoordsY[i]*GL->mWindowSize + convCoordsX[i]] = curVal;
         }
+        // 2D index of the max. convolution value
         int maxIdxX = convCoordsX[maxPosIdx];
         int maxIdxY = convCoordsY[maxPosIdx];
         int centerIndex = GL->mWindowSize/2 - 1;
 
+        // Check if the maximum position is within the center of the convolution region.
+        // If it is not, the convolution window will be moved to get it back into the center.
         bool xInRange = (maxIdxX == centerIndex) || (maxIdxX == centerIndex+1);
         bool yInRange = (maxIdxY == centerIndex) || (maxIdxY == centerIndex+1);
 
@@ -202,14 +235,33 @@ __global__ void evaluateSpots(
         float spotPositionX = windowRootX + spotPosXInWindow;
         float spotPositionY = windowRootY + spotPosYInWindow;
 
-        //d_debugImage[((int)spotPositionY)*imW + (int)spotPositionX + offX] = 1000;
-        /*d_debugImage[(maxIdxY + windowRootY)*imW + maxIdxX + windowRootX] = 1000;
+#ifdef DEBUG_SHOW_MAX_PIXEL_COORDS
+        // All the following actions happen in the debug image, but shifted by a
+        // fixed number of pixels in x-direction to compare the result with the input.
+        int lateralShitInPx = 5;
+        // Generate dark area around the convolution area + 1 pixel in order to form a
+        // dark rim for visual identification of the debug output 
         for (int i = 0; i < GL->mNumCorrelPosPerAp; i++)
         {
-            d_debugImage[(convCoordsY[i] + windowRootY)*imW + convCoordsX[i] + windowRootX + 10] = 50*i;
+            int shiftedX = convCoordsX[i] + windowRootX + lateralShitInPx;
+            int shiftedY = convCoordsY[i] + windowRootY;
+            for (int outlineOffsetX = -1; outlineOffsetX < 2; outlineOffsetX++)
+                for (int outlineOffsetY = -1; outlineOffsetY < 2; outlineOffsetY++)
+                    d_debugImage[(shiftedY+outlineOffsetY)*imW + shiftedX + outlineOffsetX] = -maxVal/5;
         }
-        d_debugImage[(convCoordsY[maxPosIdx] + windowRootY)*imW + windowRootX + convCoordsX[maxPosIdx] + 10] = 1000;
-        */
+        // Generate a ramp pattern on the convolution pattern to map the pixel to
+        // the convolution index
+        for (int i = 0; i < GL->mNumCorrelPosPerAp; i++)
+        {
+            int shiftedX = convCoordsX[i] + windowRootX + lateralShitInPx;
+            int shiftedY = convCoordsY[i] + windowRootY;
+            d_debugImage[(shiftedY)*imW + shiftedX] = maxVal/(GL->mNumCorrelPosPerAp-1) * i;
+        }
+        // Make the pixel corresponding to the max pixel dark to distinguish it from the ramp pattern.
+        int maxShiftedX = windowRootX + convCoordsX[maxPosIdx] + lateralShitInPx;
+        int maxShiftedY = convCoordsY[maxPosIdx] + windowRootY;
+        d_debugImage[(maxShiftedY)*imW + maxShiftedX] = -maxVal/5;
+#endif
 
         // If the spot drifted out of the center of the tracking rectangle,
         // update the window root positions accordingly.
@@ -223,8 +275,10 @@ __global__ void evaluateSpots(
         else if (spotPosYInWindow > centerIndex+1.f)
             d_windowCentersY[blockIdx.x]++;
 
+#ifdef DEBUG_ARRAY_OUTPUT
         if (threadIdx.x == 0)
         {
+            // Adapt the contents of this array to your gusto.
             d_debugBuffer[blockIdx.x*6] = maxIdxX;
             d_debugBuffer[blockIdx.x*6+1] = maxIdxY;
             d_debugBuffer[blockIdx.x*6+2] = spotPosXInWindow;
@@ -236,5 +290,8 @@ __global__ void evaluateSpots(
             d_debugBuffer[blockIdx.x*6+8] = yInRange;
             d_debugBuffer[blockIdx.x*6+9] = xInRange && yInRange;
         }
+#endif
+
+        
     }
 }

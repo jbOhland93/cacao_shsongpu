@@ -197,6 +197,7 @@ static errno_t compute_function()
     }
 
     // === SET UP EVALUATOR HERE
+    printf("== Constructing evaluator ...\n");
     // Allocate a buffer for the stream prefix
     const char* funPrefix = "_shsEval_";
     uint8_t fpLen = strlen(funPrefix);
@@ -220,6 +221,7 @@ static errno_t compute_function()
         camimg.im,
         darkimg.im,
         loopPrefix);
+    printf("== Evaluator constructed. Ready for evaluation.\n");
     // ===
     
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
@@ -230,7 +232,7 @@ static errno_t compute_function()
 
     // === EVALUATING RESULTS HERE
     //processinfo_update_output_stream(processinfo, outimg.ID);
-    printf("== Deleting.\n");
+    printf("== Deleting evaluator.\n");
     free_SGE_Evaluator(evaluator);
     evaluator = NULL;
     // ===
