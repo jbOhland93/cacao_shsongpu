@@ -10,6 +10,8 @@
 #include "../util/atypeUtil.hpp"
 #include "../ref_recorder/SGR_Recorder.hpp"
 
+
+// ========== FLAGS ==========
 // If this is true, a warning will be printed when the camera image
 // does not reside in mapped memory (highly recommended for speed).
 #define WARN_IF_NO_MAPPED_CAM_IMG true
@@ -26,6 +28,8 @@
 // Record and print the time for each evaluation.
 // Note: This includes all debugging and copying processes.
 //#define ENABLE_EVALUATION_TIME_PRINTING
+// ========== FLAGS END ==========
+
 
 SGE_Evaluator::SGE_Evaluator(
         IMAGE* ref,                 // Stream holding the reference data
@@ -53,11 +57,28 @@ SGE_Evaluator::SGE_Evaluator(
     // Adopt the image streams
     mp_IHcam = SGR_ImageHandler<uint16_t>::newHandlerAdoptImage(cam->name);
     mp_IHdark = SGR_ImageHandler<float>::newHandlerAdoptImage(dark->name);
-    // Initialize spot search positions
+    // Transfer the reference positions to the device
+    mp_refManager->transferReferenceToGPU(&mp_d_refX, &mp_d_refY);
+    // Initialize spot search positions on the device
     mp_refManager->initGPUSearchPositions(&mp_d_SearchPosX, &mp_d_SearchPosY);
     // Set up the grid layout for the cuda calls
     mp_GridLayout = SGE_GridLayout::makeGridLayout(
         m_deviceID, mp_refManager);
+    // Prapare result image
+    std::string gradientImgName = m_streamPrefix;
+    gradientImgName.append("gradOut");
+    try{
+        mp_IHgradient =
+            SGR_ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
+        printf("Reslt image adopted\n");
+    }
+    catch(std::runtime_error)
+    {
+        printf("Adoption failed, create new image.\n");
+        mp_IHgradient =
+            SGR_ImageHandler<float>::newHandlerfrmImage(gradientImgName, ref);
+    }
+    mp_IHgradient->setPersistent(true);
     // Prepare some fields for debugging
     initDebugFields();
 }
@@ -67,6 +88,8 @@ SGE_Evaluator::~SGE_Evaluator()
     // Free arrays
     cudaFree(mp_d_SearchPosX);
     cudaFree(mp_d_SearchPosY);
+    cudaFree(mp_d_refX);
+    cudaFree(mp_d_refY);
     if (mp_h_camArrayMappedCpy != nullptr);
         cudaFreeHost(mp_h_camArrayMappedCpy);
 
@@ -89,28 +112,31 @@ errno_t SGE_Evaluator::evaluateDo()
 
     // Make sure the GPU copy of the darkframe is up to date!
     mp_IHdark->updateGPUCopy();
-    // Wait until all copying is done!
-    cudaDeviceSynchronize();
 
     // Kernel call - evaluation happens here!
     evaluateSpots<<<mp_GridLayout->mNumSubapertures,
                     mp_GridLayout->mBlockSize,
                     mp_GridLayout->mShmSize>>>(
             getCamInputArrPtr(),                    //uint16_t* h_imageData,
-            mp_IHdark->getGPUCopy(),            //float* d_darkData,
-            mp_IHcam->mWidth,                   //int imW,
-            mp_GridLayout->getDeviceCopy(),     //SGE_GridLayout* d_GridLayout,
-            mp_d_SearchPosX,                    //int windowRootX,
-            mp_d_SearchPosY,                    //int windowRootY,
-            mp_refManager->getKernelBufferGPU(),//float* d_kernel,
-            mp_GridLayout->mp_d_CorrelationOffsetsX,                   //int* d_convCoordsX,
-            mp_GridLayout->mp_d_CorrelationOffsetsY,                   //int* d_convCoordsY,
-            prepareDebugImageDevicePtr(),        //float* device copy of debug image
-            mp_d_debug                          //float* debug
+            mp_IHdark->getGPUCopy(),                //float* d_darkData,
+            mp_IHcam->mWidth,                       //int imW,
+            mp_GridLayout->getDeviceCopy(),         //SGE_GridLayout* d_GridLayout,
+            mp_d_SearchPosX,                        //int windowCentersX,
+            mp_d_SearchPosY,                        //int windowCentersY,
+            mp_refManager->getKernelBufferGPU(),    //float* d_kernel,
+            mp_GridLayout->mp_d_CorrelationOffsetsX,//int* d_convCoordsX,
+            mp_GridLayout->mp_d_CorrelationOffsetsY,//int* d_convCoordsY,
+            mp_d_refX,                              //float* d_refX
+            mp_d_refY,                              //float* d_refY
+            mp_refManager->getShiftToGradConstant(), //float shift2gradConst
+            mp_IHgradient->getGPUCopy(),            //float* d_gradOut
+            prepareDebugImageDevicePtr(),           //float* d_debugImage
+            mp_d_debug                              //float* d_debugBuffer
             );
-    cudaDeviceSynchronize();
     // Print error of kernel launch
     printCE(cudaGetLastError());
+    // Copy the result (gradient data) from the host to the device
+    mp_IHgradient->updateFromGPU();
 
     // If any debug flags are defined, collect data from
     // devide memory and make them accessible / print them
@@ -127,21 +153,20 @@ uint16_t* SGE_Evaluator::getCamInputArrPtr()
         return mp_IHcam->getWriteBuffer();
     else
     {
-        if (WARN_IF_NO_MAPPED_CAM_IMG)
-        {
-            printf("\n### WARNING: ###\n");
-            printf("The camera image is not located in mapped memory! ");
-            printf("Therefore, the data will be copied to a freshly ");
-            printf("allocated mapped memory array. This is expensive ");
-            printf("and will greatly slow down the process. Make sure ");
-            printf("to stream the frames from the camera directly into ");
-            printf("mapped memory.\n\n");
-        }
-
         cudaError_t err;
         int bufSize = mp_IHcam->getBufferSize();
         if (mp_h_camArrayMappedCpy == nullptr)
         {
+            if (WARN_IF_NO_MAPPED_CAM_IMG)
+            {
+                printf("\n### WARNING: ###\n");
+                printf("The camera image is not located in mapped memory! ");
+                printf("Therefore, the data will be copied to a freshly ");
+                printf("allocated mapped memory array. This is expensive ");
+                printf("and will greatly slow down the process. Make sure ");
+                printf("to stream the frames from the camera directly into ");
+                printf("mapped memory.\n\n");
+            }
             err = cudaHostAlloc(&mp_h_camArrayMappedCpy, bufSize, cudaHostAllocMapped);
             printCE(err);
         }

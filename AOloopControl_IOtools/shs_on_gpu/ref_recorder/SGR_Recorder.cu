@@ -48,9 +48,9 @@ SGR_Recorder::SGR_Recorder(
             mGridRectSize = floor(mApertureDiameter_px);
             // Calculate the SHS device constant
             // This constant can transfer the shift of each SHS-spot in pixels
-            // to a local gradient, i.e. the WF variation in micrometers over
-            // the current subaperture.
-            mSlopeToGradConstant = mPxSize_um * mMlaPitch_um / mMlaDist_um;
+            // to a local gradient via multiplication, i.e. the WF variation
+            // in micrometers over the current subaperture.
+            mShiftToGradConstant = mPxSize_um * mMlaPitch_um / mMlaDist_um;
 
             // Prepare the actual spotfinding
             prepareSpotFinding();
@@ -328,7 +328,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
             IHs.at(i)->setKeyword(5, REF_KW_REF_SUFFIX, refNameSuffix);
             IHs.at(i)->setKeyword(6, REF_KW_MASK_SUFFIX, maskNameSuffix);
             IHs.at(i)->setKeyword(7, REF_KW_INTENSITY_SUFFIX, intensityNameSuffix);
-            IHs.at(i)->setKeyword(8, REF_KW_SHIFT_2_GRAD_CONST, mSlopeToGradConstant);
+            IHs.at(i)->setKeyword(8, REF_KW_SHIFT_2_GRAD_CONST, mShiftToGradConstant);
         }
         printf("Metadata written to ISIO keywords.\n");
         

@@ -35,6 +35,10 @@ __global__ void evaluateSpots(
     float* d_kernel,
     int* d_convCoordsX,
     int* d_convCoordsY,
+    float* d_refX,
+    float* d_refY,
+    float shift2gradConst,
+    float* d_gradOut,
     float* d_debugImage,
     float* d_debugBuffer)
 {    
@@ -47,6 +51,9 @@ __global__ void evaluateSpots(
     // Get the root of the current window
     int windowRootX = d_windowCentersX[blockIdx.x] - GL->mWindowSize/2;
     int windowRootY = d_windowCentersY[blockIdx.x] - GL->mWindowSize/2;
+    // The reference positions
+    float refX = d_refX[blockIdx.x];
+    float refY = d_refY[blockIdx.x];
 
 // == Chop up dynamic shared memory
     extern __shared__ float shm[];
@@ -232,8 +239,6 @@ __global__ void evaluateSpots(
             spotPosXInWindow = maxIdxX;
             spotPosYInWindow = maxIdxY;
         }
-        float spotPositionX = windowRootX + spotPosXInWindow;
-        float spotPositionY = windowRootY + spotPosYInWindow;
 
 #ifdef DEBUG_SHOW_MAX_PIXEL_COORDS
         // All the following actions happen in the debug image, but shifted by a
@@ -263,6 +268,16 @@ __global__ void evaluateSpots(
         d_debugImage[(maxShiftedY)*imW + maxShiftedX] = -maxVal/5;
 #endif
 
+        // == Image evaluation done! Calculate the gradient: ==
+        // globalSpotPosition = windowRoot + spotPosInWindow
+        // spotShift = globalSpotPosition - ref
+        // gradient = spotShift * shift2gradConst
+        d_gradOut[blockIdx.x] =
+            (windowRootX + spotPosXInWindow - refX) * shift2gradConst;
+        d_gradOut[blockIdx.x + gridDim.x] =
+            (windowRootY + spotPosYInWindow - refY) * shift2gradConst;
+
+        // Prepare for the next frame:
         // If the spot drifted out of the center of the tracking rectangle,
         // update the window root positions accordingly.
         if (spotPosXInWindow < ((float)centerIndex))
@@ -292,6 +307,5 @@ __global__ void evaluateSpots(
         }
 #endif
 
-        
     }
 }

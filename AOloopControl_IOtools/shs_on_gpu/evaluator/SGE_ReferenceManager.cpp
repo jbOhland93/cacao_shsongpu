@@ -15,31 +15,42 @@ spRefManager SGE_ReferenceManager::makeReferenceManager(
     return spRefManager(new SGE_ReferenceManager(ref, cam, dark, prefix));
 }
 
-
 SGE_ReferenceManager::~SGE_ReferenceManager()
 {
     if (mdp_dark != nullptr)
         cudaFree(mdp_dark);
 }
 
+void SGE_ReferenceManager::transferReferenceToGPU(
+    float** d_refX, float** d_refY)
+{
+    // Allocate device memory
+    unsigned long bufsize = sizeof(float)*m_numSpots;
+    cudaMalloc((void**)d_refX, bufsize);
+    cudaMalloc((void**)d_refY, bufsize);
+    // Copy the reference data to the device
+    float* ref = mp_IHreference->getWriteBuffer();
+    cudaMemcpy(*d_refX, ref, bufsize, cudaMemcpyHostToDevice);
+    cudaMemcpy(*d_refY, ref+m_numSpots, bufsize, cudaMemcpyHostToDevice);
+}
+
 void SGE_ReferenceManager::initGPUSearchPositions(
     uint16_t** d_searchPosX, uint16_t** d_searchPosY)
 {
+    // Get the initial search positions
+    // This is the reference positions, rounded to nearest
     uint16_t searchPosX[m_numSpots];
     uint16_t searchPosY[m_numSpots];
-
-    unsigned long bufsize = sizeof(uint16_t)*m_numSpots;
-    cudaMalloc((void**)d_searchPosX, bufsize);
-    cudaMalloc((void**)d_searchPosY, bufsize);
-
     float* ref = mp_IHreference->getWriteBuffer();
-
     for (uint16_t i = 0; i < m_numSpots; i++)
     {
         searchPosX[i] = (uint16_t) round(ref[i]);
         searchPosY[i] = (uint16_t) round(ref[i+m_numSpots]); 
     }
-
+    // Allocate device memory and copy data to device
+    unsigned long bufsize = sizeof(uint16_t)*m_numSpots;
+    cudaMalloc((void**)d_searchPosX, bufsize);
+    cudaMalloc((void**)d_searchPosY, bufsize);
     cudaMemcpy(*d_searchPosX, searchPosX, bufsize, cudaMemcpyHostToDevice);
     cudaMemcpy(*d_searchPosY, searchPosY, bufsize, cudaMemcpyHostToDevice);
 }

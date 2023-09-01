@@ -21,11 +21,15 @@ public:
     ~SGE_ReferenceManager();
 
     uint16_t getNumSpots() { return m_numSpots; }
-
     int64_t getKernelSize() { return mp_kernel->getKernelSize(); }
     float* getKernelBufferGPU() { return mp_kernel->getPointerToDeviceCopy(); }
+    float getShiftToGradConstant() { return (float) m_shiftToGradConstant; }
 
-    // Creates two arrays in device memory, containing the initial inter pixel
+    // Creates two arrays in device memory, containing the reference
+    // positions of the SHS reference.
+    // The size of the arrays equals the value returned by getNumSpots().
+    void transferReferenceToGPU(float** d_refX, float** d_refY);
+    // Creates two arrays in device memory, containing the initial pixel
     // positions for the spot centroid finding algorithm.
     // The size of the arrays equals the value returned by getNumSpots().
     void initGPUSearchPositions(uint16_t** d_searchPosX, uint16_t** d_searchPosY);

@@ -33,8 +33,12 @@ private:
     spRefManager mp_refManager;
     std::shared_ptr<SGE_GridLayout> mp_GridLayout;
 
+    float* mp_d_refX;
+    float* mp_d_refY;
     uint16_t* mp_d_SearchPosX;
     uint16_t* mp_d_SearchPosY;
+
+    spImageHandler(float) mp_IHgradient;
 
     // Members for debugging
     cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing

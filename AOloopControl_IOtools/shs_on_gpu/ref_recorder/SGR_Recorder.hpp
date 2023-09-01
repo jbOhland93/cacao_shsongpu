@@ -64,7 +64,7 @@ private:
     float mMlaPitch_um;
     float mMlaDist_um;
     float mApertureDiameter_px;
-    double mSlopeToGradConstant;
+    double mShiftToGradConstant;
 
 // Intermediary results
 //  double mKernelStdDev;
