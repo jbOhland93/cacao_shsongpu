@@ -1,7 +1,7 @@
 #ifndef GAUSSIANKERNEL_HPP
 #define GAUSSIANKERNEL_HPP
 
-#include "../ref_recorder/SGR_ImageHandler.hpp"
+#include "ImageHandler.hpp"
 
 #define spGKernel std::shared_ptr<GaussianKernel>
 

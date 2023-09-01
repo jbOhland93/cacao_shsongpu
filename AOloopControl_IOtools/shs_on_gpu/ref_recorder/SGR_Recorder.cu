@@ -203,17 +203,17 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         intensityName.append(intensityNameSuffix);
 
         // Initialize the  image handlers for the evaluation
-        spImageHandler(float) IHavgI = SGR_ImageHandler<float>::newImageHandler(
+        spImageHandler(float) IHavgI = ImageHandler<float>::newImageHandler(
             intensityName, mGridSize.mX, mGridSize.mY, 9);
         IHavgI->setPersistent(true);
-        spImageHandler(float) IHavgP = SGR_ImageHandler<float>::newImageHandler(
+        spImageHandler(float) IHavgP = ImageHandler<float>::newImageHandler(
             makeStreamname("7_eval-AVGpos"), mGridSize.mX*2, mGridSize.mY);
         IHavgP->setPersistent(mVisualize);
-        spImageHandler(float) IHstdDvP = SGR_ImageHandler<float>::newImageHandler(
+        spImageHandler(float) IHstdDvP = ImageHandler<float>::newImageHandler(
             makeStreamname("7_eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
         printf("== TODO == SGR_Recorder::evaluateRecBuffers: Change mask type back to uint8_t once fits writing is fixed.\n");
-        spImageHandler(float) IHspotMask = SGR_ImageHandler<float>::newImageHandler(
+        spImageHandler(float) IHspotMask = ImageHandler<float>::newImageHandler(
             maskName, mGridSize.mX, mGridSize.mY, 9);
         IHspotMask->setPersistent(true);
 
@@ -287,7 +287,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // The reference is an image with 2 lines:
         // First line holds the average X positions of the spots within the mask
         // Second line holds the average Y positions of the spots within the mask
-        spImageHandler(float) IHcpuRef = SGR_ImageHandler<float>::newImageHandler(
+        spImageHandler(float) IHcpuRef = ImageHandler<float>::newImageHandler(
             refName, numOfValidSpots, 2, 9);
         IHcpuRef->setPersistent(true);
 
@@ -307,10 +307,10 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         printf("Reference generated.\n\t=> Stream name: %s\n", IHcpuRef->getImage()->name);
 
         // Set keywords to streams - include relevant metadata
-        std::vector<std::shared_ptr<SGR_ImageHandlerBase>> IHs;
-        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHavgI));
-        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHspotMask));
-        IHs.push_back(std::static_pointer_cast<SGR_ImageHandlerBase>(IHcpuRef));
+        std::vector<std::shared_ptr<ImageHandlerBase>> IHs;
+        IHs.push_back(std::static_pointer_cast<ImageHandlerBase>(IHavgI));
+        IHs.push_back(std::static_pointer_cast<ImageHandlerBase>(IHspotMask));
+        IHs.push_back(std::static_pointer_cast<ImageHandlerBase>(IHcpuRef));
         for (int i = 0; i < IHs.size(); i++)
         {
             IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, (double) mpKernel->getStdDev());
@@ -529,13 +529,13 @@ void SGR_Recorder::prepareSpotFinding()
         mIHconvolution->setPersistent(mVisualize);
 
         // Prepare the averaging image streams for intensity and positions
-        mIHintensityREC = SGR_ImageHandler<float>::newImageHandler(
+        mIHintensityREC = ImageHandler<float>::newImageHandler(
                 makeStreamname("6-recordAmp"),
                 mGridSize.mX, mGridSize.mY,
                 0,
                 mSamplesExpected);
         mIHintensityREC->setPersistent(mVisualize);
-        mIHposREC = SGR_ImageHandler<float>::newImageHandler(
+        mIHposREC = ImageHandler<float>::newImageHandler(
                 makeStreamname("6-recordSpotPos"),
                 mGridSize.mX*2,
                 mGridSize.mY,

@@ -1,11 +1,11 @@
-#include "SGR_ImageHandlerBase.hpp"
+#include "ImageHandlerBase.hpp"
 
 #include <cuda.h>
-#include "../util/CudaSGEutil.hpp"
+#include "CudaUtil.hpp"
 
 
 
-SGR_ImageHandlerBase::~SGR_ImageHandlerBase()
+ImageHandlerBase::~ImageHandlerBase()
 {   
     // Destroy the image only if persistent is not enabled.
     if (!mPersistent)
@@ -18,7 +18,7 @@ SGR_ImageHandlerBase::~SGR_ImageHandlerBase()
     delete mpImage;
 }
 
-void SGR_ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
+void ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
 {
     if (roi.x()+roi.w() >= mWidth || roi.y()+roi.h() >= mHeight)
             throw std::runtime_error("SGR_ImageHandler::setROI: out of range.");
@@ -26,17 +26,17 @@ void SGR_ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
             mROI = roi;
 }
 
-void SGR_ImageHandlerBase::setROI(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+void ImageHandlerBase::setROI(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 {
     setROI(Rectangle<uint32_t>(x,y,w,h));
 }
 
-void SGR_ImageHandlerBase::unsetROI()
+void ImageHandlerBase::unsetROI()
 {
     mROI = Rectangle<uint32_t>(0,0, mWidth, mHeight);
 }
 
-SGR_ImageHandlerBase::SGR_ImageHandlerBase(
+ImageHandlerBase::ImageHandlerBase(
         uint32_t width,
         uint32_t height)
         :
@@ -48,14 +48,14 @@ SGR_ImageHandlerBase::SGR_ImageHandlerBase(
     mpImage = new IMAGE();
 }
 
-void* SGR_ImageHandlerBase::getDeviceCopy()
+void* ImageHandlerBase::getDeviceCopy()
 {
     if (m_gpuCopySize != mpImage->md->imdatamemsize)
         updateDeviceCopy();
     return mpd_dataGPU;
 }
 
-void SGR_ImageHandlerBase::updateDeviceCopy()
+void ImageHandlerBase::updateDeviceCopy()
 {
     cudaError_t err;
     if (m_gpuCopySize != mpImage->md->imdatamemsize && mpd_dataGPU != nullptr) 
@@ -81,12 +81,12 @@ void SGR_ImageHandlerBase::updateDeviceCopy()
     }
 }
 
-void SGR_ImageHandlerBase::updateFromDevice()
+void ImageHandlerBase::updateFromDevice()
 {
     if (mpd_dataGPU == nullptr)
-        throw std::runtime_error("SGR_ImageHandlerBase::updateFromDevice: No device copy used.\n");
+        throw std::runtime_error("ImageHandlerBase::updateFromDevice: No device copy used.\n");
     if (m_gpuCopySize != mpImage->md->imdatamemsize)
-        throw std::runtime_error("SGR_ImageHandlerBase::updateFromDevice: Array size mismatch.\n");
+        throw std::runtime_error("ImageHandlerBase::updateFromDevice: Array size mismatch.\n");
     
     void* dst;
     ImageStreamIO_readLastWroteBuffer(mpImage, &dst);
@@ -96,23 +96,23 @@ void SGR_ImageHandlerBase::updateFromDevice()
     ImageStreamIO_UpdateIm(mpImage);
 }
 
-uint32_t SGR_ImageHandlerBase::fromROIxToImX(uint32_t x)
+uint32_t ImageHandlerBase::fromROIxToImX(uint32_t x)
 {
     if (x >= mROI.w()) // x is uint3_t, thus always > 0
-        throw std::runtime_error("SGR_ImageHandlerBase::toROIx: x is out of range.");
+        throw std::runtime_error("ImageHandlerBase::toROIx: x is out of range.");
     else
         return x + mROI.x();
 }
 
-uint32_t SGR_ImageHandlerBase::fromROIyToImY(uint32_t y)
+uint32_t ImageHandlerBase::fromROIyToImY(uint32_t y)
 {
     if (y >= mROI.h()) // y is uint3_t, thus always > 0
-        throw std::runtime_error("SGR_ImageHandlerBase::toROIy: y is out of range.");
+        throw std::runtime_error("ImageHandlerBase::toROIy: y is out of range.");
     else
         return y + mROI.y();
 }
 
-int SGR_ImageHandlerBase::getKWindex(std::string name)
+int ImageHandlerBase::getKWindex(std::string name)
 {
     for (int i = 0; i < mpImage->md->NBkw; i++)
     {

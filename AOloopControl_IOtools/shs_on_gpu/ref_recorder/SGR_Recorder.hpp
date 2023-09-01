@@ -1,13 +1,13 @@
 #ifndef SGR_RECORDER_HPP
 #define SGR_RECORDER_HPP
 
-#include "SGR_ImageHandler.hpp"
+#include "SGR_ReferenceKW.hpp"
+#include "../util/ImageHandler.hpp"
+#include "../util/GaussianKernel.hpp"
 #include <errno.h>
 #include <string>
 #include <memory>
 #include <vector>
-#include "SGR_ReferenceKW.hpp"
-#include "../util/GaussianKernel.hpp"
 
 
 // A class for recording SHS references

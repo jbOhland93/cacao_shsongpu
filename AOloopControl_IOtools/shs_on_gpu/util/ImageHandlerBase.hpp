@@ -1,7 +1,7 @@
 // This class provides basic functionality for the more specific SGR_ImageHandler
 
-#ifndef SGR_IMAGEHANDLERBASE_HPP
-#define SGR_IMAGEHANDLERBASE_HPP
+#ifndef IMAGEHANDLERBASE_HPP
+#define IMAGEHANDLERBASE_HPP
 
 #include <string>
 #include <cstring>
@@ -10,7 +10,7 @@
 #include "ImageStreamIO/ImageStreamIO.h"
 #include "../util/Rectangle.hpp"
 
-class SGR_ImageHandlerBase
+class ImageHandlerBase
 {
 public:
     // The width of the image
@@ -20,7 +20,7 @@ public:
     // The total number of pixels in the image
     const uint32_t mNumPx;
 
-    ~SGR_ImageHandlerBase();
+    ~ImageHandlerBase();
 
     // Returns the image object
     IMAGE* getImage() { return mpImage; }
@@ -61,7 +61,7 @@ protected:
     Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
 
     // Ctor
-    SGR_ImageHandlerBase(uint32_t width, uint32_t height);
+    ImageHandlerBase(uint32_t width, uint32_t height);
 
     // Returns a device memory pointer to a copy on the GPU.
     // Automatically updates the copy beforehand if the size does not match.
@@ -86,7 +86,7 @@ private:
     int m_gpuCopySize = 0;
     void* mpd_dataGPU = nullptr;
 
-    SGR_ImageHandlerBase(); // No publically available default ctor
+    ImageHandlerBase(); // No publically available default ctor
 
     // Returns the index of the keyword with the corresponding name.
     // If no corresponding keyword has been found, this method returns -1.
@@ -99,16 +99,16 @@ private:
 // Template declarations
 
 template <typename U>
-inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, U data)
+inline void ImageHandlerBase::setKeyword(int index, std::string name, U data)
 {
-    throw std::runtime_error("SGR_ImageHandlerBase::setKeyword: Only int64_t, double and string supported.");
+    throw std::runtime_error("ImageHandlerBase::setKeyword: Only int64_t, double and string supported.");
 }
 
 template <>
-inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, int64_t data)
+inline void ImageHandlerBase::setKeyword(int index, std::string name, int64_t data)
 {
     if (index >= mpImage->md->NBkw)
-        throw std::runtime_error("SGR_ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
+        throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'L';
@@ -117,10 +117,10 @@ inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, int64_
 }
 
 template <>
-inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, double data)
+inline void ImageHandlerBase::setKeyword(int index, std::string name, double data)
 {
     if (index >= mpImage->md->NBkw)
-        throw std::runtime_error("SGR_ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
+        throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'D';
@@ -129,10 +129,10 @@ inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, double
 }
 
 template <>
-inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, std::string data)
+inline void ImageHandlerBase::setKeyword(int index, std::string name, std::string data)
 {
     if (index >= mpImage->md->NBkw)
-        throw std::runtime_error("SGR_ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
+        throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'S';
@@ -144,13 +144,13 @@ inline void SGR_ImageHandlerBase::setKeyword(int index, std::string name, std::s
 
 
 template <typename U>
-inline bool SGR_ImageHandlerBase::getKeyword(std::string name, U* dst)
+inline bool ImageHandlerBase::getKeyword(std::string name, U* dst)
 {
-    throw std::runtime_error("SGR_ImageHandlerBase::getKeyword: Only int64_t, double and string supported.");
+    throw std::runtime_error("ImageHandlerBase::getKeyword: Only int64_t, double and string supported.");
 }
 
 template <>
-inline bool SGR_ImageHandlerBase::getKeyword(std::string name, int64_t* dst)
+inline bool ImageHandlerBase::getKeyword(std::string name, int64_t* dst)
 {
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
@@ -166,7 +166,7 @@ inline bool SGR_ImageHandlerBase::getKeyword(std::string name, int64_t* dst)
 }
 
 template <>
-inline bool SGR_ImageHandlerBase::getKeyword(std::string name, double* dst)
+inline bool ImageHandlerBase::getKeyword(std::string name, double* dst)
 {
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
@@ -182,7 +182,7 @@ inline bool SGR_ImageHandlerBase::getKeyword(std::string name, double* dst)
 }
 
 template <>
-inline bool SGR_ImageHandlerBase::getKeyword(std::string name, std::string* dst)
+inline bool ImageHandlerBase::getKeyword(std::string name, std::string* dst)
 {
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
@@ -201,4 +201,4 @@ inline bool SGR_ImageHandlerBase::getKeyword(std::string name, std::string* dst)
     return false;
 }
 
-#endif  // SGR_IMAGEHANDLERBASE_HPP
+#endif  // IMAGEHANDLERBASE_HPP

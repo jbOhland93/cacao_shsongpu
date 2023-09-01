@@ -1,7 +1,7 @@
 #ifndef SGE_GRIDLAYOUT_HPP
 #define SGE_GRIDLAYOUT_HPP
 
-#include "../util/CudaSGEutil.hpp"
+#include "../util/CudaUtil.hpp"
 #include "SGE_ReferenceManager.hpp"
 
 #define spGridLayout std::shared_ptr<SGE_GridLayout>

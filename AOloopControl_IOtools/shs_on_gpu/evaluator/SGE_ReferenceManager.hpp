@@ -1,9 +1,9 @@
 #ifndef SGE_REFERENCEMANAGER_HPP
 #define SGE_REFERENCEMANAGER_HPP
 
-#include "../ref_recorder/SGR_ImageHandler.hpp"
-#include <errno.h>
+#include "../util/ImageHandler.hpp"
 #include "../util/GaussianKernel.hpp"
+#include <errno.h>
 
 #define spRefManager std::shared_ptr<SGE_ReferenceManager>
 

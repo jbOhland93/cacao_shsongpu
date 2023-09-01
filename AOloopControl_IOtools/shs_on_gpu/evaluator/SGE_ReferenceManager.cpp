@@ -3,7 +3,6 @@
 
 #include <cuda.h>
 #include <math.h>
-#include "../util/CudaSGEutil.hpp"
 #include "../ref_recorder/SGR_ReferenceKW.hpp"
 
 spRefManager SGE_ReferenceManager::makeReferenceManager(
@@ -82,7 +81,7 @@ void SGE_ReferenceManager::checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMA
     // Adopt the reference image
     if (!checkAtype<float>(ref->md->datatype))
         throw std::runtime_error("SGE_ReferenceManager: Reference has to be of type float.");
-    mp_IHreference = SGR_ImageHandler<float>::newHandlerAdoptImage(ref->name);
+    mp_IHreference = ImageHandler<float>::newHandlerAdoptImage(ref->name);
     m_numSpots = mp_IHreference->mWidth;
 
     // Check reference positions against camera image size
@@ -158,7 +157,7 @@ void SGE_ReferenceManager::adoptReferenceStreamsFromKW()
             std::string maskName = m_baseName;
             maskName.append(maskSuffix);
             printf("== TODO == ReferenceManager::adoptReferenceStreamsFromKW: Change mask type back to float once fits writing is fixed.\n");
-            mp_IHmask = SGR_ImageHandler<float>::newHandlerAdoptImage(maskName.c_str());
+            mp_IHmask = ImageHandler<float>::newHandlerAdoptImage(maskName.c_str());
             printf("\tAdopted the mask stream: %s\n", maskName.c_str());
         }
         
@@ -169,7 +168,7 @@ void SGE_ReferenceManager::adoptReferenceStreamsFromKW()
         {
             std::string intensityName = m_baseName;
             intensityName.append(intensitySuffix);
-            mp_IHintensity = SGR_ImageHandler<float>::newHandlerAdoptImage(intensityName.c_str());
+            mp_IHintensity = ImageHandler<float>::newHandlerAdoptImage(intensityName.c_str());
             printf("\tAdopted the intensity stream: %s\n", intensityName.c_str());
         }
     }

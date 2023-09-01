@@ -8,7 +8,7 @@
 #include "SGE_Kernel.hpp"
 
 #include "../util/atypeUtil.hpp"
-#include "../ref_recorder/SGR_Recorder.hpp"
+#include "../util/CudaUtil.hpp"
 
 
 // ========== FLAGS ==========
@@ -55,8 +55,8 @@ SGE_Evaluator::SGE_Evaluator(
                                             dark,
                                             streamPrefix);
     // Adopt the image streams
-    mp_IHcam = SGR_ImageHandler<uint16_t>::newHandlerAdoptImage(cam->name);
-    mp_IHdark = SGR_ImageHandler<float>::newHandlerAdoptImage(dark->name);
+    mp_IHcam = ImageHandler<uint16_t>::newHandlerAdoptImage(cam->name);
+    mp_IHdark = ImageHandler<float>::newHandlerAdoptImage(dark->name);
     // Transfer the reference positions to the device
     mp_refManager->transferReferenceToGPU(&mp_d_refX, &mp_d_refY);
     // Initialize spot search positions on the device
@@ -69,14 +69,14 @@ SGE_Evaluator::SGE_Evaluator(
     gradientImgName.append("gradOut");
     try{
         mp_IHgradient =
-            SGR_ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
+            ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
         printf("Reslt image adopted\n");
     }
     catch(std::runtime_error)
     {
         printf("Adoption failed, create new image.\n");
         mp_IHgradient =
-            SGR_ImageHandler<float>::newHandlerfrmImage(gradientImgName, ref);
+            ImageHandler<float>::newHandlerfrmImage(gradientImgName, ref);
     }
     mp_IHgradient->setPersistent(true);
     // Prepare some fields for debugging
@@ -189,7 +189,7 @@ void SGE_Evaluator::initDebugFields()
     printf("Initializing debugging image for visual inspection of evaluation steps ...\n");
     std::string debugImgName = m_streamPrefix;
     debugImgName.append("DEBUG");
-    mp_IHdebug = SGR_ImageHandler<float>::newImageHandler(
+    mp_IHdebug = ImageHandler<float>::newImageHandler(
         debugImgName.c_str(), mp_IHdark->mWidth, mp_IHdark->mHeight);
     mp_IHdebug->setPersistent(true);
 #endif

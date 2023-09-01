@@ -35,7 +35,7 @@ GaussianKernel::GaussianKernel(float standardDeviation,
         mKernelCenter);
     
     // Generate the kernel image handler
-    mp_IHkernel = SGR_ImageHandler<float>::newImageHandler(
+    mp_IHkernel = ImageHandler<float>::newImageHandler(
         streamName.c_str(), mKernelSize, mKernelSize);
     mp_IHkernel->setPersistent(mPersistent);
     

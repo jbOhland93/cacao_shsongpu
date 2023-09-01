@@ -1,11 +1,10 @@
 #ifndef SGE_EVALUATOR_HPP
 #define SGE_EVALUATOR_HPP
 
-#include "../ref_recorder/SGR_ImageHandler.hpp"
-#include <errno.h>
 #include "SGE_ReferenceManager.hpp"
-
-class SGE_GridLayout;
+#include "SGE_GridLayout.hpp"
+#include "../util/ImageHandler.hpp"
+#include <errno.h>
 
 // A class for evaluating SHS images on a GPU
 class SGE_Evaluator
@@ -31,7 +30,7 @@ private:
     uint16_t* mp_h_camArrayMappedCpy = nullptr;
     spImageHandler(float) mp_IHdark;
     spRefManager mp_refManager;
-    std::shared_ptr<SGE_GridLayout> mp_GridLayout;
+    spGridLayout mp_GridLayout;
 
     float* mp_d_refX;
     float* mp_d_refY;

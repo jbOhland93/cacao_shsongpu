@@ -1,7 +1,7 @@
 #ifndef SPOTFITTER_HPP
 #define SPOTFITTER_HPP
 
-#include "../ref_recorder/SGR_ImageHandler.hpp"
+#include "ImageHandler.hpp"
 
 #include "Rectangle.hpp"
 #include "OneDGaussianFit.hpp"

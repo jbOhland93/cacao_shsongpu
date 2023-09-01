@@ -2,20 +2,20 @@
 // Generic specifications cannot be written into the compile unit (.cpp)
 // Therefore, this is a long and inline heavy file. Sorry for that.
 
-#ifndef SGR_IMAGEHANDLER_HPP
-#define SGR_IMAGEHANDLER_HPP
+#ifndef IMAGEHANDLER_HPP
+#define IMAGEHANDLER_HPP
 
-#include "SGR_ImageHandlerBase.hpp"
+#include "ImageHandlerBase.hpp"
+#include "atypeUtil.hpp"
 #include <memory>
 #include <vector>
 #include <limits>
-#include "../util/atypeUtil.hpp"
 
-#define spImageHandler(type) std::shared_ptr<SGR_ImageHandler<type>>
-#define newImHandlerFrmIm(type, name, image) SGR_ImageHandler<type>::newHandlerfrmImage(name, image)
+#define spImageHandler(type) std::shared_ptr<ImageHandler<type>>
+#define newImHandlerFrmIm(type, name, image) ImageHandler<type>::newHandlerfrmImage(name, image)
 
 template <typename T>
-class SGR_ImageHandler : public SGR_ImageHandlerBase
+class ImageHandler : public ImageHandlerBase
 {
 public:
 
@@ -116,15 +116,15 @@ public:
 private:
     T* mpBuffer = nullptr;
 // ========== CONSTRUCTORS ==========
-    SGR_ImageHandler(); // No publically available default ctor
-    SGR_ImageHandler(
+    ImageHandler(); // No publically available default ctor
+    ImageHandler(
         std::string name,
         uint32_t width,
         uint32_t height,
         uint8_t atype,
         uint8_t numKeywords,
         uint32_t circBufSize = 10);
-    SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY);
+    ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY);
 
 // ========== HELPER FUNCTIONS ==========
     
@@ -142,7 +142,7 @@ private:
 
 // Default implementation, throws an error
 template <typename T>
-inline spImageHandler(T) SGR_ImageHandler<T>::newImageHandler(
+inline spImageHandler(T) ImageHandler<T>::newImageHandler(
     std::string name,
     size_t width,
     size_t height,
@@ -150,21 +150,21 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newImageHandler(
     uint32_t circBufSize)
 {
     throw std::runtime_error(
-        "SGR_ImageHandler<T>::newImageHandler: Type not supported.");
+        "ImageHandler<T>::newImageHandler: Type not supported.");
     return nullptr;
 }
 
 // Defining specific factory functions via a makro ... way shorter!
 #define IH_FACTORY(type, atype)                                         \
 template <>                                                             \
-inline spImageHandler(type) SGR_ImageHandler<type>::newImageHandler(    \
+inline spImageHandler(type) ImageHandler<type>::newImageHandler(    \
     std::string name,                                                   \
     size_t width,                                                       \
     size_t height,                                                      \
     uint8_t numKeywords,                                                \
     uint32_t circBufSize)                                               \
 {                                                                       \
-    spImageHandler(type) sp(new SGR_ImageHandler<type>(                 \
+    spImageHandler(type) sp(new ImageHandler<type>(                 \
         name,                                                           \
         width,                                                          \
         height,                                                         \
@@ -186,7 +186,7 @@ IH_FACTORY(double, _DATATYPE_DOUBLE);
 // ==END== specifications of factory functions ==END==
 
 template <typename T>
-inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerfrmImage(
+inline spImageHandler(T) ImageHandler<T>::newHandlerfrmImage(
         std::string name,
         IMAGE* im,
         uint8_t numKeywords,
@@ -200,20 +200,20 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerfrmImage(
 }
 
 template <typename T>
-inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerAdoptImage(std::string imName)
+inline spImageHandler(T) ImageHandler<T>::newHandlerAdoptImage(std::string imName)
 {
     IMAGE im;
     errno_t err = ImageStreamIO_openIm(&im, imName.c_str());
     if (err != 0)
-        throw std::runtime_error("SGR_ImageHandler::newHandlerAdoptImage: could not open image.");
+        throw std::runtime_error("ImageHandler::newHandlerAdoptImage: could not open image.");
 
     // Check if the call has been done correctly
     uint8_t atypeIm = im.md->datatype;
     uint8_t atypeArg = getAtype<T>();
     if (atypeIm != atypeArg)
-        throw std::runtime_error("SGR_ImageHandler::newHandlerAdoptImage: image atype does not match the generic type of this call.");
+        throw std::runtime_error("ImageHandler::newHandlerAdoptImage: image atype does not match the generic type of this call.");
     
-    spImageHandler(T) sp(new SGR_ImageHandler<T>(im.name, im.md->size[0], im.md->size[1]));
+    spImageHandler(T) sp(new ImageHandler<T>(im.name, im.md->size[0], im.md->size[1]));
 
     ImageStreamIO_closeIm(&im);
     return sp;
@@ -222,12 +222,12 @@ inline spImageHandler(T) SGR_ImageHandler<T>::newHandlerAdoptImage(std::string i
 // ===== specifications for image handling =====
 
 template <typename T>
-inline void SGR_ImageHandler<T>::cpy(IMAGE* im)
+inline void ImageHandler<T>::cpy(IMAGE* im)
 {
     // Check image sizes
     uint32_t* size = im->md->size;
     if (size[0] != mWidth || size[1] != mHeight)
-        throw std::runtime_error("SGR_ImageHandler::cpy: Incompatible size of input image.\n");
+        throw std::runtime_error("ImageHandler::cpy: Incompatible size of input image.\n");
 
     // Prepare read-buffer
     void* readBuffer;
@@ -242,7 +242,7 @@ inline void SGR_ImageHandler<T>::cpy(IMAGE* im)
 }
 
 template <typename T>
-inline void SGR_ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
+inline void ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
 {
     // Check image sizes
     uint32_t* sizeA = A->md->size;
@@ -251,7 +251,7 @@ inline void SGR_ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
         || sizeB[0] != mWidth
         || sizeA[1] != mHeight
         || sizeB[1] != mHeight)
-        throw std::runtime_error("SGR_ImageHandler::cpy_subtract: Incompatible size of input image(s).\n");
+        throw std::runtime_error("ImageHandler::cpy_subtract: Incompatible size of input image(s).\n");
 
     // Prepare buffers
     void* readBufferA;
@@ -270,12 +270,12 @@ inline void SGR_ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
 }
 
 template <typename T>
-inline void SGR_ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
+inline void ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
 {
     // Check image sizes
     uint32_t* size = im->md->size;
     if (size[0] != mWidth || size[1] != mHeight)
-        throw std::runtime_error("SGR_ImageHandler::cpy_thresh: Incompatible size of input image.\n");
+        throw std::runtime_error("ImageHandler::cpy_thresh: Incompatible size of input image.\n");
 
     // Prepare buffer
     void* readBuffer;
@@ -290,12 +290,12 @@ inline void SGR_ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
 }
 
 template <typename T>
-inline void SGR_ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
+inline void ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
 {
     // Check image size
     uint32_t* size = A->md->size;
     if (size[0] != mWidth || size[1] != mHeight)
-        throw std::runtime_error("SGR_ImageHandler::cpy_convolve: Incompatible size of input A.\n");
+        throw std::runtime_error("ImageHandler::cpy_convolve: Incompatible size of input A.\n");
 
     // Prepare buffer
     void* bA;
@@ -342,7 +342,7 @@ inline void SGR_ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
 
 // Implementation of ctor
 template<typename T>
-inline SGR_ImageHandler<T>::SGR_ImageHandler(
+inline ImageHandler<T>::ImageHandler(
         std::string name,
         uint32_t width,
         uint32_t height,
@@ -350,7 +350,7 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
         uint8_t numKeywords,
         uint32_t circBufSize)
         :
-        SGR_ImageHandlerBase(width, height)
+        ImageHandlerBase(width, height)
 {
     int naxis = 2;
     uint32_t * imsize = new uint32_t[naxis]();
@@ -376,8 +376,8 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(
 
 // Implementation of adoption ctor
 template<typename T>
-inline SGR_ImageHandler<T>::SGR_ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY)
-    : SGR_ImageHandlerBase(sizeX, sizeY)
+inline ImageHandler<T>::ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY)
+    : ImageHandlerBase(sizeX, sizeY)
 {
     // Open the image
     ImageStreamIO_openIm(mpImage, imName.c_str());
@@ -387,7 +387,7 @@ inline SGR_ImageHandler<T>::SGR_ImageHandler(std::string imName, uint32_t sizeX,
 }
 
 template <typename T>
-uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
+uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
 {
     uint32_t remainingPixels = 0;
     int x;
@@ -448,4 +448,4 @@ uint32_t SGR_ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
     return remainingPixels;
 }
 
-#endif // SGR_IMAGEHANDLER_HPP
+#endif // IMAGEHANDLER_HPP
