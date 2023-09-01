@@ -31,12 +31,12 @@ SGE_GridLayout::SGE_GridLayout(int device, spRefManager refManager)
     calcGridProperties();
     setSHMlayout();
 
+    // Write the correlation offsets to the GPU
+    writeCorrelOffsetsFromWindowRootToDevice();
+
     // Copy this object to the GPU
     cudaMalloc(&mpd_deviceCopy, sizeof(SGE_GridLayout));
     cudaMemcpy(mpd_deviceCopy, this, sizeof(SGE_GridLayout), cudaMemcpyHostToDevice);
-
-    // Write the correlation offsets to the GPU
-    writeCorrelOffsetsFromWindowRootToDevice();
 
     // Finally, print a report about the grid layout.
     printReport();

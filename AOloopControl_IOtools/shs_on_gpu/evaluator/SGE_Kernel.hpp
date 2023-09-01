@@ -33,8 +33,6 @@ __global__ void evaluateSpots(
     uint16_t* d_windowCentersX,
     uint16_t* d_windowCentersY,
     float* d_kernel,
-    int* d_convCoordsX,
-    int* d_convCoordsY,
     float* d_refX,
     float* d_refY,
     float shift2gradConst,
@@ -89,12 +87,12 @@ __global__ void evaluateSpots(
     else if (threadIdx.x < GL->mNumWindowPx + GL->mNumKernelPx + GL->mNumCorrelPosPerAp)
     {   // Stream X-values of the convolution area to shm
         int idx = threadIdx.x - GL->mNumWindowPx - GL->mNumKernelPx;
-        convCoordsX[idx] = d_convCoordsX[idx];
+        convCoordsX[idx] = GL->mp_d_CorrelationOffsetsX[idx];
     }
     else if (threadIdx.x < GL->mNumWindowPx + GL->mNumKernelPx + 2*GL->mNumCorrelPosPerAp)
     {   // Stream Y-values of the convolution area to shm
         int idx = threadIdx.x - GL->mNumWindowPx - GL->mNumKernelPx - GL->mNumCorrelPosPerAp;
-        convCoordsY[idx] = d_convCoordsY[idx];
+        convCoordsY[idx] = GL->mp_d_CorrelationOffsetsY[idx];
     }
     __syncthreads();
 

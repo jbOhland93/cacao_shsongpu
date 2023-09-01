@@ -124,8 +124,6 @@ errno_t SGE_Evaluator::evaluateDo()
             mp_d_SearchPosX,                        //int windowCentersX,
             mp_d_SearchPosY,                        //int windowCentersY,
             mp_refManager->getKernelBufferGPU(),    //float* d_kernel,
-            mp_GridLayout->mp_d_CorrelationOffsetsX,//int* d_convCoordsX,
-            mp_GridLayout->mp_d_CorrelationOffsetsY,//int* d_convCoordsY,
             mp_d_refX,                              //float* d_refX
             mp_d_refY,                              //float* d_refY
             mp_refManager->getShiftToGradConstant(), //float shift2gradConst
