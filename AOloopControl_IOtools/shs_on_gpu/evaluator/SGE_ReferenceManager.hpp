@@ -20,6 +20,10 @@ public:
     // Dtor
     ~SGE_ReferenceManager();
 
+    spImageHandler(float) getRefIH() { return mp_IHreference; }
+    spImageHandler(float) getMaskIH() { return mp_IHmask; }
+    spImageHandler(float) getIntensityIH() { return mp_IHintensity; }
+
     uint16_t getNumSpots() { return m_numSpots; }
     int64_t getKernelSize() { return mp_kernel->getKernelSize(); }
     float* getKernelBufferGPU() { return mp_kernel->getPointerToDeviceCopy(); }

@@ -10,6 +10,8 @@
 #include "../util/atypeUtil.hpp"
 #include "../util/CudaUtil.hpp"
 
+#include "../wf_reconstructor/modalwfreconstructorbuilder.hpp"
+
 
 // ========== FLAGS ==========
 // If this is true, a warning will be printed when the camera image
@@ -70,15 +72,19 @@ SGE_Evaluator::SGE_Evaluator(
     try{
         mp_IHgradient =
             ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
-        printf("Reslt image adopted\n");
     }
     catch(std::runtime_error)
     {
-        printf("Adoption failed, create new image.\n");
         mp_IHgradient =
             ImageHandler<float>::newHandlerfrmImage(gradientImgName, ref);
     }
     mp_IHgradient->setPersistent(true);
+
+    // Preparing the WF reconstruction
+    ModalWFReconstructorBuilder wfRecBuilder(mp_refManager->getMaskIH());
+    wfRecBuilder.printTest();
+    wfRecBuilder.getReconstructor();
+
     // Prepare some fields for debugging
     initDebugFields();
 }
