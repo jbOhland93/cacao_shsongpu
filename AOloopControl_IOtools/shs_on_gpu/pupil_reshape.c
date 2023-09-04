@@ -32,7 +32,7 @@ static CLICMDARGDEF farg[] =
         CLIARG_IMG,
         ".input_name",
         "input image, 1D data in lines",
-        "inputSPLAT",
+        "input", // default
         CLIARG_VISIBLE_DEFAULT,
         (void **) &inputname,
         NULL
@@ -41,7 +41,7 @@ static CLICMDARGDEF farg[] =
         CLIARG_IMG,
         ".mask_name",
         "stream with the pupil maks",
-        "maskSPLAT",
+        "mask", // default
         CLIARG_VISIBLE_DEFAULT,
         (void **) &maskname,
         NULL
