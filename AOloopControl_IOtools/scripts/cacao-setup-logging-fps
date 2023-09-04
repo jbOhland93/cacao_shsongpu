@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Set up fps to easily toggle recording of a stream to fits"
+
+# Extended description
+MSextdescr="A script setting up a fps for the COREMOD_memory.streamFITSlog function.
+An input stream, a destination folder and a max. cube size can be specified."
+
+# standard configuration
+# location ./scripts/
+source milk-script-std-config
+
+# prerequisites
+#
+RequiredCommands=(milk)
+RequiredPipes=()
+RequiredDirs=()
+
+# SCRIPT MANDATORY ARGUMENTS
+# syntax: "name:type(s)/test(s):description"
+#
+MSarg+=( "streamInName:string:stream input name" )
+MSarg+=( "outputDir:string:Directory for the fits-file." )
+MSarg+=( "cubedepth:int:number of slices per cube" )
+
+# SCRIPT OPTIONS
+# syntax: "short:long:functioncall:args[types]:description"
+#
+
+source milk-argparse
+
+set +u
+if [ "${EXITSTATUS}" = "1" ]; then
+exit
+fi
+set -u
+
+instream="${inputMSargARRAY[0]}"
+outdir="${inputMSargARRAY[1]}"
+cubedepth="${inputMSargARRAY[2]}"
+echo "Stream in: ${instream}"
+echo "Saving directory: ${outdir}"
+echo "Number of slices per cube: ${cubedepth}"
+
+# Delete FPS if it already exists.
+if [ ! -d ${outdir} ]; then
+    mkdir ${outdir}
+fi
+
+# Create the logging folder if it does not exist.
+if [ -f ${MILK_SHM_DIR}/streamFITSlog-${instream}.fps.shm ]; then
+    printf "\nFPS already exists. Deleting FPS to recreate it with new parameters.\n"
+    rm ${MILK_SHM_DIR}/streamFITSlog-${instream}.fps.shm
+fi
+
+MILK_QUIET=1 milk << EOF
+streamFITSlog ..procinfo 1
+# Set triggermode to 3 (SEMAPHORE) - is triggered by stream update
+streamFITSlog ..triggermode 3
+# Set triggerstream to input stream
+streamFITSlog ..triggersname "${instream}"
+# run indefinitely
+streamFITSlog ..loopcntMax -1
+
+# Set input stream
+streamFITSlog .sname "${instream}"
+streamFITSlog .dirname "${outdir}"
+# Set the max number of cube slizes
+streamFITSlog .cubesize ${cubedepth}
+
+# Initialize FPS
+streamFITSlog _FPSINIT_ "${instream}"
+
+exitCLI
+EOF
