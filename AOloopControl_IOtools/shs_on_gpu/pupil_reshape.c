@@ -1,11 +1,11 @@
 /**
- * @file    shs_gpu.c
- * @brief   shs evaluation on a gpu
+ * @file    pupil_reshape.c
+ * @brief   rearrange 1D data into a 2D pupil
  *
  */
 
 #include "CommandLineInterface/CLIcore.h"
-#include "evaluator/SGE_Evaluator_interface.h"
+#include "pupil_reshaper/SGE_Reshaper_interface.h"
 #include <math.h>
 
 static int cmdindex;
@@ -20,65 +20,31 @@ static int cmdindex;
 //#include "CommandLineInterface/timeutils.h"
 
 // Local variables pointers
-// stream name of the SHS reference positions
-static char *refname;
-// stream name of the SHS camera
-static char *camname;
-// stream name of the SHS dark frame
-static char *darkname;
+// stream name of the input stream
+static char *inputname;
+// stream name of the mask stream
+static char *maskname;
 
-static uint32_t *loopnumber;
-static long      fpi_loopnumber = -1;
-
-static char *loopname;
-static long      fpi_loopname = -1;
 
 static CLICMDARGDEF farg[] =
 {
     {
         CLIARG_IMG,
-        ".ref_name",
-        "reference image",
-        "cam",
+        ".input_name",
+        "input image, 1D data in lines",
+        "inputSPLAT",
         CLIARG_VISIBLE_DEFAULT,
-        (void **) &refname,
+        (void **) &inputname,
         NULL
     },
     {
         CLIARG_IMG,
-        ".shscam",
-        "shs camera image",
-        "shscam",
+        ".mask_name",
+        "stream with the pupil maks",
+        "maskSPLAT",
         CLIARG_VISIBLE_DEFAULT,
-        (void **) &camname,
+        (void **) &maskname,
         NULL
-    },
-    {
-        CLIARG_IMG,
-        ".shsdark",
-        "shs camera dark image",
-        "shsdark",
-        CLIARG_VISIBLE_DEFAULT,
-        (void **) &darkname,
-        NULL
-    },
-    {
-        CLIARG_UINT32,
-        ".loopnumber",
-        "The number of the AO loop, used for stream naming",
-        "0",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &loopnumber,
-        &fpi_loopnumber
-    },
-    {
-        CLIARG_STR,
-        ".loopname",
-        "The name of the AO loop, used for stream naming",
-        "",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &loopname,
-        &fpi_loopname
     }
 };
 
@@ -147,8 +113,8 @@ static errno_t customCONFcheck()
 
 static CLICMDDATA CLIcmddata =
 {
-    "shsGpuEval",
-    "evaluate a SHS image on a GPU",
+    "pupilReshape",
+    "sort 1D data into a pupil",
     CLICMD_FIELDS_DEFAULTS
 };
 
@@ -162,12 +128,12 @@ static errno_t help_function()
 
 
 
-static errno_t streamprocess(SGEEHandle evaluator)
+static errno_t streamprocess(SGEReshapeHandle reshaper)
 {
     DEBUG_TRACE_FSTART();
     
     // Code
-    errno_t retVal = SGEE_eval_do(evaluator);
+    errno_t retVal = SGEE_reshape_do(reshaper);
 
     DEBUG_TRACE_FEXIT();
     return retVal;
@@ -179,12 +145,10 @@ static errno_t compute_function()
 {
     DEBUG_TRACE_FSTART();
 
-    IMGID refimg = mkIMGID_from_name(refname);
-    resolveIMGID(&refimg, ERRMODE_ABORT);
-    IMGID camimg = mkIMGID_from_name(camname);
-    resolveIMGID(&camimg, ERRMODE_ABORT);
-    IMGID darkimg = mkIMGID_from_name(darkname);
-    resolveIMGID(&darkimg, ERRMODE_ABORT);
+    IMGID inputimg = mkIMGID_from_name(inputname);
+    resolveIMGID(&inputimg, ERRMODE_ABORT);
+    IMGID maskimg = mkIMGID_from_name(maskname);
+    resolveIMGID(&maskimg, ERRMODE_ABORT);
 
     printf(" COMPUTE Flags = %ld\n", CLIcmddata.cmdsettings->flags);
     INSERT_STD_PROCINFO_COMPUTEFUNC_INIT
@@ -196,45 +160,26 @@ static errno_t compute_function()
         // procinfo is accessible here
     }
 
-    // === SET UP EVALUATOR HERE
-    printf("== Constructing evaluator ...\n");
-    // Allocate a buffer for the stream prefix
-    const char* funPrefix = "_shsEval_";
-    uint8_t fpLen = strlen(funPrefix);
-    char loopPrefix[(int)((
-        3                           // "aol"
-        +ceil(log10(*loopnumber))   // loopnumber
-        //+1                          // "_"
-        // +lnLen                      // loopname
-        +fpLen                      // function prefix
-        )*sizeof(char))];
-    // Build the stream prefix
-    sprintf(loopPrefix, "%s%d%s",
-        "aol",
-        *loopnumber,
-        //"_",
-        //loopname,
-        funPrefix);
-    // Construct the evaluator
-    SGEEHandle evaluator = create_SGE_Evaluator(
-        refimg.im,
-        camimg.im,
-        darkimg.im,
-        loopPrefix);
-    printf("== Evaluator constructed. Ready for evaluation.\n");
+    // === SET UP RESHAPER HERE
+    printf("== Constructing reshaper ...\n");
+    // Construct the reshaper
+    SGEReshapeHandle reshaper = create_SGE_Reshaper(
+        inputimg.im,
+        maskimg.im);
+    printf("== Reshaper constructed. Ready for reshaping.\n");
     // ===
     
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
-        streamprocess(evaluator);
+        streamprocess(reshaper);
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 
-    // === EVALUATING RESULTS HERE
+    // === Cleaning up
     //processinfo_update_output_stream(processinfo, outimg.ID);
-    printf("== Deleting evaluator.\n");
-    free_SGE_Evaluator(evaluator);
-    evaluator = NULL;
+    printf("== Deleting reshaper.\n");
+    free_SGE_Reshaper(reshaper);
+    reshaper = NULL;
     // ===
 
     DEBUG_TRACE_FEXIT();
@@ -249,7 +194,7 @@ INSERT_STD_FPSCLIfunctions
 
 // Register function in CLI
 errno_t
-CLIADDCMD_AOloopControl_IOtools__EvaluateShsGPU()
+CLIADDCMD_AOloopControl_IOtools__pupilReshape()
 {
     CLIcmddata.FPS_customCONFsetup = customCONFsetup;
     CLIcmddata.FPS_customCONFcheck = customCONFcheck;

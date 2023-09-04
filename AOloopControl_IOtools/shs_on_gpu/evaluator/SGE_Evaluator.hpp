@@ -21,7 +21,7 @@ public:
     // Dtor
     ~SGE_Evaluator();
 
-    // Triggers reading the input- and dark stream
+    // Triggers the evaluation
     errno_t evaluateDo();
 private:
     std::string m_streamPrefix;
@@ -68,4 +68,4 @@ private:
     void provideDebugOutputAfterEval();
 };
 
-#endif // SGR_RECORDER_HPP
+#endif // SGE_EVALUATOR_HPP

@@ -36,6 +36,7 @@
 
 #include "shs_on_gpu/shs_gpu_ref.h"
 #include "shs_on_gpu/shs_gpu.h"
+#include "shs_on_gpu/pupil_reshape.h"
 
 
 
@@ -62,6 +63,7 @@ static errno_t init_module_CLI()
     // SHS evaluation on a GPU
     CLIADDCMD_AOloopControl_IOtools__recordShsRefGPU();
     CLIADDCMD_AOloopControl_IOtools__EvaluateShsGPU();
+    CLIADDCMD_AOloopControl_IOtools__pupilReshape();
 
     // add atexit functions here
     // atexit((void*) myfunc);

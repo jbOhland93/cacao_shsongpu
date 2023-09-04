@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-// A pointer to the recorder object to be used for function calls
+// A pointer to the evaluator object to be used for function calls
 typedef void * SGEEHandle;
 // Constructor
 SGEEHandle create_SGE_Evaluator(

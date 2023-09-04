@@ -196,7 +196,7 @@ static errno_t customCONFcheck()
 static CLICMDDATA CLIcmddata =
 {
     "shsGpuRef",
-    "record a SHS reference for GPU evaluation of the input stream",
+    "record a SHS ref for GPU evaluation",
     CLICMD_FIELDS_DEFAULTS
 };
 

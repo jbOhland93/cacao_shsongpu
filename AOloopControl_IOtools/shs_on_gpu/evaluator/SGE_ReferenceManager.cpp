@@ -77,10 +77,14 @@ void SGE_ReferenceManager::checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMA
     int imHeight = cam->md->size[1];
     if (imWidth != dark->md->size[0] || imHeight != dark->md->size[1])
         throw std::runtime_error("SGE_ReferenceManager: the camera and dark images are not of same size.\n");
+    if (!checkAtype<uint16_t>(cam->md->datatype))
+        throw std::runtime_error("SGE_ReferenceManager: the camera stream has to be of type uint16_t.\n");
+    if (!checkAtype<float>(dark->md->datatype))
+        throw std::runtime_error("SGE_ReferenceManager: the dark stream has to be of type float.\n");
 
     // Adopt the reference image
     if (!checkAtype<float>(ref->md->datatype))
-        throw std::runtime_error("SGE_ReferenceManager: Reference has to be of type float.");
+        throw std::runtime_error("SGE_ReferenceManager: reference has to be of type float.\n");
     mp_IHreference = ImageHandler<float>::newHandlerAdoptImage(ref->name);
     m_numSpots = mp_IHreference->mWidth;
 

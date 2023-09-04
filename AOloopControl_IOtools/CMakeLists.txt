@@ -24,6 +24,9 @@ set(SOURCEFILES
     shs_on_gpu/evaluator/SGE_Evaluator_interface.cpp
     shs_on_gpu/evaluator/SGE_GridLayout.cu
     shs_on_gpu/evaluator/SGE_ReferenceManager.cpp
+    shs_on_gpu/pupil_reshape.c
+    shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.cpp
+    shs_on_gpu/pupil_reshaper/SGE_Reshaper.cpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.cpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructor.cpp
     shs_on_gpu/wf_reconstructor/subclasses/pupil.cpp
@@ -59,6 +62,9 @@ set(INCLUDEFILES
     shs_on_gpu/evaluator/SGE_GridLayout.hpp
     shs_on_gpu/evaluator/SGE_Kernel.hpp
     shs_on_gpu/evaluator/SGE_ReferenceManager.hpp
+    shs_on_gpu/pupil_reshape.h
+    shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.h
+    shs_on_gpu/pupil_reshaper/SGE_Reshaper.hpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.hpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructor.hpp
     shs_on_gpu/wf_reconstructor/subclasses/pupil.hpp
@@ -74,6 +80,7 @@ set(SCRIPTS
     scripts/cacao-avg-stream
     scripts/cacao-shs-gpu-ref
     scripts/cacao-shs-on-gpu
+    scripts/cacao-setup-reshape-fps
 )
 
 set(LINKLIBS
