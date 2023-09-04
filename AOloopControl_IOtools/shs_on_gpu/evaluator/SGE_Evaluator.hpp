@@ -4,6 +4,7 @@
 #include "SGE_ReferenceManager.hpp"
 #include "SGE_GridLayout.hpp"
 #include "../util/ImageHandler.hpp"
+#include "../wf_reconstructor/modalwfreconstructor.hpp"
 #include <errno.h>
 
 // A class for evaluating SHS images on a GPU
@@ -23,7 +24,6 @@ public:
     // Triggers reading the input- and dark stream
     errno_t evaluateDo();
 private:
-    int m_deviceID;
     std::string m_streamPrefix;
 
     spImageHandler(uint16_t) mp_IHcam;
@@ -32,12 +32,21 @@ private:
     spRefManager mp_refManager;
     spGridLayout mp_GridLayout;
 
+    // device copy of the spot reference positions X
     float* mp_d_refX;
+    // device copy of the spot reference positions Y
     float* mp_d_refY;
+    // device ptr to the current integer spot searching positions X
     uint16_t* mp_d_SearchPosX;
+    // device ptr to the current integer spot searching positions Y
     uint16_t* mp_d_SearchPosY;
 
+    // The image holding the WF gradient after the image eval
     spImageHandler(float) mp_IHgradient;
+    // The modal WF reconstructor on the pupil of the reference
+    spWFReconst mp_wfReconstructor;
+    // The image holding the reconstructed WF
+    spImageHandler(float) mp_IHwf;
 
     // Members for debugging
     cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing

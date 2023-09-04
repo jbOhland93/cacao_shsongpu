@@ -39,11 +39,10 @@ SGE_Evaluator::SGE_Evaluator(
         IMAGE* dark,                // Stream holding the dark frame of the SHS
         const char* streamPrefix,   // Prefix for the ISIO streams
         int deviceID)               // ID of the GPU device
-    : m_streamPrefix(streamPrefix), m_deviceID(deviceID)
 {
     // Set up cuda environment
     cudaError err;
-    err = cudaSetDevice(m_deviceID);
+    err = cudaSetDevice(deviceID);
     printCE(err);
     err = cudaSetDeviceFlags(cudaDeviceMapHost);
     printCE(err);
@@ -65,25 +64,37 @@ SGE_Evaluator::SGE_Evaluator(
     mp_refManager->initGPUSearchPositions(&mp_d_SearchPosX, &mp_d_SearchPosY);
     // Set up the grid layout for the cuda calls
     mp_GridLayout = SGE_GridLayout::makeGridLayout(
-        m_deviceID, mp_refManager);
-    // Prapare result image
-    std::string gradientImgName = m_streamPrefix;
+        deviceID, mp_refManager);
+    // Prapare result images: gradient
+    std::string gradientImgName = streamPrefix;
     gradientImgName.append("gradOut");
-    try{
+    try {   // See if the gradient image already exists. If so: adopt it!
         mp_IHgradient =
             ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
     }
     catch(std::runtime_error)
-    {
+    {       // Gradient image does not exist yet. Create a new one.
         mp_IHgradient =
             ImageHandler<float>::newHandlerfrmImage(gradientImgName, ref);
     }
     mp_IHgradient->setPersistent(true);
+    // Prapare result images: wavefront
+    std::string wfImgName = streamPrefix;
+    wfImgName.append("wfOut");
+    try {   // See if the wf image already exists. If so: adopt it!
+        mp_IHwf =
+            ImageHandler<float>::newHandlerAdoptImage(wfImgName);
+    }
+    catch(std::runtime_error)
+    {       // WF image does not exist yet. Create a new one.
+        mp_IHwf = ImageHandler<float>::newImageHandler(
+            wfImgName, mp_refManager->getNumSpots(), 1);
+    }
+    mp_IHwf->setPersistent(true);
 
     // Preparing the WF reconstruction
-    ModalWFReconstructorBuilder wfRecBuilder(mp_refManager->getMaskIH());
-    wfRecBuilder.printTest();
-    wfRecBuilder.getReconstructor();
+    ModalWFReconstructorBuilder wfRecBuilder(mp_refManager->getMaskIH(), streamPrefix);
+    mp_wfReconstructor =  wfRecBuilder.getReconstructor();
 
     // Prepare some fields for debugging
     initDebugFields();
@@ -139,8 +150,17 @@ errno_t SGE_Evaluator::evaluateDo()
             );
     // Print error of kernel launch
     printCE(cudaGetLastError());
+
+    // Reconstruct the WF while everything is still on the GPU
+    mp_wfReconstructor->reconstructWavefrontArrGPU_d2d(
+        mp_IHgradient->mNumPx,
+        mp_IHgradient->getGPUCopy(),
+        mp_IHwf->mNumPx,
+        mp_IHwf->getGPUCopy());
+
     // Copy the result (gradient data) from the host to the device
     mp_IHgradient->updateFromGPU();
+    mp_IHwf->updateFromGPU();
 
     // If any debug flags are defined, collect data from
     // devide memory and make them accessible / print them

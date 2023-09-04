@@ -31,10 +31,10 @@ double* WFGrad::getDataPtrDY(int* arrSizeOut)
 
 void WFGrad::printGrd()
 {
-    double* grdX2D = new double[mPupil->get2DarraySize()];
-    mPupil->fill2DarrWithValues(ptrDX, grdX2D, (double) NAN);
-    double* grdY2D = new double[mPupil->get2DarraySize()];
-    mPupil->fill2DarrWithValues(ptrDY, grdY2D, (double) NAN);
+    double* grdX2D = mPupil->createNew2DarrFromValues(
+        mPupil->getNumValidFields(), ptrDX, (double) NAN);
+    double* grdY2D = mPupil->createNew2DarrFromValues(
+        mPupil->getNumValidFields(), ptrDY, (double) NAN);
 
     int w = mPupil->getWidth();
     printf("DX:\n");

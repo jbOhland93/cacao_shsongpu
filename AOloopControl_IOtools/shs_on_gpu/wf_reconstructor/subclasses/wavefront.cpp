@@ -32,14 +32,14 @@ void Wavefront::subtractMean()
 
 void Wavefront::printWF()
 {
-    double* wf2D = new double[mPupil->get2DarraySize()];
-    mPupil->fill2DarrWithValues(mData, wf2D, (double) NAN);
+    double* wf2D = mPupil->createNew2DarrFromValues(
+        mPupil->getNumValidFields(), mData, (double) NAN);
 
     int w = mPupil->getWidth();
     for (int y = 0; y < mPupil->getHeight(); y++)
         for (int x = 0; x < w; x++)
         {
-            printf("%.2f\t", wf2D[y*w+x]);
+            printf("%.6f\t", wf2D[y*w+x]);
             if (x == w-1)
                 printf("\n");
         }

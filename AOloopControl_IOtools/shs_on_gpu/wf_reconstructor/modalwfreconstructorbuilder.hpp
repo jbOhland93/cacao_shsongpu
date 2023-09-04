@@ -7,8 +7,10 @@
 // A class for building a modal WF reconstructor on a pupil
 class ModalWFReconstructorBuilder {
 public:
-    ModalWFReconstructorBuilder(spImageHandler(float) mask, int numModes = -1);
-    ModalWFReconstructorBuilder(int pupilWidth, int pupilHeight, uint8_t* pupilArr, int numModes = -1);
+    ModalWFReconstructorBuilder(
+        spImageHandler(float) mask,
+        std::string streamPrefix,
+        int numModes = -1);
     // (Re)calculates the reconstruction matrix, using the given number of WF modes.
     // If numModes is <= 0, all available modes (except piston) are used.
     void calcModes(int numModes = -1);
@@ -25,6 +27,7 @@ public:
     void printTest();
     
 private:
+    std::string mStreamPrefix;  // A prefix for the image streams
     spPupil mPupil;             // The pupil on which the reconstructor acts
     int mWfLenght;              // The length of a 1D wavefront array
     int mGradLength;            // The length of a 1D gradient array
