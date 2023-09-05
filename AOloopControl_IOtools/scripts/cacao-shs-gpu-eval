@@ -8,8 +8,7 @@ MSdescr="Launch evaluation of an SHS stream on a gpu "
 
 # Extended description
 MSextdescr="Launches the evaluation of an SHS stream on a gpu.
-This requires a reference to be recorded and loaded into memory.
-"
+This requires a reference to be recorded and loaded into memory."
 
 # standard configuration
 # location ./scripts/
