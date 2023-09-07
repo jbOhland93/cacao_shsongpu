@@ -29,6 +29,7 @@ public:
 
     // Makes the image stream stay after destruction
     void setPersistent(bool persistent) { mPersistent = persistent; }
+    cudaError_t mapImForGPUaccess();
 
     // Setting a ROI
     void setROI(Rectangle<uint32_t> roi);

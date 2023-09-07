@@ -57,6 +57,9 @@ SGE_Evaluator::SGE_Evaluator(
                                             streamPrefix);
     // Adopt the image streams
     mp_IHcam = ImageHandler<uint16_t>::newHandlerAdoptImage(cam->name);
+    err = mp_IHcam->mapImForGPUaccess();
+    if (err != cudaSuccess)
+        throw std::runtime_error("SGE_Evaluator::SGE_Evaluator: Camera image buffer could not be registered, but this evaluation relies on mapped memory.");
     mp_IHdark = ImageHandler<float>::newHandlerAdoptImage(dark->name);
     // Transfer the reference positions to the device
     mp_refManager->transferReferenceToGPU(&mp_d_refX, &mp_d_refY);
@@ -107,8 +110,6 @@ SGE_Evaluator::~SGE_Evaluator()
     cudaFree(mp_d_SearchPosY);
     cudaFree(mp_d_refX);
     cudaFree(mp_d_refY);
-    if (mp_h_camArrayMappedCpy != nullptr);
-        cudaFreeHost(mp_h_camArrayMappedCpy);
 
     // Clean up debugging fields
 #ifdef ENABLE_EVALUATION_TIME_PRINTING
@@ -134,7 +135,7 @@ errno_t SGE_Evaluator::evaluateDo()
     evaluateSpots<<<mp_GridLayout->mNumSubapertures,
                     mp_GridLayout->mBlockSize,
                     mp_GridLayout->mShmSize>>>(
-            getCamInputArrPtr(),                    //uint16_t* h_imageData,
+            mp_IHcam->getWriteBuffer(),             //uint16_t* h_imageData,
             mp_IHdark->getGPUCopy(),                //float* d_darkData,
             mp_IHcam->mWidth,                       //int imW,
             mp_GridLayout->getDeviceCopy(),         //SGE_GridLayout* d_GridLayout,
@@ -143,11 +144,10 @@ errno_t SGE_Evaluator::evaluateDo()
             mp_refManager->getKernelBufferGPU(),    //float* d_kernel,
             mp_d_refX,                              //float* d_refX
             mp_d_refY,                              //float* d_refY
-            mp_refManager->getShiftToGradConstant(), //float shift2gradConst
+            mp_refManager->getShiftToGradConstant(),//float shift2gradConst
             mp_IHgradient->getGPUCopy(),            //float* d_gradOut
             prepareDebugImageDevicePtr(),           //float* d_debugImage
-            mp_d_debug                              //float* d_debugBuffer
-            );
+            mp_d_debug);                            //float* d_debugBuffer
     // Print error of kernel launch
     printCE(cudaGetLastError());
 
@@ -167,37 +167,6 @@ errno_t SGE_Evaluator::evaluateDo()
     provideDebugOutputAfterEval();
 
     return RETURN_SUCCESS;
-}
-
-uint16_t* SGE_Evaluator::getCamInputArrPtr()
-{
-    printf("TODO SGE_Evaluator::getCamInputArrPtr: Provide actual check for mapped memory.\n");
-    bool imageInMappedMem = false;
-    if (imageInMappedMem)
-        return mp_IHcam->getWriteBuffer();
-    else
-    {
-        cudaError_t err;
-        int bufSize = mp_IHcam->getBufferSize();
-        if (mp_h_camArrayMappedCpy == nullptr)
-        {
-            if (WARN_IF_NO_MAPPED_CAM_IMG)
-            {
-                printf("\n### WARNING: ###\n");
-                printf("The camera image is not located in mapped memory! ");
-                printf("Therefore, the data will be copied to a freshly ");
-                printf("allocated mapped memory array. This is expensive ");
-                printf("and will greatly slow down the process. Make sure ");
-                printf("to stream the frames from the camera directly into ");
-                printf("mapped memory.\n\n");
-            }
-            err = cudaHostAlloc(&mp_h_camArrayMappedCpy, bufSize, cudaHostAllocMapped);
-            printCE(err);
-        }
-        err = cudaMemcpy((void**)mp_h_camArrayMappedCpy, mp_IHcam->getWriteBuffer(), bufSize, cudaMemcpyHostToHost);
-        printCE(err);
-        return mp_h_camArrayMappedCpy;
-    }
 }
 
 void SGE_Evaluator::initDebugFields()

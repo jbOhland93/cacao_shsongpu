@@ -18,6 +18,14 @@ ImageHandlerBase::~ImageHandlerBase()
     delete mpImage;
 }
 
+cudaError_t ImageHandlerBase::mapImForGPUaccess()
+{
+    return cudaHostRegister(
+            ImageStreamIO_get_image_d_ptr(mpImage),
+            mpImage->md->imdatamemsize,
+            cudaHostRegisterMapped);
+}
+
 void ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
 {
     if (roi.x()+roi.w() >= mWidth || roi.y()+roi.h() >= mHeight)
