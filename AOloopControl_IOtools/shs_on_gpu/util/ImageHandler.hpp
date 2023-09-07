@@ -52,7 +52,7 @@ public:
 
 // ========== READING/WRITING MEMBER DATA ==========
     // Returns the write buffer
-    T* getWriteBuffer() { return mpBuffer; }
+    T* getWriteBuffer() { return mp_data; }
     // Returns the current data copy that resides in device emory
     // Updates the copy if the image size does not match prior to returning.
     // This memory will be freed on destruction, even if persistent is set.
@@ -65,16 +65,16 @@ public:
     void updateFromGPU() { updateFromDevice(); }
     // Reads the element at x/y from the last written buffer
     T read(uint32_t x, uint32_t y)
-        { return mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)]; }
+        { return mp_data[fromROIyToImY(y)*mWidth + fromROIxToImX(x)]; }
     // Writes the given element at teh x/y position into the write buffer
     void write(T e, uint32_t x, uint32_t y)
-        { mpBuffer[fromROIyToImY(y)*mWidth + fromROIxToImX(x)] = e; }
+        { mp_data[fromROIyToImY(y)*mWidth + fromROIxToImX(x)] = e; }
     // Reads all the samples at x/y from the circular buffer
     std::vector<T> readCircularBufAt(uint32_t x, uint32_t y)
     {
         std::vector<T> v;
-        T* cbBuf = (T*) mpImage->CBimdata;
-        for (int i = 0; i < mpImage->md->CBsize; i++)
+        T* cbBuf = (T*) mp_image->CBimdata;
+        for (int i = 0; i < mp_image->md->CBsize; i++)
             v.push_back(cbBuf[i*mNumPx + y*mWidth + x]);
         return v;
     }
@@ -114,7 +114,7 @@ public:
     uint32_t erode(std::vector<Point<uint32_t>>* d = nullptr);
     
 private:
-    T* mpBuffer = nullptr;
+    T* mp_data = nullptr;
 // ========== CONSTRUCTORS ==========
     ImageHandler(); // No publically available default ctor
     ImageHandler(
@@ -236,7 +236,7 @@ inline void ImageHandler<T>::cpy(IMAGE* im)
     // Convert
     uint8_t atype = im->md->datatype;
     for (int i = 0; i < mNumPx; i++)
-        mpBuffer[i] = cvtElmt(readBuffer, atype, i);
+        mp_data[i] = cvtElmt(readBuffer, atype, i);
     
     updateWrittenImage();
 }
@@ -263,7 +263,7 @@ inline void ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
     uint8_t atypeA = A->md->datatype;
     uint8_t atypeB = B->md->datatype;
     for (int i = 0; i < mNumPx; i++)
-        mpBuffer[i] = cvtElmt(readBufferA, atypeA, i)
+        mp_data[i] = cvtElmt(readBufferA, atypeA, i)
             - cvtElmt(readBufferB, atypeB, i);
 
     updateWrittenImage();
@@ -284,7 +284,7 @@ inline void ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
     // Convert
     uint8_t atype = im->md->datatype;
     for (int i = 0; i < mNumPx; i++)
-        mpBuffer[i] = convertAtypeArrayElement<double>(readBuffer, atype, i) > thresh;
+        mp_data[i] = convertAtypeArrayElement<double>(readBuffer, atype, i) > thresh;
     
     updateWrittenImage();
 }
@@ -333,7 +333,7 @@ inline void ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
                         r += convertAtypeArrayElement<float>(bA, tA, bi) * k;   // Convolution value
                     }
                 }
-            mpBuffer[iy*mWidth + ix] = (T) r;
+            mp_data[iy*mWidth + ix] = (T) r;
         }
     
     updateWrittenImage();
@@ -358,7 +358,7 @@ inline ImageHandler<T>::ImageHandler(
     imsize[1] = mHeight;
     int shared = 1; // image will be in shared memory
     ImageStreamIO_createIm_gpu(
-            mpImage,
+            mp_image,
             name.c_str(),
             naxis,
             imsize,
@@ -371,7 +371,8 @@ inline ImageHandler<T>::ImageHandler(
             circBufSize // circular buffer size (if shared), 0 if not used
         );
     delete imsize;
-    ImageStreamIO_writeBuffer(mpImage, (void**) &mpBuffer);
+    updateImMetadata();
+    mp_data = (T*) mp_h_imData;
 }
 
 // Implementation of adoption ctor
@@ -380,8 +381,10 @@ inline ImageHandler<T>::ImageHandler(std::string imName, uint32_t sizeX, uint32_
     : ImageHandlerBase(sizeX, sizeY)
 {
     // Open the image
-    ImageStreamIO_openIm(mpImage, imName.c_str());
-    ImageStreamIO_writeBuffer(mpImage, (void**) &mpBuffer);
+    ImageStreamIO_openIm(mp_image, imName.c_str());
+    ImageStreamIO_writeBuffer(mp_image, (void**) &mp_data);
+    // Update the metadata of the parent class
+    updateImMetadata();
     // Make the image persistent as default
     setPersistent(true);
 }
@@ -405,7 +408,7 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
 
     // Copy the read frame to the write buffer
     for (int i = 0; i < mNumPx; i++)
-        mpBuffer[i] = mpBuffer[i];
+        mp_data[i] = mp_data[i];
 
     // Erode the ROI
     for (uint32_t ix = 0; ix < mROI.w(); ix++)
@@ -414,7 +417,7 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
             x = fromROIxToImX(ix);
             y = fromROIyToImY(iy);
             // Only consider pixel if it is greater than 0
-            if (mpBuffer[y*mWidth + x] > 0)
+            if (mp_data[y*mWidth + x] > 0)
             {   // Count the neighbours
                 neighbours = 0;
                 for (int j = 0; j < 8; j++)
@@ -423,7 +426,7 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                         y+nOffY[j] >= 0 && y+nOffY[j] < mHeight)
                     {
                         neighbourIndex = (y+nOffY[j])*mWidth + x + nOffX[j];
-                        if (mpBuffer[neighbourIndex] > 0)
+                        if (mp_data[neighbourIndex] > 0)
                             neighbours++;
                     }
                 }
@@ -431,13 +434,13 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                 {   // Standalonepixel - Dissolving particle.
                     if (d != nullptr)
                         d->push_back(
-                            Point<uint32_t>(x,y,mpBuffer[y*mWidth + x], true));
+                            Point<uint32_t>(x,y,mp_data[y*mWidth + x], true));
                     // Set to zero.
-                    mpBuffer[y*mWidth + x] = 0;
+                    mp_data[y*mWidth + x] = 0;
                 }
                 else if (neighbours < 5)
                     // Edgepixel - set to zero.
-                    mpBuffer[y*mWidth + x] = 0;
+                    mp_data[y*mWidth + x] = 0;
                 else
                     // Embedded pixel, leave as it is.
                     remainingPixels++;

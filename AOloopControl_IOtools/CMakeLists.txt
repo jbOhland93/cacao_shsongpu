@@ -12,29 +12,29 @@ set(SOURCEFILES
     findspots.c
     WFScamsim.c
     WFSmap.c
-    shs_on_gpu/shs_gpu_ref.c
-    shs_on_gpu/ref_recorder/SGR_Recorder.cu
-    shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
-    shs_on_gpu/util/ImageHandlerBase.cu
-    shs_on_gpu/util/SpotFitter.cpp
-    shs_on_gpu/util/OneDGaussianFit.cpp
-    shs_on_gpu/util/GaussianKernel.cu
-    shs_on_gpu/shs_gpu.c
     shs_on_gpu/evaluator/SGE_Evaluator.cu
     shs_on_gpu/evaluator/SGE_Evaluator_interface.cpp
     shs_on_gpu/evaluator/SGE_GridLayout.cu
     shs_on_gpu/evaluator/SGE_ReferenceManager.cpp
     shs_on_gpu/pupil_reshape.c
-    shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.cpp
     shs_on_gpu/pupil_reshaper/SGE_Reshaper.cpp
-    shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.cpp
+    shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.cpp
+    shs_on_gpu/ref_recorder/SGR_Recorder.cu
+    shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
+    shs_on_gpu/shs_gpu.c
+    shs_on_gpu/shs_gpu_ref.c
+    shs_on_gpu/util/GaussianKernel.cu
+    shs_on_gpu/util/ImageHandlerBase.cu
+    shs_on_gpu/util/OneDGaussianFit.cpp
+    shs_on_gpu/util/SpotFitter.cpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructor.cpp
+    shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.cpp
     shs_on_gpu/wf_reconstructor/subclasses/pupil.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wavefront.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfglocalresponsegenerator.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgradmodegenerator.cpp
-    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.cpp
+    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.cpp    
 )
 
 set(INCLUDEFILES
@@ -44,44 +44,44 @@ set(INCLUDEFILES
     AOloopControl_IOtools.h
     WFScamsim.h
     WFSmap.h
-    shs_on_gpu/shs_gpu_ref.h
-    shs_on_gpu/ref_recorder/SGR_Recorder.hpp
-    shs_on_gpu/ref_recorder/SGR_Recorder_interface.h
-    shs_on_gpu/util/ImageHandlerBase.hpp
-    shs_on_gpu/util/ImageHandler.hpp
-    shs_on_gpu/util/atypeUtil.hpp
-    shs_on_gpu/util/Point.hpp
-    shs_on_gpu/util/Rectangle.hpp
-    shs_on_gpu/util/SpotFitter.hpp
-    shs_on_gpu/util/OneDGaussianFit.hpp
-    shs_on_gpu/util/CudaUtil.hpp
-    shs_on_gpu/util/GaussianKernel.hpp
-    shs_on_gpu/shs_gpu.h
+    shs_on_gpu/evaluator/SGE_CUDAkernel.hpp
     shs_on_gpu/evaluator/SGE_Evaluator.hpp
     shs_on_gpu/evaluator/SGE_Evaluator_interface.h
     shs_on_gpu/evaluator/SGE_GridLayout.hpp
-    shs_on_gpu/evaluator/SGE_Kernel.hpp
     shs_on_gpu/evaluator/SGE_ReferenceManager.hpp
     shs_on_gpu/pupil_reshape.h
-    shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.h
     shs_on_gpu/pupil_reshaper/SGE_Reshaper.hpp
-    shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.hpp
+    shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.h
+    shs_on_gpu/ref_recorder/SGR_Recorder.hpp
+    shs_on_gpu/ref_recorder/SGR_Recorder_interface.h
+    shs_on_gpu/shs_gpu.h
+    shs_on_gpu/shs_gpu_ref.h
+    shs_on_gpu/util/atypeUtil.hpp
+    shs_on_gpu/util/CudaUtil.hpp
+    shs_on_gpu/util/GaussianKernel.hpp
+    shs_on_gpu/util/ImageHandler.hpp
+    shs_on_gpu/util/ImageHandlerBase.hpp
+    shs_on_gpu/util/OneDGaussianFit.hpp
+    shs_on_gpu/util/Point.hpp
+    shs_on_gpu/util/Rectangle.hpp
+    shs_on_gpu/util/SpotFitter.hpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructor.hpp
+    shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.hpp
     shs_on_gpu/wf_reconstructor/subclasses/pupil.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wavefront.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfglocalresponsegenerator.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgradmodegenerator.hpp
-    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.hpp
+    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.hpp    
 )
 
 
 set(SCRIPTS
     scripts/cacao-avg-stream
-    scripts/cacao-shs-gpu-ref
-    scripts/cacao-shs-gpu-eval
     scripts/cacao-setup-logging-fps
     scripts/cacao-setup-reshape-fps
+    scripts/cacao-shs-gpu-eval
+    scripts/cacao-shs-gpu-ref
 )
 
 set(LINKLIBS

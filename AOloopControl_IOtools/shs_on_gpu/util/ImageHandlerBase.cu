@@ -9,20 +9,20 @@ ImageHandlerBase::~ImageHandlerBase()
 {   
     // Destroy the image only if persistent is not enabled.
     if (!mPersistent)
-        ImageStreamIO_destroyIm(mpImage);
+        ImageStreamIO_destroyIm(mp_image);
 
     // Clean up device memory in any case
-    if (mpd_dataGPU != nullptr)
-        cudaFree(mpd_dataGPU);
+    if (mp_d_imData != nullptr)
+        cudaFree(mp_d_imData);
     
-    delete mpImage;
+    delete mp_image;
 }
 
 cudaError_t ImageHandlerBase::mapImForGPUaccess()
 {
     return cudaHostRegister(
-            ImageStreamIO_get_image_d_ptr(mpImage),
-            mpImage->md->imdatamemsize,
+            ImageStreamIO_get_image_d_ptr(mp_image),
+            mp_image->md->imdatamemsize,
             cudaHostRegisterMapped);
 }
 
@@ -53,55 +53,67 @@ ImageHandlerBase::ImageHandlerBase(
         mNumPx(width*height),
         mROI(0,0,width,height)
 {
-    mpImage = new IMAGE();
+    mp_image = new IMAGE();
+}
+
+void ImageHandlerBase::updateImMetadata()
+{
+    mp_h_imData = ImageStreamIO_get_image_d_ptr(mp_image);
+    m_dataSize = mp_image->md->imdatamemsize;
 }
 
 void* ImageHandlerBase::getDeviceCopy()
 {
-    if (m_gpuCopySize != mpImage->md->imdatamemsize)
+    if (m_gpuCopySize != mp_image->md->imdatamemsize)
         updateDeviceCopy();
-    return mpd_dataGPU;
+    return mp_d_imData;
 }
 
 void ImageHandlerBase::updateDeviceCopy()
 {
     cudaError_t err;
-    if (m_gpuCopySize != mpImage->md->imdatamemsize && mpd_dataGPU != nullptr) 
+    if (m_gpuCopySize != mp_image->md->imdatamemsize && mp_d_imData != nullptr) 
     {
-            err = cudaFree(mpd_dataGPU);
+            err = cudaFree(mp_d_imData);
             printCE(err);
-            mpd_dataGPU = nullptr;
+            mp_d_imData = nullptr;
     }
-    if (mpd_dataGPU == nullptr)
+    if (mp_d_imData == nullptr)
     {
-        m_gpuCopySize = mpImage->md->imdatamemsize;
-        err = cudaMalloc((void**)&mpd_dataGPU, m_gpuCopySize);
+        m_gpuCopySize = mp_image->md->imdatamemsize;
+        err = cudaMalloc((void**)&mp_d_imData, m_gpuCopySize);
         printCE(err);
     }
     // Only perform the copy if the host image has been updated
-    if (mpImage->md->cnt0 != mCnt0deviceCopy)
+    if (mp_image->md->cnt0 != mCnt0deviceCopy)
     {
-        void* src;
-        ImageStreamIO_readLastWroteBuffer(mpImage, &src);
-        err = cudaMemcpy(mpd_dataGPU, src, m_gpuCopySize, cudaMemcpyHostToDevice);
+        err = cudaMemcpy(
+            mp_d_imData,
+            mp_h_imData,
+            m_gpuCopySize,
+            cudaMemcpyHostToDevice);
         printCE(err);
-        mCnt0deviceCopy = mpImage->md->cnt0;
+        mCnt0deviceCopy = mp_image->md->cnt0;
     }
 }
 
 void ImageHandlerBase::updateFromDevice()
 {
-    if (mpd_dataGPU == nullptr)
+    if (mp_d_imData == nullptr)
         throw std::runtime_error("ImageHandlerBase::updateFromDevice: No device copy used.\n");
-    if (m_gpuCopySize != mpImage->md->imdatamemsize)
+    if (m_gpuCopySize != mp_image->md->imdatamemsize)
         throw std::runtime_error("ImageHandlerBase::updateFromDevice: Array size mismatch.\n");
     
     void* dst;
-    ImageStreamIO_readLastWroteBuffer(mpImage, &dst);
+    ImageStreamIO_readLastWroteBuffer(mp_image, &dst);
     cudaError_t err;
-    err = cudaMemcpy(dst, mpd_dataGPU, m_gpuCopySize, cudaMemcpyDeviceToHost);
+    err = cudaMemcpy(
+        dst,
+        mp_d_imData,
+        m_gpuCopySize,
+        cudaMemcpyDeviceToHost);
     printCE(err);
-    ImageStreamIO_UpdateIm(mpImage);
+    ImageStreamIO_UpdateIm(mp_image);
 }
 
 uint32_t ImageHandlerBase::fromROIxToImX(uint32_t x)
@@ -122,9 +134,9 @@ uint32_t ImageHandlerBase::fromROIyToImY(uint32_t y)
 
 int ImageHandlerBase::getKWindex(std::string name)
 {
-    for (int i = 0; i < mpImage->md->NBkw; i++)
+    for (int i = 0; i < mp_image->md->NBkw; i++)
     {
-        std::string kwName = mpImage->kw[i].name;
+        std::string kwName = mp_image->kw[i].name;
         while(kwName.length() > name.length())
             kwName.pop_back();
         if (name == kwName)

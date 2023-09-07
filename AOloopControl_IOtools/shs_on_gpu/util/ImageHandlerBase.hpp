@@ -23,9 +23,9 @@ public:
     ~ImageHandlerBase();
 
     // Returns the image object
-    IMAGE* getImage() { return mpImage; }
+    IMAGE* getImage() { return mp_image; }
     // Returns the image array size in memory
-    size_t getBufferSize() { return mpImage->md->imdatamemsize; }
+    size_t getBufferSize() { return mp_image->md->imdatamemsize; }
 
     // Makes the image stream stay after destruction
     void setPersistent(bool persistent) { mPersistent = persistent; }
@@ -49,11 +49,13 @@ public:
     bool getKeyword(std::string name, U* dst);
 
     // Updates the image
-    void updateWrittenImage() { ImageStreamIO_UpdateIm(mpImage); }
+    void updateWrittenImage() { ImageStreamIO_UpdateIm(mp_image); }
     
 protected:
     // The image, managed by this class
-    IMAGE* mpImage;
+    IMAGE* mp_image;
+    void* mp_h_imData = nullptr;
+    uint64_t m_dataSize = 0;
     // If false, the image will be destoyed with the desturction of this instance
     bool mPersistent = false;
     // The cnt0 value of the last frame that has been copied to the GPU.
@@ -63,6 +65,9 @@ protected:
 
     // Ctor
     ImageHandlerBase(uint32_t width, uint32_t height);
+    // Updates locally stored image data for quick access
+    // Has to be called by decendants
+    void updateImMetadata();
 
     // Returns a device memory pointer to a copy on the GPU.
     // Automatically updates the copy beforehand if the size does not match.
@@ -85,7 +90,7 @@ protected:
 private:
     // A copy of the image data that resides on the GPU.
     int m_gpuCopySize = 0;
-    void* mpd_dataGPU = nullptr;
+    void* mp_d_imData = nullptr;
 
     ImageHandlerBase(); // No publically available default ctor
 
@@ -108,31 +113,31 @@ inline void ImageHandlerBase::setKeyword(int index, std::string name, U data)
 template <>
 inline void ImageHandlerBase::setKeyword(int index, std::string name, int64_t data)
 {
-    if (index >= mpImage->md->NBkw)
+    if (index >= mp_image->md->NBkw)
         throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'L';
     kw.value.numl = data;
-    mpImage->kw[index] = kw;
+    mp_image->kw[index] = kw;
 }
 
 template <>
 inline void ImageHandlerBase::setKeyword(int index, std::string name, double data)
 {
-    if (index >= mpImage->md->NBkw)
+    if (index >= mp_image->md->NBkw)
         throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'D';
     kw.value.numf = data;
-    mpImage->kw[index] = kw;
+    mp_image->kw[index] = kw;
 }
 
 template <>
 inline void ImageHandlerBase::setKeyword(int index, std::string name, std::string data)
 {
-    if (index >= mpImage->md->NBkw)
+    if (index >= mp_image->md->NBkw)
         throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
@@ -140,7 +145,7 @@ inline void ImageHandlerBase::setKeyword(int index, std::string name, std::strin
     int dataLen = std::min((int) data.length(), 16); // Max string length is 16
     std::strncpy(kw.value.valstr, data.c_str(), dataLen);
     sprintf(kw.comment, "%d", (int)data.length()); // Store the string length in the comment for easier access
-    mpImage->kw[index] = kw;
+    mp_image->kw[index] = kw;
 }
 
 
@@ -156,7 +161,7 @@ inline bool ImageHandlerBase::getKeyword(std::string name, int64_t* dst)
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
     {   
-        IMAGE_KEYWORD kw = mpImage->kw[kwIdx];
+        IMAGE_KEYWORD kw = mp_image->kw[kwIdx];
         if (kw.type == 'L')
         {
             *dst = kw.value.numl;
@@ -172,7 +177,7 @@ inline bool ImageHandlerBase::getKeyword(std::string name, double* dst)
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
     {   
-        IMAGE_KEYWORD kw = mpImage->kw[kwIdx];
+        IMAGE_KEYWORD kw = mp_image->kw[kwIdx];
         if (kw.type == 'D')
         {
             *dst = kw.value.numf;
@@ -188,7 +193,7 @@ inline bool ImageHandlerBase::getKeyword(std::string name, std::string* dst)
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
     {   
-        IMAGE_KEYWORD kw = mpImage->kw[kwIdx];
+        IMAGE_KEYWORD kw = mp_image->kw[kwIdx];
         if (kw.type == 'S')
         {
             std::string tmp(kw.value.valstr);

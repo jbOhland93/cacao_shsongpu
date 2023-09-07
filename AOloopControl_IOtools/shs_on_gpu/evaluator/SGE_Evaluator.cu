@@ -5,7 +5,7 @@
 #include <math.h>
 
 #include "SGE_GridLayout.hpp"
-#include "SGE_Kernel.hpp"
+#include "SGE_CUDAkernel.hpp"
 
 #include "../util/atypeUtil.hpp"
 #include "../util/CudaUtil.hpp"
