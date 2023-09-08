@@ -65,6 +65,8 @@ streamFITSlog ..triggermode 3
 streamFITSlog ..triggersname "${instream}"
 # run indefinitely
 streamFITSlog ..loopcntMax -1
+# extend timeout to one minute
+streamFITSlog ..triggertimeout 60.0
 
 # Set input stream
 streamFITSlog .sname "${instream}"
