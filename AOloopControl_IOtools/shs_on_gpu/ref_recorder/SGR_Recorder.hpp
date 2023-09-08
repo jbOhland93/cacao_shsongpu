@@ -67,8 +67,6 @@ private:
     double mShiftToGradConstant;
 
 // Intermediary results
-//  double mKernelStdDev;
-//  uint32_t mKernelSize;
     spGKernel mpKernel;
     
 // Image streams / ImageHandlers

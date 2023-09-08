@@ -11,26 +11,22 @@ SGE_Reshaper::SGE_Reshaper(
     mp_IHinput = ImageHandler<float>::newHandlerAdoptImage(input->name);
 
     // Set up pupil
-    printf("TODO SGE_Rehaper: Change mask type to uint8_t, once fits saving is supported.\n");
-    if (!checkAtype<float>(mask->md->datatype))
+    if (!checkAtype<uint8_t>(mask->md->datatype))
         throw std::runtime_error("SGE_Reshaper: the mask stream has to be of type uint8_t.\n"); 
-    // ==============================s
-    // TEMP - remove once mask is in uint8_t format
-    float* maskDat;
-    ImageStreamIO_readLastWroteBuffer(mask, (void**)&maskDat);
-    uint8_t arr[mask->md->size[0] * mask->md->size[1]];
-    for (int i = 0; i < mask->md->size[0] * mask->md->size[1]; i++)
-        arr[i] = maskDat[i] != 0 ? 1 : 0;
-    // ==============================
     mp_pupil = Pupil::makePupil(
         mask->md->size[0],
         mask->md->size[1],
-        arr);
+        (uint8_t*) ImageStreamIO_get_image_d_ptr(mask));
 
     // Check sizes
     if (mp_pupil->getNumValidFields() != mp_IHinput->mWidth)
+    {   
+        printf("ERROR: Size mismatch! Expected width: %d. Actual width: %d.\n",
+            mp_pupil->getNumValidFields(),
+            mp_IHinput->mWidth);
         throw std::runtime_error(
             "SGE_Reshaper: the width of the input image does not correspond to the number of valid fields in the pupil.\n");
+    }
     // Each line of the input corresponds to one reshaped pupil
     uint32_t numFrames = mp_IHinput->mHeight;
 

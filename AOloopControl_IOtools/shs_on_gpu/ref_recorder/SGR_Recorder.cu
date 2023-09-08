@@ -212,8 +212,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         spImageHandler(float) IHstdDvP = ImageHandler<float>::newImageHandler(
             makeStreamname("7_eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
-        printf("== TODO == SGR_Recorder::evaluateRecBuffers: Change mask type back to uint8_t once fits writing is fixed.\n");
-        spImageHandler(float) IHspotMask = ImageHandler<float>::newImageHandler(
+        spImageHandler(uint8_t) IHspotMask = ImageHandler<uint8_t>::newImageHandler(
             maskName, mGridSize.mX, mGridSize.mY, 9);
         IHspotMask->setPersistent(true);
 

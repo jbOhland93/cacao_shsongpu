@@ -160,8 +160,7 @@ void SGE_ReferenceManager::adoptReferenceStreamsFromKW()
         {
             std::string maskName = m_baseName;
             maskName.append(maskSuffix);
-            printf("== TODO == ReferenceManager::adoptReferenceStreamsFromKW: Change mask type back to float once fits writing is fixed.\n");
-            mp_IHmask = ImageHandler<float>::newHandlerAdoptImage(maskName.c_str());
+            mp_IHmask = ImageHandler<uint8_t>::newHandlerAdoptImage(maskName.c_str());
             printf("\tAdopted the mask stream: %s\n", maskName.c_str());
         }
         

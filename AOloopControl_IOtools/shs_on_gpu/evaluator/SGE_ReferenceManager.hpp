@@ -21,7 +21,7 @@ public:
     ~SGE_ReferenceManager();
 
     spImageHandler(float) getRefIH() { return mp_IHreference; }
-    spImageHandler(float) getMaskIH() { return mp_IHmask; }
+    spImageHandler(uint8_t) getMaskIH() { return mp_IHmask; }
     spImageHandler(float) getIntensityIH() { return mp_IHintensity; }
 
     uint16_t getNumSpots() { return m_numSpots; }
@@ -46,7 +46,7 @@ private:
 
     // Reference images, adopted
     spImageHandler(float) mp_IHreference = nullptr;
-    spImageHandler(float) mp_IHmask = nullptr; // Change back to uint8_t once fits writing is fixed
+    spImageHandler(uint8_t) mp_IHmask = nullptr;
     spImageHandler(float) mp_IHintensity = nullptr;
     // Image arrays on device
     float* mdp_dark = nullptr;

@@ -8,7 +8,7 @@
 class ModalWFReconstructorBuilder {
 public:
     ModalWFReconstructorBuilder(
-        spImageHandler(float) mask,
+        spImageHandler(uint8_t) mask,
         std::string streamPrefix,
         int numModes = -1);
     // (Re)calculates the reconstruction matrix, using the given number of WF modes.
