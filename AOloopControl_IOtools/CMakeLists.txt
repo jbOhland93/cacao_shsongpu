@@ -78,9 +78,9 @@ set(INCLUDEFILES
 
 set(SCRIPTS
     scripts/cacao-avg-stream
+    scripts/cacao-setup-gpu-eval-fps
     scripts/cacao-setup-logging-fps
     scripts/cacao-setup-reshape-fps
-    scripts/cacao-shs-gpu-eval
     scripts/cacao-shs-gpu-ref
 )
 
