@@ -59,10 +59,8 @@ echo "Loopname: ${AOLOOPNAME}"
 
 refstream="${inputMSargARRAY[0]}"
 camstream="${inputMSargARRAY[1]}"
-darkstream="${inputMSargARRAY[2]}"
 echo "Reference stream: ${refstream}"
 echo "SHS camera stream: ${camstream}"
-echo "SHS dark stream: ${darkstream}"
 
 MILK_QUIET=1 milk << EOF
 mload cacaoAOloopControlIOtools
