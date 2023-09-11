@@ -3,6 +3,9 @@
 
 #include <cuda.h>
 #include <math.h>
+#include <sstream>
+#include <ctime>
+#include <iomanip>
 
 #include "SGE_GridLayout.hpp"
 #include "SGE_CUDAkernel.hpp"
@@ -29,7 +32,10 @@
 
 // Record and print the time for each evaluation.
 // Note: This includes all debugging and copying processes.
-//#define ENABLE_EVALUATION_TIME_PRINTING
+//#define ENABLE_EVALUATION_TIME_MEASUREMENT
+// 0: Evaluation time will be printed to console
+// 1: Evaluation time will be written to SGE_Eval_Times.dat in the current WD.
+#define EVALTIME_PRINT_LOG 1
 // ========== FLAGS END ==========
 
 
@@ -39,6 +45,7 @@ SGE_Evaluator::SGE_Evaluator(
         IMAGE* dark,                // Stream holding the dark frame of the SHS
         const char* streamPrefix,   // Prefix for the ISIO streams
         int deviceID)               // ID of the GPU device
+    : m_streamPrefix(streamPrefix)
 {
     // Set up cuda environment
     cudaError err;
@@ -112,9 +119,11 @@ SGE_Evaluator::~SGE_Evaluator()
     cudaFree(mp_d_refY);
 
     // Clean up debugging fields
-#ifdef ENABLE_EVALUATION_TIME_PRINTING
+#ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
     cudaEventDestroy(m_cuEvtStart);
     cudaEventDestroy(m_cuEvtStop);
+    if (EVALTIME_PRINT_LOG == 1)
+        m_timeLog.close();
 #endif
 #ifdef ENABLE_DEBUG_ARRAY
     cudaFreeHost(mp_h_debug);
@@ -125,7 +134,7 @@ SGE_Evaluator::~SGE_Evaluator()
 errno_t SGE_Evaluator::evaluateDo()
 {
     // Measure the evaluation time
-    // (if ENABLE_EVALUATION_TIME_PRINTING is defined)
+    // (if ENABLE_EVALUATION_TIME_MEASUREMENT is defined)
     startRecordingTime();
 
     // Make sure the GPU copy of the darkframe is up to date!
@@ -171,12 +180,22 @@ errno_t SGE_Evaluator::evaluateDo()
 
 void SGE_Evaluator::initDebugFields()
 {
-#ifdef ENABLE_EVALUATION_TIME_PRINTING
+#ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
     // Create cuda events for timing
     printf("Initializing cuda events for evaluation time printing ...\n");
     cudaError_t err = cudaEventCreate(&m_cuEvtStart);
     err = cudaEventCreate(&m_cuEvtStop);
     printCE(err);
+
+    if (EVALTIME_PRINT_LOG == 1)
+    {
+        std::string fileName = genereateTimeLogFileName();
+        m_timeLog.open(fileName.c_str(), std::ios::app);
+
+        if (!m_timeLog.is_open())
+            printf("Failed to open the file: %s\n", fileName.c_str());
+        m_timeLog << "# Evaluation time in µs\n";
+    }
 #endif
 
 #ifdef ENABLE_DEBUG_IMAGE
@@ -203,7 +222,7 @@ void SGE_Evaluator::initDebugFields()
 
 void SGE_Evaluator::startRecordingTime()
 {
-#ifdef ENABLE_EVALUATION_TIME_PRINTING
+#ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
     cudaDeviceSynchronize();
     printCE(cudaEventRecord( m_cuEvtStart, 0 ));
 #endif
@@ -222,7 +241,7 @@ float* SGE_Evaluator::prepareDebugImageDevicePtr()
 
 void SGE_Evaluator::provideDebugOutputAfterEval()
 {
-#ifdef ENABLE_EVALUATION_TIME_PRINTING
+#ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
     // Get timing
     cudaError_t err = cudaEventRecord( m_cuEvtStop, 0 );
     printCE(err);
@@ -231,7 +250,13 @@ void SGE_Evaluator::provideDebugOutputAfterEval()
     float time;
     err = cudaEventElapsedTime( &time, m_cuEvtStart, m_cuEvtStop );
     printCE(err);
-    printf("Time for kernel call: %.3f µs\n", time*1000);
+
+    if (EVALTIME_PRINT_LOG == 0)
+        printf("Time for kernel call: %.3f µs\n", time*1000);
+    else if (EVALTIME_PRINT_LOG == 1)
+        m_timeLog << std::fixed << std::setprecision(3) << time*1000 << "\n";
+    else
+        throw std::runtime_error("SGE_Evaluator::provideDebugOutputAfterEval: Invalid value defined for EVALTIME_PRINT_LOG.");
 #endif
 
 #ifdef ENABLE_DEBUG_ARRAY
@@ -254,4 +279,14 @@ void SGE_Evaluator::provideDebugOutputAfterEval()
 #ifdef ENABLE_DEBUG_IMAGE
     mp_IHdebug->updateFromGPU();
 #endif
+}
+
+std::string SGE_Evaluator::genereateTimeLogFileName() {
+    std::ostringstream oss;
+
+    std::time_t t = std::time(nullptr);
+    std::tm* tm = std::localtime(&t);
+
+    oss << m_streamPrefix << "" << std::put_time(tm, "%Y-%m-%d_%H-%M-%S") << "_timing.log";
+    return oss.str();
 }

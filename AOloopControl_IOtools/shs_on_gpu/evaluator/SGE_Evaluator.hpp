@@ -6,6 +6,8 @@
 #include "../util/ImageHandler.hpp"
 #include "../wf_reconstructor/modalwfreconstructor.hpp"
 #include <errno.h>
+#include <iostream>
+#include <fstream>
 
 // A class for evaluating SHS images on a GPU
 class SGE_Evaluator
@@ -53,12 +55,14 @@ private:
     int m_debugBufSize; // Size of the debug buffer
     float* mp_h_debug;  // Debug array in host memory
     float* mp_d_debug;  // Debug array in device memory
+    std::ofstream m_timeLog; // Ouput stream for time logging
 
     // Debugging functions
     void initDebugFields();
     void startRecordingTime();
     float* prepareDebugImageDevicePtr();
     void provideDebugOutputAfterEval();
+    std::string genereateTimeLogFileName();
 };
 
 #endif // SGE_EVALUATOR_HPP
