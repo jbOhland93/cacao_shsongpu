@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <math.h>
 #include "../ref_recorder/SGR_ReferenceKW.hpp"
+#include "../util/Point.hpp"
 
 spRefManager SGE_ReferenceManager::makeReferenceManager(
         IMAGE* ref,         // Stream holding the reference data
@@ -18,40 +19,34 @@ SGE_ReferenceManager::~SGE_ReferenceManager()
 {
     if (mdp_dark != nullptr)
         cudaFree(mdp_dark);
+    if (mdp_searchPosX != nullptr)
+        cudaFree(mdp_searchPosX);
+    if (mdp_searchPosY != nullptr)
+        cudaFree(mdp_searchPosY);
+    if (mdp_absRefX != nullptr)
+        cudaFree(mdp_absRefX);
+    if (mdp_absRefY != nullptr)
+        cudaFree(mdp_absRefY);
 }
 
-void SGE_ReferenceManager::transferReferenceToGPU(
-    float** d_refX, float** d_refY)
+void SGE_ReferenceManager::setUseAbsReference(bool useAbsoluteReference)
 {
-    // Allocate device memory
-    unsigned long bufsize = sizeof(float)*m_numSpots;
-    cudaMalloc((void**)d_refX, bufsize);
-    cudaMalloc((void**)d_refY, bufsize);
-    // Copy the reference data to the device
-    float* ref = mp_IHreference->getWriteBuffer();
-    cudaMemcpy(*d_refX, ref, bufsize, cudaMemcpyHostToDevice);
-    cudaMemcpy(*d_refY, ref+m_numSpots, bufsize, cudaMemcpyHostToDevice);
+    m_useAbsRef = useAbsoluteReference;
 }
 
-void SGE_ReferenceManager::initGPUSearchPositions(
-    uint16_t** d_searchPosX, uint16_t** d_searchPosY)
+float* SGE_ReferenceManager::getRefXGPU()
 {
-    // Get the initial search positions
-    // This is the reference positions, rounded to nearest
-    uint16_t searchPosX[m_numSpots];
-    uint16_t searchPosY[m_numSpots];
-    float* ref = mp_IHreference->getWriteBuffer();
-    for (uint16_t i = 0; i < m_numSpots; i++)
-    {
-        searchPosX[i] = (uint16_t) round(ref[i]);
-        searchPosY[i] = (uint16_t) round(ref[i+m_numSpots]); 
-    }
-    // Allocate device memory and copy data to device
-    unsigned long bufsize = sizeof(uint16_t)*m_numSpots;
-    cudaMalloc((void**)d_searchPosX, bufsize);
-    cudaMalloc((void**)d_searchPosY, bufsize);
-    cudaMemcpy(*d_searchPosX, searchPosX, bufsize, cudaMemcpyHostToDevice);
-    cudaMemcpy(*d_searchPosY, searchPosY, bufsize, cudaMemcpyHostToDevice);
+    if (m_useAbsRef)
+        return mdp_absRefX;
+    else
+        return mp_IHreference->getGPUCopy();
+}
+float* SGE_ReferenceManager::getRefYGPU()
+{
+    if (m_useAbsRef)
+        return mdp_absRefY;
+    else
+        return mp_IHreference->getGPUCopy() + m_numSpots;
 }
 
 SGE_ReferenceManager::SGE_ReferenceManager(
@@ -65,8 +60,10 @@ SGE_ReferenceManager::SGE_ReferenceManager(
     checkInputStreamCoherence(ref, cam, dark);
     checkInputNamingCoherence(cam, dark);
     adoptReferenceStreamsFromKW();
-    readShiftToGradConstantFromKW();
+    readConstantsFromKW();
     generateGPUkernel();
+    copySearchPosToGPU();
+    makeAbsRef();
     printf("Reference manager setup completed.\n");
 }
 
@@ -177,8 +174,11 @@ void SGE_ReferenceManager::adoptReferenceStreamsFromKW()
     }
 }
 
-void SGE_ReferenceManager::readShiftToGradConstantFromKW()
+void SGE_ReferenceManager::readConstantsFromKW()
 {
+    if (!mp_IHreference->getKeyword(REF_KW_PX_PITCH, &m_pixelPitch))
+        throw std::runtime_error("SGE_ReferenceManager: pixel pitch not found in KWs, prohibiting absolute reference calculation.");
+
     if (!mp_IHreference->getKeyword(REF_KW_SHIFT_2_GRAD_CONST, &m_shiftToGradConstant))
         throw std::runtime_error("SGE_ReferenceManager: shift-to-gradient constant not found in KWs, prohibiting WF reconstruction.");
 }
@@ -193,4 +193,78 @@ void SGE_ReferenceManager::generateGPUkernel()
     std::string kernelStreamname = m_streamPrefix.append("kernel");
     mp_kernel = GaussianKernel::makeKernel((float) kernelStdDev, kernelStreamname.c_str(), false);
     printf("\tKernel generated in host memory.\n");
+}
+
+void SGE_ReferenceManager::copySearchPosToGPU()
+{
+    // Get the initial search positions
+    // This is the reference positions, rounded to nearest
+    uint16_t searchPosX[m_numSpots];
+    uint16_t searchPosY[m_numSpots];
+    float* ref = mp_IHreference->getWriteBuffer();
+    for (uint16_t i = 0; i < m_numSpots; i++)
+    {
+        searchPosX[i] = (uint16_t) round(ref[i]);
+        searchPosY[i] = (uint16_t) round(ref[i+m_numSpots]); 
+    }
+    // Allocate device memory and copy data to device
+    unsigned long bufsize = sizeof(uint16_t)*m_numSpots;
+    cudaMalloc((void**)&mdp_searchPosX, bufsize);
+    cudaMalloc((void**)&mdp_searchPosY, bufsize);
+    cudaMemcpy(mdp_searchPosX, searchPosX, bufsize, cudaMemcpyHostToDevice);
+    cudaMemcpy(mdp_searchPosY, searchPosY, bufsize, cudaMemcpyHostToDevice);
+}
+
+void SGE_ReferenceManager::makeAbsRef()
+{
+    printf("Generating absolut ereference in device memory ...\n");
+    Point<double> pitch(m_pixelPitch, m_pixelPitch);
+    Point<double> halfPitch = pitch / 2;
+    float* refPtr = mp_IHreference->getWriteBuffer();
+    Point<double> gridAnchor(refPtr[0], refPtr[m_numSpots]);
+    gridAnchor -= halfPitch;
+
+    printf("\tFinding grid anchor point ...\n");
+    int numIterations = 5;
+    for (int n = 0; n < numIterations; n++)
+    {
+        Point<double> distanceToNext(0, 0);
+        Point<double> globalDisplacement(0, 0);
+        double currentError = 0;
+        for (int i = 0; i < m_numSpots; i++)
+        {
+            Point<float>spot(refPtr[i], refPtr[i+m_numSpots]);
+            distanceToNext = (spot - gridAnchor) % pitch - halfPitch;
+            globalDisplacement += distanceToNext;
+            currentError += distanceToNext.abs()*distanceToNext.abs();
+        }
+        currentError = sqrt(currentError/m_numSpots);
+        globalDisplacement /= m_numSpots;
+        gridAnchor += globalDisplacement;
+        printf("\t\tIteration %d, position error (RMS in px): %.6f\n", n, currentError);
+    }
+    
+    printf("\tSpanning reference grid ...\n");
+    float absRefX[m_numSpots];
+    float absRefY[m_numSpots];
+    Point<double> distanceToNext(0, 0);
+    for (int i = 0; i < m_numSpots; i++)
+    {
+        Point<float>spot(refPtr[i], refPtr[i+m_numSpots]);
+        distanceToNext = (spot - gridAnchor) % pitch - halfPitch;
+        Point<float>absolutPos = spot + distanceToNext;
+        absRefX[i] = absolutPos.mX;
+        absRefY[i] = absolutPos.mY;
+    }
+
+    printf("\tCopy absolute reference to buffer ...\n");
+    // Allocate device memory
+    unsigned long bufsize = sizeof(float)*m_numSpots;
+    if (mdp_absRefX == nullptr)
+        cudaMalloc((void**)&mdp_absRefX, bufsize);
+    if (mdp_absRefY == nullptr)
+        cudaMalloc((void**)&mdp_absRefY, bufsize);
+
+    cudaMemcpy(mdp_absRefX, absRefX, bufsize, cudaMemcpyHostToDevice);
+    cudaMemcpy(mdp_absRefY, absRefY, bufsize, cudaMemcpyHostToDevice);
 }

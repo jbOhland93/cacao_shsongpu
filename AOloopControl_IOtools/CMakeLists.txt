@@ -15,7 +15,7 @@ set(SOURCEFILES
     shs_on_gpu/evaluator/SGE_Evaluator.cu
     shs_on_gpu/evaluator/SGE_Evaluator_interface.cpp
     shs_on_gpu/evaluator/SGE_GridLayout.cu
-    shs_on_gpu/evaluator/SGE_ReferenceManager.cpp
+    shs_on_gpu/evaluator/SGE_ReferenceManager.cu
     shs_on_gpu/pupil_reshape.c
     shs_on_gpu/pupil_reshaper/SGE_Reshaper.cpp
     shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.cpp

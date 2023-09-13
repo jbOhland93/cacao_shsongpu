@@ -33,15 +33,6 @@ private:
     spRefManager mp_refManager;
     spGridLayout mp_GridLayout;
 
-    // device copy of the spot reference positions X
-    float* mp_d_refX;
-    // device copy of the spot reference positions Y
-    float* mp_d_refY;
-    // device ptr to the current integer spot searching positions X
-    uint16_t* mp_d_SearchPosX;
-    // device ptr to the current integer spot searching positions Y
-    uint16_t* mp_d_SearchPosY;
-
     // The image holding the WF gradient after the image eval
     spImageHandler(float) mp_IHgradient;
     // The modal WF reconstructor on the pupil of the reference

@@ -167,6 +167,7 @@ template <typename T>
 template <typename U>
 inline void Point<T>::operator -= (Point<U> const &subtrahend)
 {
+    printf("Yes\n");
     mX -= (T) subtrahend.mX;
     mY -= (T) subtrahend.mY;
     mIntensity -= subtrahend.mIntensity;
@@ -292,7 +293,7 @@ inline Point<T> Point<T>::operator % (Point<U> const &divisor)
     Point<T> mod;
     mod.mX = mX - divisor.mX * floor(mX / divisor.mX);
     mod.mY = mY - divisor.mY * floor(mY / divisor.mY);
-    mod.mIntensity = mIntensity - divisor.Intensity * floor(mIntensity / divisor.mIntensity);
+    mod.mIntensity = mIntensity - divisor.mIntensity * floor(mIntensity / divisor.mIntensity);
     mod.mValid = mValid && divisor.mValid;
     if (divisor.mX == 0 || divisor.mY == 0 || divisor.mIntensity == 0)
         mod.mValid = false;

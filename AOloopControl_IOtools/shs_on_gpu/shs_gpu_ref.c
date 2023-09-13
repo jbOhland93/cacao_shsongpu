@@ -285,11 +285,16 @@ static errno_t compute_function()
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 
     // === EVALUATING RESULTS HERE
-    SGRR_evaluate_rec_buffers(recorder, *minSpotPrec);
+    errno_t err = SGRR_evaluate_rec_buffers(recorder, *minSpotPrec);
     //processinfo_update_output_stream(processinfo, outimg.ID);
+    
+    if (err == RETURN_SUCCESS)
+        printf("\nEvaluation done, exiting.\n");
+    else
+        printf("\nERROR: %s\n", get_SGRR_state_descr(recorder));
+    
     free_SGR_Recorder(recorder);
     recorder = NULL;
-    printf("\nEvaluation done, exiting.\n");
     // === EVAULATION DONE
 
     DEBUG_TRACE_FEXIT();

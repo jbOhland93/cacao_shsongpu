@@ -204,7 +204,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
 
         // Initialize the  image handlers for the evaluation
         spImageHandler(float) IHavgI = ImageHandler<float>::newImageHandler(
-            intensityName, mGridSize.mX, mGridSize.mY, 9);
+            intensityName, mGridSize.mX, mGridSize.mY, 10);
         IHavgI->setPersistent(true);
         spImageHandler(float) IHavgP = ImageHandler<float>::newImageHandler(
             makeStreamname("7_eval-AVGpos"), mGridSize.mX*2, mGridSize.mY);
@@ -213,7 +213,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
             makeStreamname("7_eval-STDDVpos"), mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
         spImageHandler(uint8_t) IHspotMask = ImageHandler<uint8_t>::newImageHandler(
-            maskName, mGridSize.mX, mGridSize.mY, 9);
+            maskName, mGridSize.mX, mGridSize.mY, 10);
         IHspotMask->setPersistent(true);
 
         // Calculate the stability threshold for the mask
@@ -287,7 +287,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // First line holds the average X positions of the spots within the mask
         // Second line holds the average Y positions of the spots within the mask
         spImageHandler(float) IHcpuRef = ImageHandler<float>::newImageHandler(
-            refName, numOfValidSpots, 2, 9);
+            refName, numOfValidSpots, 2, 10);
         IHcpuRef->setPersistent(true);
 
         // Store the (valid) average positions in the reference stream
@@ -312,22 +312,33 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         IHs.push_back(std::static_pointer_cast<ImageHandlerBase>(IHcpuRef));
         for (int i = 0; i < IHs.size(); i++)
         {
-            IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, (double) mpKernel->getStdDev());
-            IHs.at(i)->setKeyword(1, REF_KW_KERNEL_SIZE, (int64_t) mpKernel->getKernelSize());
-            std::string inName = std::string(mpInput->name);
-            if (inName.length() > 16)
-                inName = inName.substr(0, 16);
-            IHs.at(i)->setKeyword(2, REF_KW_INPUT_NAME, inName);
-            std::string darkName = std::string(mpDark->name);
-            if (darkName.length() > 16)
-                darkName = darkName.substr(0, 16);
-            IHs.at(i)->setKeyword(3, REF_KW_DARK_NAME, darkName);
-            int64_t suffixLen = (int64_t) (std::string(IHs.at(i)->getImage()->name).length() - refBaseName.length());
-            IHs.at(i)->setKeyword(4, REF_KW_SUFFIX_LEN, suffixLen);
-            IHs.at(i)->setKeyword(5, REF_KW_REF_SUFFIX, refNameSuffix);
-            IHs.at(i)->setKeyword(6, REF_KW_MASK_SUFFIX, maskNameSuffix);
-            IHs.at(i)->setKeyword(7, REF_KW_INTENSITY_SUFFIX, intensityNameSuffix);
-            IHs.at(i)->setKeyword(8, REF_KW_SHIFT_2_GRAD_CONST, mShiftToGradConstant);
+            try
+            {
+                IHs.at(i)->setKeyword(0, REF_KW_KERNEL_STDDEV, (double) mpKernel->getStdDev());
+                IHs.at(i)->setKeyword(1, REF_KW_KERNEL_SIZE, (int64_t) mpKernel->getKernelSize());
+                std::string inName = std::string(mpInput->name);
+                if (inName.length() > 16)
+                    inName = inName.substr(0, 16);
+                IHs.at(i)->setKeyword(2, REF_KW_INPUT_NAME, inName);
+                std::string darkName = std::string(mpDark->name);
+                if (darkName.length() > 16)
+                    darkName = darkName.substr(0, 16);
+                IHs.at(i)->setKeyword(3, REF_KW_DARK_NAME, darkName);
+                int64_t suffixLen = (int64_t) (std::string(IHs.at(i)->getImage()->name).length() - refBaseName.length());
+                IHs.at(i)->setKeyword(4, REF_KW_SUFFIX_LEN, suffixLen);
+                IHs.at(i)->setKeyword(5, REF_KW_REF_SUFFIX, refNameSuffix);
+                IHs.at(i)->setKeyword(6, REF_KW_MASK_SUFFIX, maskNameSuffix);
+                IHs.at(i)->setKeyword(7, REF_KW_INTENSITY_SUFFIX, intensityNameSuffix);
+                IHs.at(i)->setKeyword(8, REF_KW_PX_PITCH, (double) mMlaPitch_um / mPxSize_um);
+                IHs.at(i)->setKeyword(9, REF_KW_SHIFT_2_GRAD_CONST, mShiftToGradConstant);
+            }
+            catch(const std::runtime_error& e)
+            {
+                mErrDescr = "Error during keyword setting: ";
+                mErrDescr.append(e.what());
+                mState = RECSTATE::ERROR;
+                return RETURN_FAILURE;
+            }
         }
         printf("Metadata written to ISIO keywords.\n");
         

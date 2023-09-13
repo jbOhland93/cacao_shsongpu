@@ -68,10 +68,6 @@ SGE_Evaluator::SGE_Evaluator(
     if (err != cudaSuccess)
         throw std::runtime_error("SGE_Evaluator::SGE_Evaluator: Camera image buffer could not be registered, but this evaluation relies on mapped memory.");
     mp_IHdark = ImageHandler<float>::newHandlerAdoptImage(dark->name);
-    // Transfer the reference positions to the device
-    mp_refManager->transferReferenceToGPU(&mp_d_refX, &mp_d_refY);
-    // Initialize spot search positions on the device
-    mp_refManager->initGPUSearchPositions(&mp_d_SearchPosX, &mp_d_SearchPosY);
     // Set up the grid layout for the cuda calls
     mp_GridLayout = SGE_GridLayout::makeGridLayout(
         deviceID, mp_refManager);
@@ -112,12 +108,6 @@ SGE_Evaluator::SGE_Evaluator(
 
 SGE_Evaluator::~SGE_Evaluator()
 {
-    // Free arrays
-    cudaFree(mp_d_SearchPosX);
-    cudaFree(mp_d_SearchPosY);
-    cudaFree(mp_d_refX);
-    cudaFree(mp_d_refY);
-
     // Clean up debugging fields
 #ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
     cudaEventDestroy(m_cuEvtStart);
@@ -133,16 +123,15 @@ SGE_Evaluator::~SGE_Evaluator()
 
 errno_t SGE_Evaluator::evaluateDo(bool useAbsoluteReference)
 {
-    if (useAbsoluteReference)
-        printf("Abolute\n");
-    else
-        printf("Relative\n");
     // Measure the evaluation time
     // (if ENABLE_EVALUATION_TIME_MEASUREMENT is defined)
     startRecordingTime();
 
     // Make sure the GPU copy of the darkframe is up to date!
     mp_IHdark->updateGPUCopy();
+
+    // Set reference type
+    mp_refManager->setUseAbsReference(useAbsoluteReference);
 
     // Kernel call - evaluation happens here!
     evaluateSpots<<<mp_GridLayout->mNumSubapertures,
@@ -152,11 +141,11 @@ errno_t SGE_Evaluator::evaluateDo(bool useAbsoluteReference)
             mp_IHdark->getGPUCopy(),                //float* d_darkData,
             mp_IHcam->mWidth,                       //int imW,
             mp_GridLayout->getDeviceCopy(),         //SGE_GridLayout* d_GridLayout,
-            mp_d_SearchPosX,                        //int windowCentersX,
-            mp_d_SearchPosY,                        //int windowCentersY,
+            mp_refManager->getSearchPosXGPU(),      //int windowCentersX,
+            mp_refManager->getSearchPosYGPU(),      //int windowCentersY,
             mp_refManager->getKernelBufferGPU(),    //float* d_kernel,
-            mp_d_refX,                              //float* d_refX
-            mp_d_refY,                              //float* d_refY
+            mp_refManager->getRefXGPU(),            //float* d_refX
+            mp_refManager->getRefYGPU(),            //float* d_refY
             mp_refManager->getShiftToGradConstant(),//float shift2gradConst
             mp_IHgradient->getGPUCopy(),            //float* d_gradOut
             prepareDebugImageDevicePtr(),           //float* d_debugImage

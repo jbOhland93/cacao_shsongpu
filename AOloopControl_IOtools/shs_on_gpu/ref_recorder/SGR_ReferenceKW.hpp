@@ -9,6 +9,7 @@
 #define REF_KW_REF_SUFFIX           std::string("refPosSFX......")
 #define REF_KW_MASK_SUFFIX          std::string("spotMaskSFX....")
 #define REF_KW_INTENSITY_SUFFIX     std::string("intnstyMapSFX..")
+#define REF_KW_PX_PITCH             std::string("pixelPitch.....")
 #define REF_KW_SHIFT_2_GRAD_CONST   std::string("shift2GradCnst.")
 
 #endif // SGR_REFERENCEKW_HPP
