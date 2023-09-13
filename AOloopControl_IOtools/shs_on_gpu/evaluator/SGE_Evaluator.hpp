@@ -24,7 +24,7 @@ public:
     ~SGE_Evaluator();
 
     // Triggers the evaluation
-    errno_t evaluateDo();
+    errno_t evaluateDo(bool useAbsoluteReference);
 private:
     std::string m_streamPrefix;
 

@@ -131,8 +131,12 @@ SGE_Evaluator::~SGE_Evaluator()
 #endif
 }
 
-errno_t SGE_Evaluator::evaluateDo()
+errno_t SGE_Evaluator::evaluateDo(bool useAbsoluteReference)
 {
+    if (useAbsoluteReference)
+        printf("Abolute\n");
+    else
+        printf("Relative\n");
     // Measure the evaluation time
     // (if ENABLE_EVALUATION_TIME_MEASUREMENT is defined)
     startRecordingTime();

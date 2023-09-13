@@ -21,7 +21,7 @@ SGEEHandle create_SGE_Evaluator(
 void free_SGE_Evaluator(SGEEHandle);
 
 // Do evaluation on available data
-errno_t SGEE_eval_do(SGEEHandle);
+errno_t SGEE_eval_do(SGEEHandle, int64_t useAbsoluteReference);
 
 #ifdef __cplusplus
 }

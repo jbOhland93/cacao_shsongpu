@@ -27,6 +27,10 @@ static char *camname;
 // stream name of the SHS dark frame
 static char *darkname;
 
+// field to determine if the absolute or relative reference shall be used
+static int64_t *absRef;
+static long     fpi_absRef = -1;
+
 static uint32_t *loopnumber;
 static long      fpi_loopnumber = -1;
 
@@ -63,6 +67,15 @@ static CLICMDARGDEF farg[] =
         NULL
     },
     {
+        CLIARG_ONOFF,
+        ".absRef",
+        "toggle use of relative/absolute reference",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &absRef,
+        &fpi_absRef
+    },
+    {
         CLIARG_UINT32,
         ".loopnumber",
         "The number of the AO loop, used for stream naming",
@@ -92,6 +105,12 @@ static CLICMDARGDEF farg[] =
 //
 static errno_t customCONFsetup()
 {
+    if(data.fpsptr != NULL)
+    {
+        // can toggle while running
+        data.fpsptr->parray[fpi_absRef].fpflag |= FPFLAG_WRITERUN;
+    }
+
     // increment counter at every configuration check
     /* Skip tests for now
     *cntindex = *cntindex + 1;
@@ -162,12 +181,12 @@ static errno_t help_function()
 
 
 
-static errno_t streamprocess(SGEEHandle evaluator)
+static errno_t streamprocess(SGEEHandle evaluator, int64_t useAbsoluteReference)
 {
     DEBUG_TRACE_FSTART();
     
     // Code
-    errno_t retVal = SGEE_eval_do(evaluator);
+    errno_t retVal = SGEE_eval_do(evaluator, useAbsoluteReference);
 
     DEBUG_TRACE_FEXIT();
     return retVal;
@@ -226,7 +245,7 @@ static errno_t compute_function()
     
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
-        streamprocess(evaluator);
+        streamprocess(evaluator, *absRef);
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 
