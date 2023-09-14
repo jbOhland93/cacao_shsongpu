@@ -37,6 +37,9 @@ static long      fpi_shsfoclen = -1;
 static float *minSpotPrec;
 static long      fpi_minSpotPrec = -1;
 
+static char *savingLocation;
+static long      fpi_savingLocation = -1;
+
 static uint32_t *loopnumber;
 static long      fpi_loopnumber = -1;
 
@@ -69,7 +72,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_FLOAT32,
         ".campixsize",
-        "camera pixel size in µm",
+        "camera pixel size in um",
         "13.7",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &campxsize,
@@ -78,7 +81,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_FLOAT32,
         ".mlapitch",
-        "MLA pitch in µm",
+        "MLA pitch in um",
         "250.0",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &mlapitch,
@@ -87,7 +90,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_FLOAT32,
         ".shsfoclen",
-        "MLS-to-sensor distance in µm",
+        "MLS-to-sensor distance in um",
         "11330.0",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &shsfoclen,
@@ -101,6 +104,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &minSpotPrec,
         &fpi_minSpotPrec
+    },
+    {
+        CLIARG_STR,
+        ".savingLocation",
+        "relative path for saving the reference without trailing slash",
+        ".",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &savingLocation,
+        &fpi_savingLocation
     },
     {
         CLIARG_UINT32,
@@ -274,6 +286,7 @@ static errno_t compute_function()
         *shsfoclen,
         loopcnt,
         loopPrefix,
+        savingLocation,
         *visualize);
     printf("\nSGR recorder status: %s", get_SGRR_state_descr(recorder));
     // === RECORDER SETUP DONE

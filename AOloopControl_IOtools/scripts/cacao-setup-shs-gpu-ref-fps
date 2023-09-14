@@ -4,10 +4,10 @@
 # See template milk-scriptexample in module milk_module_example for template and instructions
 
 # script 1-line description
-MSdescr="Record shs ref"
+MSdescr="Set up fps for recording shs references for gpu evaluation"
 
 # Extended description
-MSextdescr="Record a reference for SHS evaluation on a gpu
+MSextdescr="A script setting up a fps to record a reference for SHS evaluation on a gpu.
 This includes generating a mask, reference points and a convolution kernel.
 "
 
@@ -78,66 +78,30 @@ echo "Fits destination: ${ARCHDIR}"
 MILK_QUIET=1 milk << EOF
 mload cacaoAOloopControlIOtools
 
+# Set up process info
+cacaoio.shsGpuRef ..procinfo 1
+# Set triggermode to 3 (SEMAPHORE) - is triggered by stream update
+cacaoio.shsGpuRef ..triggermode 3
+# Set triggerstream to input stream
+cacaoio.shsGpuRef ..triggersname "${instream}"
+# run indefinitely
+cacaoio.shsGpuRef ..loopcntMax ${nbframe}
+
+# Set input streams
 readshmim ${instream}
+cacaoio.shsGpuRef .in_name ${instream}
 readshmim ${instream}_AVG
-cacaoio.shsGpuRef .loopnumber ${AOLOOPNUMBER}
+cacaoio.shsGpuRef .dark ${instream}_AVG
+
+# Set up other parameters
+cacaoio.shsGpuRef .savingLocation ${ARCHDIR}
+cacaoio.shsGpuRef .loopnumber ${AOLOOPNUMBER} 
 cacaoio.shsGpuRef .loopname ${AOLOOPNAME}
 cacaoio.shsGpuRef .visualize ${VISUALIZE}
 cacaoio.shsGpuRef .minSpotPrec ${uradThresh}
-cacaoio.shsGpuRef ..procinfo 1
-cacaoio.shsGpuRef ..triggermode 3
-cacaoio.shsGpuRef ..triggersname ${instream}
-cacaoio.shsGpuRef ..loopcntMax ${nbframe}
-cacaoio.shsGpuRef ${instream} ${instream}_AVG
+
+# Initialize FPS
+cacaoio.shsGpuRef _FPSINIT_ "${instream}"
+
 exitCLI
 EOF
-
-# Gather the streamnames for saving
-snamecnt=0
-sname1="none"
-sname2="none"
-sname3="none"
-while IFS= read -r line; do
-    if [ "${snamecnt}" = "0" ]; then
-        sname1="$line"
-    fi
-    if [ "${snamecnt}" = "1" ]; then
-        sname2="$line"
-    fi
-    if [ "${snamecnt}" = "2" ]; then
-        sname3="$line"
-    fi
-    ((snamecnt=snamecnt+1))
-done < tmp-refnames.txt
-
-printf "\nAttempting to save the following streams:\n"
-printf "Stream 1: %s\n" "$sname1"
-printf "Stream 2: %s\n" "$sname2"
-printf "Stream 3: %s\n\n" "$sname3"
-
-MILK_QUIET=1 milk << EOF
-readshmim ${sname1}
-saveFITS ${sname1} "${sname1}.fits"
-readshmim ${sname2}
-saveFITS ${sname2} "${sname2}.fits"
-readshmim ${sname3}
-saveFITS ${sname3} "${sname3}.fits"
-exitCLI
-EOF
-
-# Save the files
-if [ ! -d "${ARCHDIR}" ]; then
-  mkdir ${ARCHDIR}
-fi
-timestamp=$(date -u --iso-8601=seconds)
-printf "\n"
-echo Saving to ${ARCHDIR}/${sname1}_${timestamp}.fits
-mv ${sname1}.fits ${ARCHDIR}/${sname1}_${timestamp}.fits
-echo Saving to ${ARCHDIR}/${sname2}_${timestamp}.fits
-mv ${sname2}.fits ${ARCHDIR}/${sname2}_${timestamp}.fits
-echo Saving to ${ARCHDIR}/${sname3}_${timestamp}.fits
-mv ${sname3}.fits ${ARCHDIR}/${sname3}_${timestamp}.fits
-printf "\n"
-
-# Delete temporary streamname file
-rm tmp-refnames.txt

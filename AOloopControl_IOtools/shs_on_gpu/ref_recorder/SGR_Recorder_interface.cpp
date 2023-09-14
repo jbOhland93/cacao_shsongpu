@@ -11,6 +11,7 @@ extern "C"
         float mlaDist,
         uint32_t numSamples,
         const char* streamPrefix,
+        const char* savingLocation,
         int64_t visualize)
     {
         return new SGR_Recorder(
@@ -21,6 +22,7 @@ extern "C"
             mlaDist,
             numSamples,
             streamPrefix,
+            savingLocation,
             visualize > 0);
     }
 

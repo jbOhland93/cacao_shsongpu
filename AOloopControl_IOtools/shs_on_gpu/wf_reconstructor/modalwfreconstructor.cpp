@@ -137,7 +137,6 @@ void ModalWFReconstructor::setupReconstructionMatrix(
         imgName,
         wfSize,
         gradSize);
-    mp_IHreconstructionMatrix->setPersistent(true);
     float* imgPtr = mp_IHreconstructionMatrix->getWriteBuffer();
     for (int x = 0; x < wfSize; x++)
         for (int y = 0; y < gradSize; y++)

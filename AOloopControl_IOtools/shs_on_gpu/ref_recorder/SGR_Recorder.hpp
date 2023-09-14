@@ -23,6 +23,7 @@ public:
         float mlaDist_um,    // Distance of the microlenses to the cam chip in um
         uint32_t numSamples, // number of samples to be recorded
         const char* streamPrefix = "", // Prefix for the ISIO streams
+        const char* savingLocation = ".", // Location for saving fits
         bool visualize = false); // If true, additional streams for
                                  // visual testing are generated
 
@@ -58,6 +59,7 @@ private:
     bool mVisualize = true;
     std::string mTeststreamPrefix; // Prefix for visualization streams
     std::string mStreamPrefix; // Prefix for all streams to be generated
+    std::string mSavingLocation; // Folder for saving reference files
 
 // SHS parameters
     float mPxSize_um;
@@ -115,6 +117,10 @@ private:
         double minDistance);
     // Spans a regular grid, matching the given unsorted spots
     void spanCoarseGrid(std::vector<Point<double>> fitSpots);
+    // Saves an image
+    void saveImage(spIHBase imageHandler);
+    // Creates the filename for saving the reference
+    std::string generateFitsName(std::string prefix);
 };
 
 #endif // SGR_RECORDER_HPP

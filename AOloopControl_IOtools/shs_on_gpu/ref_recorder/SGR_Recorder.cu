@@ -1,12 +1,17 @@
 #include "SGR_Recorder.hpp"
-#include "milkDebugTools.h"
-
 #include "../util/SpotFitter.hpp"
 
+extern "C" {
+    #include "../../../../../src/CommandLineInterface/CLIcore.h"
+    #include "../../../../../src/COREMOD_iofits/savefits.h"
+    #include "../../../../../src/COREMOD_memory/read_shmim.h"
+}
+
 #include <string>
-#include <cuda.h>
 #include <iostream>
-#include <fstream>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 
 extern "C"
 {
@@ -19,6 +24,7 @@ SGR_Recorder::SGR_Recorder(
     float mlaDist_um,
     uint32_t numSamples,
     const char* streamPrefix,
+    const char* savingLocation,
     bool visualize)
     :
     mpInput(in),
@@ -28,6 +34,7 @@ SGR_Recorder::SGR_Recorder(
     mMlaDist_um(mlaDist_um),
     mSamplesExpected(numSamples),
     mStreamPrefix(streamPrefix),
+    mSavingLocation(savingLocation),
     mVisualize(visualize)
 {
     // Check if input and dark images are compatible
@@ -345,14 +352,11 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
             }
         }
         printf("Metadata written to ISIO keywords.\n");
-        
-        // Store stream names
-        std::ofstream fileSNames("tmp-refnames.txt");
-        fileSNames << IHavgI->getImage()->name << "\n";
-        fileSNames << IHspotMask->getImage()->name << "\n";
-        fileSNames << IHcpuRef->getImage()->name << "\n";
-        fileSNames.close();
-        printf("Stream names saved for external fits saving.\n\t=> File name: tmp-refnames.txt\n");
+
+        printf("Saving reference fits files ...\n");
+        saveImage(IHspotMask);
+        saveImage(IHcpuRef);
+        saveImage(IHavgI);
 
         mState = RECSTATE::FINISH;
         printf("\n\n=== SGR_Recorder: Evaluation done! ===\n\n");
@@ -652,6 +656,59 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
             }
         mIHgridVisualization->updateWrittenImage();        
     }
+}
+
+void SGR_Recorder::saveImage(spIHBase imageHandler)
+{
+    const char* imageName = imageHandler->getImage()->name;
+    // First resolve the image ID
+    long id = read_sharedmem_image(imageName);
+    if (id >= 0)
+    {   // Then, save the file.
+        std::string fitsName = generateFitsName(imageName);
+        errno_t err = save_fits(imageName, fitsName.c_str());
+        if (err == RETURN_SUCCESS)
+            printf("\t=> Written to %s\n", fitsName.c_str());
+        else
+        {
+            mErrDescr.append("SGR_Recorder::saveImage: ");
+            mErrDescr.append("Error on saving fits file.");
+            mState = RECSTATE::ERROR;
+        }
+    }
+    else
+    {
+        mErrDescr.append("SGR_Recorder::saveImage: ");
+        mErrDescr.append("Could not resolve image id before saving fits.");
+        mState = RECSTATE::ERROR;
+    }
+}
+
+std::string SGR_Recorder::generateFitsName(std::string prefix) {
+    std::time_t t = std::time(nullptr);
+    std::tm* now = std::localtime(&t);
+    
+    std::tm gmt = *now;
+    std::time_t utc_time = mktime(&gmt);
+
+    int offset_minutes = (utc_time - t) / 60;
+
+    // Convert to hours and minutes
+    int offset_hours = offset_minutes / 60;
+    offset_minutes = std::abs(offset_minutes % 60);
+
+    std::ostringstream oss;
+    oss << mSavingLocation << "/" << prefix << "_"
+        << (now->tm_year + 1900) << '-'
+        << std::setfill('0') << std::setw(2) << (now->tm_mon + 1) << '-'
+        << std::setfill('0') << std::setw(2) << now->tm_mday << "_T"
+        << std::setfill('0') << std::setw(2) << now->tm_hour << '.'
+        << std::setfill('0') << std::setw(2) << now->tm_min
+        << std::setfill('0') << std::setw(3) << std::internal << std::showpos << offset_hours << std::noshowpos << "."
+        << std::setfill('0') << std::setw(2) << std::abs(offset_minutes)
+        << ".fits";
+    
+    return oss.str();
 }
 
 }

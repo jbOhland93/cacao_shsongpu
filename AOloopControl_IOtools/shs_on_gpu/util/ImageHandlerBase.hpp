@@ -10,6 +10,7 @@
 #include "ImageStreamIO/ImageStreamIO.h"
 #include "../util/Rectangle.hpp"
 
+#define spIHBase std::shared_ptr<ImageHandlerBase>
 class ImageHandlerBase
 {
 public:
