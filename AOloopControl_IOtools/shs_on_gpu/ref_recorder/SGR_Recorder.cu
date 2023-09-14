@@ -227,8 +227,6 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // Initialize fields for statistics
         std::vector<float> vI, vX, vY;
         float avgI, avgX, avgY, stdDvX, stdDvY, stdDvXY;
-
-        int numOfValidSpots = 0;
         
         for (uint32_t ix = 0; ix < mGridSize.mX; ix++)
             for (uint32_t iy = 0; iy < mGridSize.mY; iy++)
@@ -264,13 +262,19 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
                 IHstdDvP->write(stdDvX, ix, iy);
                 IHstdDvP->write(stdDvY, ix+mGridSize.mX, iy);
                 if (stdDvXY <= pxPrecision)
-                {
                     IHspotMask->write(1, ix, iy);
-                    numOfValidSpots++;
-                }
                 else
                     IHspotMask->write(0, ix, iy);
             }
+
+        // Erode mask edge
+        // 3 is only removing
+        //  - outliers
+        //  - pixels sticking out from corners
+        // 4 will also erode 
+        //  - corners
+        //  - pixels sticking out alone from straight edges
+        int numOfValidSpots = IHspotMask->erode(4, false);
 
         // Update images
         IHavgI->updateWrittenImage();
@@ -281,7 +285,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         printf("Mask generated. %d valid subapertures detected.\n", numOfValidSpots);
         printf("\t=> Stream name: %s\n", IHspotMask->getImage()->name);
 
-        // == Make GPU reference ==
+        // == Make reference ==
 
         // The reference is an image with 2 lines:
         // First line holds the average X positions of the spots within the mask
@@ -485,7 +489,7 @@ void SGR_Recorder::prepareSpotFinding()
             makeStreamname("3-erode"), mIHthresh->getImage());
         mIHerode->setPersistent(mVisualize);
         std::vector<Point<uint32_t>> particles;
-        while (mIHerode->erode(&particles) > 0);
+        while (mIHerode->erode(5, true, &particles) > 0);
         printf("Number of particles after thresholding: %d\n",
             (int) particles.size());
         

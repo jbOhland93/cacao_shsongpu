@@ -167,7 +167,6 @@ template <typename T>
 template <typename U>
 inline void Point<T>::operator -= (Point<U> const &subtrahend)
 {
-    printf("Yes\n");
     mX -= (T) subtrahend.mX;
     mY -= (T) subtrahend.mY;
     mIntensity -= subtrahend.mIntensity;

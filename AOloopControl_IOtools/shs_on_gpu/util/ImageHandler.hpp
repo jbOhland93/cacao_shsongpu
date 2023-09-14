@@ -110,8 +110,10 @@ public:
     }
     // Erodes the image inside the ROI
     // Returns the number of remaining valid pixels
-    // Appends the coordinates of the dissolved particles to d
-    uint32_t erode(std::vector<Point<uint32_t>>* d = nullptr);
+    // neighboursToSurvive: selfexplanatory
+    // inPlace: if true, one eroded pixel will affect the survival of the next one
+    // d: the coordinates to dissolved particles are appended to this vector
+    uint32_t erode(uint8_t neighboursToSurvive, bool inPlace, std::vector<Point<uint32_t>>* d = nullptr);
     
 private:
     T* mp_data = nullptr;
@@ -390,7 +392,7 @@ inline ImageHandler<T>::ImageHandler(std::string imName, uint32_t sizeX, uint32_
 }
 
 template <typename T>
-uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
+uint32_t ImageHandler<T>::erode(uint8_t neighboursToSurvive, bool inPlace, std::vector<Point<uint32_t>>* d)
 {
     uint32_t remainingPixels = 0;
     int x;
@@ -406,9 +408,18 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
         nOffY[j] = round(sin(j*M_PI/4.));
     }
 
-    // Copy the read frame to the write buffer
-    for (int i = 0; i < mNumPx; i++)
-        mp_data[i] = mp_data[i];
+    T* readBuffer;
+    if (inPlace)
+    {   // Read buffer equals write buffer.
+        // Eroded pixels affect next pixel.
+        readBuffer = mp_data;
+    }
+    else
+    {   // Make a copy of the pixel data to read unchanged data
+        readBuffer = new T[mNumPx];
+        for (int i = 0; i < mNumPx; i++)
+            readBuffer[i] = mp_data[i];
+    }
 
     // Erode the ROI
     for (uint32_t ix = 0; ix < mROI.w(); ix++)
@@ -426,7 +437,7 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                         y+nOffY[j] >= 0 && y+nOffY[j] < mHeight)
                     {
                         neighbourIndex = (y+nOffY[j])*mWidth + x + nOffX[j];
-                        if (mp_data[neighbourIndex] > 0)
+                        if (readBuffer[neighbourIndex] > 0)
                             neighbours++;
                     }
                 }
@@ -438,7 +449,7 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                     // Set to zero.
                     mp_data[y*mWidth + x] = 0;
                 }
-                else if (neighbours < 5)
+                else if (neighbours < neighboursToSurvive)
                     // Edgepixel - set to zero.
                     mp_data[y*mWidth + x] = 0;
                 else
@@ -446,6 +457,9 @@ uint32_t ImageHandler<T>::erode(std::vector<Point<uint32_t>>* d)
                     remainingPixels++;
             }
         }
+    
+    if (!inPlace)
+        delete[] readBuffer;
     
     updateWrittenImage();
     return remainingPixels;
