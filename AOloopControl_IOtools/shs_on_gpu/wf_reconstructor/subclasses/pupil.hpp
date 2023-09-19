@@ -50,8 +50,8 @@ void Pupil::fill2DarrWithValues(
     if (dstLen != get2DarraySize())
         throw std::runtime_error("Pupil::fill2DarrWithValues: destination length does not match get2DarraySize().");
     int i = 0;
-    for (int y = 0; y < mHeight; ++y) {
-        for (int x = 0; x < mWidth; ++x) {
+    for (int x = 0; x < mWidth; ++x) {
+        for (int y = 0; y < mHeight; ++y) {
             if (mPupilArr[y*mWidth+x])
             {
                 dst[y*mWidth+x] = values[i];

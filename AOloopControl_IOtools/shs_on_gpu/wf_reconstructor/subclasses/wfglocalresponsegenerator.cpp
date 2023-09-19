@@ -26,8 +26,8 @@ std::pair<spWF, spWFGrad> WFGLocalResponseGenerator::generateResponse(double cen
 
     // Loop over all subapertures
     int i = 0;
-    for (int y = 0; y < pupHeight; y++)
-        for (int x = 0; x < pupWwidth; x++)
+    for (int x = 0; x < pupWwidth; x++)
+        for (int y = 0; y < pupHeight; y++)
             if (pupArr[y*pupWwidth+x])
             {
                 wfVals[i] = lorentzian(x, y, centerX, centerY, width);
