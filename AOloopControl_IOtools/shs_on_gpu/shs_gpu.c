@@ -27,6 +27,10 @@ static char *camname;
 // stream name of the SHS dark frame
 static char *darkname;
 
+// field to activate/deactivate the evaluation
+static int64_t *evaluationOn;
+static long     fpi_evaluationOn = -1;
+
 // field to determine if the absolute or relative reference shall be used
 static int64_t *absRef;
 static long     fpi_absRef = -1;
@@ -65,6 +69,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_VISIBLE_DEFAULT,
         (void **) &darkname,
         NULL
+    },
+    {
+        CLIARG_ONOFF,
+        ".on_off",
+        "toggle evaluation",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &evaluationOn,
+        &fpi_evaluationOn
     },
     {
         CLIARG_ONOFF,
@@ -108,6 +121,7 @@ static errno_t customCONFsetup()
     if(data.fpsptr != NULL)
     {
         // can toggle while running
+        data.fpsptr->parray[fpi_evaluationOn].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_absRef].fpflag |= FPFLAG_WRITERUN;
     }
 
@@ -245,7 +259,8 @@ static errno_t compute_function()
     
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
-        streamprocess(evaluator, *absRef);
+        if (*evaluationOn)
+            streamprocess(evaluator, *absRef);
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 
