@@ -47,60 +47,13 @@ SGE_Evaluator::SGE_Evaluator(
         int deviceID)               // ID of the GPU device
     : m_streamPrefix(streamPrefix)
 {
-    // Set up cuda environment
-    cudaError err;
-    err = cudaSetDevice(deviceID);
-    printCE(err);
-    err = cudaSetDeviceFlags(cudaDeviceMapHost);
-    printCE(err);
-    err = cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
-    printCE(err);
-
-    // Load the reference
-    mp_refManager = SGE_ReferenceManager::makeReferenceManager(
-                                            ref,
-                                            cam,
-                                            dark,
-                                            streamPrefix);
-    // Adopt the image streams
-    mp_IHcam = ImageHandler<uint16_t>::newHandlerAdoptImage(cam->name);
-    err = mp_IHcam->mapImForGPUaccess();
-    if (err != cudaSuccess)
-        throw std::runtime_error("SGE_Evaluator::SGE_Evaluator: Camera image buffer could not be registered, but this evaluation relies on mapped memory.");
-    mp_IHdark = ImageHandler<float>::newHandlerAdoptImage(dark->name);
-    // Set up the grid layout for the cuda calls
-    mp_GridLayout = SGE_GridLayout::makeGridLayout(
-        deviceID, mp_refManager);
-    // Prapare result images: gradient
-    std::string gradientImgName = streamPrefix;
-    gradientImgName.append("gradOut");
-    try {   // See if the gradient image already exists. If so: adopt it!
-        mp_IHgradient =
-            ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
-    }
-    catch(std::runtime_error)
-    {       // Gradient image does not exist yet. Create a new one.
-        mp_IHgradient =
-            ImageHandler<float>::newHandlerfrmImage(gradientImgName, ref);
-    }
-    mp_IHgradient->setPersistent(true);
-    // Prapare result images: wavefront
-    std::string wfImgName = streamPrefix;
-    wfImgName.append("wfOut");
-    try {   // See if the wf image already exists. If so: adopt it!
-        mp_IHwf =
-            ImageHandler<float>::newHandlerAdoptImage(wfImgName);
-    }
-    catch(std::runtime_error)
-    {       // WF image does not exist yet. Create a new one.
-        mp_IHwf = ImageHandler<float>::newImageHandler(
-            wfImgName, mp_refManager->getNumSpots(), 1);
-    }
-    mp_IHwf->setPersistent(true);
-
-    // Preparing the WF reconstruction
-    ModalWFReconstructorBuilder wfRecBuilder(mp_refManager->getMaskIH(), streamPrefix);
-    mp_wfReconstructor =  wfRecBuilder.getReconstructor();
+    // Set up the evaluator
+    setupCudaEnvironment(deviceID);
+    setupReferenceManager(ref, cam, dark);
+    adoptInputStreams(cam->name, dark->name);
+    setupGridLayout(deviceID);
+    createOutputImages();
+    setupWFreconstruction();
 
     // Prepare some fields for debugging
     initDebugFields();
@@ -148,6 +101,7 @@ errno_t SGE_Evaluator::evaluateDo(bool useAbsoluteReference)
             mp_refManager->getRefYGPU(),            //float* d_refY
             mp_refManager->getShiftToGradConstant(),//float shift2gradConst
             mp_IHgradient->getGPUCopy(),            //float* d_gradOut
+            mp_IHintensity->getGPUCopy(),           //float* d_intensityOut
             prepareDebugImageDevicePtr(),           //float* d_debugImage
             mp_d_debug);                            //float* d_debugBuffer
     // Print error of kernel launch
@@ -163,12 +117,102 @@ errno_t SGE_Evaluator::evaluateDo(bool useAbsoluteReference)
     // Copy the result (gradient data) from the host to the device
     mp_IHgradient->updateFromGPU();
     mp_IHwf->updateFromGPU();
+    mp_IHintensity->updateFromGPU();
 
     // If any debug flags are defined, collect data from
     // devide memory and make them accessible / print them
     provideDebugOutputAfterEval();
 
     return RETURN_SUCCESS;
+}
+
+void SGE_Evaluator::setupCudaEnvironment(int deviceID)
+{
+    cudaError err;
+    err = cudaSetDevice(deviceID);
+    printCE(err);
+    err = cudaSetDeviceFlags(cudaDeviceMapHost);
+    printCE(err);
+    err = cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync);
+    printCE(err);
+}
+
+void SGE_Evaluator::setupReferenceManager(IMAGE* ref, IMAGE* cam, IMAGE* dark)
+{
+    mp_refManager = SGE_ReferenceManager::makeReferenceManager(
+                                            ref,
+                                            cam,
+                                            dark,
+                                            m_streamPrefix);
+}
+
+void SGE_Evaluator::adoptInputStreams(std::string camName, std::string darkName)
+{
+    mp_IHcam = ImageHandler<uint16_t>::newHandlerAdoptImage(camName);
+    cudaError_t err = mp_IHcam->mapImForGPUaccess();
+    if (err != cudaSuccess)
+        throw std::runtime_error(
+            "SGE_Evaluator::SGE_Evaluator: Camera image buffer could not be registered, but this evaluation relies on mapped memory."
+            );
+    mp_IHdark = ImageHandler<float>::newHandlerAdoptImage(darkName);
+}
+
+void SGE_Evaluator::setupGridLayout(int deviceID)
+{
+    mp_GridLayout = SGE_GridLayout::makeGridLayout(
+        deviceID, mp_refManager);
+}
+
+void SGE_Evaluator::createOutputImages()
+{
+    std::string gradientImgName = m_streamPrefix;
+    gradientImgName.append("gradOut");
+    try {   // See if the gradient image already exists. If so: adopt it!
+        mp_IHgradient =
+            ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
+    }
+    catch(std::runtime_error)
+    {       // Gradient image does not exist yet. Create a new one.
+        mp_IHgradient =
+            ImageHandler<float>::newHandlerfrmImage(
+                gradientImgName,
+                mp_refManager->getRefIH()->getImage());
+    }
+    mp_IHgradient->setPersistent(true);
+
+    // Prapare result images: intensity
+    std::string intensityImgName = m_streamPrefix;
+    intensityImgName.append("intOut");
+    try {   // See if the intensity image already exists. If so: adopt it!
+        mp_IHintensity =
+            ImageHandler<float>::newHandlerAdoptImage(intensityImgName);
+    }
+    catch(std::runtime_error)
+    {       // Gradient image does not exist yet. Create a new one.
+        mp_IHintensity = ImageHandler<float>::newImageHandler(
+            intensityImgName, mp_refManager->getNumSpots(), 1);
+    }
+    mp_IHintensity->setPersistent(true);
+
+    // Prapare result images: wavefront
+    std::string wfImgName = m_streamPrefix;
+    wfImgName.append("wfOut");
+    try {   // See if the wf image already exists. If so: adopt it!
+        mp_IHwf =
+            ImageHandler<float>::newHandlerAdoptImage(wfImgName);
+    }
+    catch(std::runtime_error)
+    {       // WF image does not exist yet. Create a new one.
+        mp_IHwf = ImageHandler<float>::newImageHandler(
+            wfImgName, mp_refManager->getNumSpots(), 1);
+    }
+    mp_IHwf->setPersistent(true);
+}
+
+void SGE_Evaluator::setupWFreconstruction()
+{
+    ModalWFReconstructorBuilder wfRecBuilder(mp_refManager->getMaskIH(), m_streamPrefix);
+    mp_wfReconstructor =  wfRecBuilder.getReconstructor();
 }
 
 void SGE_Evaluator::initDebugFields()

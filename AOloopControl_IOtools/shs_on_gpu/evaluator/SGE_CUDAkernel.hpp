@@ -37,6 +37,7 @@ __global__ void evaluateSpots(
     float* d_refY,
     float shift2gradConst,
     float* d_gradOut,
+    float* d_intensityOut,
     float* d_debugImage,
     float* d_debugBuffer)
 {    
@@ -188,9 +189,11 @@ __global__ void evaluateSpots(
         // The maximum of the convolution value
         float maxVal = convResults[maxPosIdx];
         float curVal = maxVal;
+        float signalSum = 0;
         for (int i = 0; i < GL->mNumCorrelPosPerAp; i++)
         {
             curVal = convResults[i];
+            signalSum += curVal;
             if (maxVal < curVal)
             {
                 maxVal = curVal;
@@ -200,6 +203,7 @@ __global__ void evaluateSpots(
             // Yes, we overwrite the (GPU-)shared memory camera data, but we don't need it anymore.
             imData[convCoordsY[i]*GL->mWindowSize + convCoordsX[i]] = curVal;
         }
+        d_intensityOut[blockIdx.x] = signalSum;
         // 2D index of the max. convolution value
         int maxIdxX = convCoordsX[maxPosIdx];
         int maxIdxY = convCoordsY[maxPosIdx];
