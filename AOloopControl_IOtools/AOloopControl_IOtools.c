@@ -33,6 +33,7 @@
 #include "findspots.h"
 #include "WFScamsim.h"
 #include "WFSmap.h"
+#include "ao188_preprocessor.h"
 
 #include "shs_on_gpu/shs_gpu_ref.h"
 #include "shs_on_gpu/shs_gpu.h"
@@ -59,6 +60,7 @@ static errno_t init_module_CLI()
     CLIADDCMD_AOloopControl_IOtools__WFScamsim();
     CLIADDCMD_AOloopControl_IOtools__WFSmap();
     CLIADDCMD_AOloopControl_IOtools__findspots();
+    CLIADDCMD_AOloopControl_IOtools__AO188Preproc();
 
     // SHS evaluation on a GPU
     CLIADDCMD_AOloopControl_IOtools__recordShsRefGPU();
