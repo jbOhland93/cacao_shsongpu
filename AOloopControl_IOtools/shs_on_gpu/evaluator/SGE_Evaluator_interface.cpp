@@ -21,8 +21,19 @@ extern "C"
         delete (SGE_Evaluator*) p;
     }
 
-    errno_t SGEE_eval_do(SGEEHandle p, int64_t useAbsoluteReference)
+    errno_t SGEE_eval_do(
+        SGEEHandle p,
+        int64_t useAbsRef,
+        int64_t calcWF,
+        int64_t cpyGradToCPU,
+        int64_t cpyWfToCPU,
+        int64_t cpyIntToCPU)
     {
-        return ((SGE_Evaluator*) p)->evaluateDo(useAbsoluteReference != 0);
+        return ((SGE_Evaluator*) p)->evaluateDo(
+            useAbsRef != 0,
+            calcWF != 0,
+            cpyGradToCPU != 0,
+            cpyWfToCPU != 0,
+            cpyIntToCPU != 0);
     }
 }

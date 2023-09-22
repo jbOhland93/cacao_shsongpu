@@ -21,7 +21,13 @@ SGEEHandle create_SGE_Evaluator(
 void free_SGE_Evaluator(SGEEHandle);
 
 // Do evaluation on available data
-errno_t SGEE_eval_do(SGEEHandle, int64_t useAbsoluteReference);
+errno_t SGEE_eval_do(
+    SGEEHandle p,
+    int64_t useAbsRef,     // Reference will be absolute w.r.t. the MLA grid
+    int64_t calcWF,        // Calculate the WF from the gradient field
+    int64_t cpyGradToCPU,  // Copy the evaluated gradient to the CPU
+    int64_t cpyWfToCPU,    // Copy the WF to the CPU, if reconstructed
+    int64_t cpyIntToCPU);  // Copy the intensity to the CPU
 
 #ifdef __cplusplus
 }

@@ -36,6 +36,7 @@ __global__ void evaluateSpots(
     float* d_refX,
     float* d_refY,
     float shift2gradConst,
+    float outOfRangeDistance,
     float* d_gradOut,
     float* d_intensityOut,
     float* d_debugImage,
@@ -53,6 +54,10 @@ __global__ void evaluateSpots(
     // The reference positions
     float refX = d_refX[blockIdx.x];
     float refY = d_refY[blockIdx.x];
+    // Flag for judging if the spot is tracked well.
+    // If this is set to false during the evaluation, the searching
+    // rectangle will be reset to its initial position.
+    bool measurementValid = true;
 
 // == Chop up dynamic shared memory
     extern __shared__ float shm[];
@@ -203,6 +208,12 @@ __global__ void evaluateSpots(
             // Yes, we overwrite the (GPU-)shared memory camera data, but we don't need it anymore.
             imData[convCoordsY[i]*GL->mWindowSize + convCoordsX[i]] = curVal;
         }
+        // Compare the accumulated signal in the convolution area with the last value.
+        // If the intensity drops suddenly, the measurement nay have lost track
+        // of the spot and is considered invalid.
+        // The searching position will be reset for the next frame in this case.
+        float lastIntensity = d_intensityOut[blockIdx.x];
+        measurementValid = lastIntensity * 0.4 < signalSum;
         d_intensityOut[blockIdx.x] = signalSum;
         // 2D index of the max. convolution value
         int maxIdxX = convCoordsX[maxPosIdx];
@@ -274,20 +285,32 @@ __global__ void evaluateSpots(
         // globalSpotPosition = windowRoot + spotPosInWindow
         // spotShift = globalSpotPosition - ref
         // gradient = spotShift * shift2gradConst
-        d_gradOut[blockIdx.x] =
-            (windowRootX + spotPosXInWindow - refX) * shift2gradConst;
-        d_gradOut[blockIdx.x + gridDim.x] =
-            (windowRootY + spotPosYInWindow - refY) * shift2gradConst;
+        float shiftX = windowRootX + spotPosXInWindow - refX;
+        d_gradOut[blockIdx.x] = shiftX * shift2gradConst;
+        float shiftY = windowRootY + spotPosYInWindow - refY;
+        d_gradOut[blockIdx.x + gridDim.x] = shiftY * shift2gradConst;
+        // If the shift is too large, the measurement may have lost track of the spot
+        // and is considered invalid.
+        // The searching position will be reset for the next frame in this case.
+        if (shiftX > outOfRangeDistance || shiftX < -outOfRangeDistance)
+            measurementValid = false;
+        if (shiftY > outOfRangeDistance || shiftY < -outOfRangeDistance)
+            measurementValid = false;
 
         // Prepare for the next frame:
-        // If the spot drifted out of the center of the tracking rectangle,
+        // If the measurement is invalid, reset the center of the tracking rectangle.
+        // Else, if the spot drifted out of the center of the tracking rectangle,
         // update the window root positions accordingly.
-        if (spotPosXInWindow < ((float)centerIndex))
+        if (!measurementValid)
+            d_windowCentersX[blockIdx.x] = round(refX);
+        else if (spotPosXInWindow < ((float)centerIndex))
             d_windowCentersX[blockIdx.x]--;
         else if (spotPosXInWindow > centerIndex+1.f)
             d_windowCentersX[blockIdx.x]++;
 
-        if (spotPosYInWindow < ((float)centerIndex))
+        if (!measurementValid)
+            d_windowCentersY[blockIdx.x] = round(refY);
+        else if (spotPosYInWindow < ((float)centerIndex))
             d_windowCentersY[blockIdx.x]--;
         else if (spotPosYInWindow > centerIndex+1.f)
             d_windowCentersY[blockIdx.x]++;

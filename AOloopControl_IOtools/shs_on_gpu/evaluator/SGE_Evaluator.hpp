@@ -24,7 +24,12 @@ public:
     ~SGE_Evaluator();
 
     // Triggers the evaluation
-    errno_t evaluateDo(bool useAbsoluteReference);
+    errno_t evaluateDo(
+        bool useAbsRef,     // Reference will be absolute w.r.t. the MLA grid
+        bool calcWF,        // Calculate the WF from the gradient field
+        bool cpyGradToCPU,  // Copy the evaluated gradient to the CPU
+        bool cpyWfToCPU,    // Copy the WF to the CPU, if reconstructed
+        bool cpyIntToCPU);  // Copy the intensity to the CPU
 private:
     std::string m_streamPrefix;
 

@@ -35,6 +35,22 @@ static long     fpi_evaluationOn = -1;
 static int64_t *absRef;
 static long     fpi_absRef = -1;
 
+// Toggle: calculate the WF from the gradient field
+static int64_t *calcWF;
+static long     fpi_calcWF = -1;
+
+// Toggle: copy the evaluated gradient to the CPU
+static int64_t *cpyGradToCPU;
+static long     fpi_cpyGradToCPU = -1;
+
+// Toggle: copy the WF to the CPU, if reconstructed
+static int64_t *cpyWfToCPU;
+static long     fpi_cpyWfToCPU = -1;
+
+// Toggle: copy the intensity to the CPU
+static int64_t *cpyIntToCPU;
+static long     fpi_cpyIntToCPU = -1;
+
 static uint32_t *loopnumber;
 static long      fpi_loopnumber = -1;
 
@@ -89,6 +105,42 @@ static CLICMDARGDEF farg[] =
         &fpi_absRef
     },
     {
+        CLIARG_ONOFF,
+        ".calcWF",
+        "toggle WF reconstruction",
+        "1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &calcWF,
+        &fpi_calcWF
+    },
+    {
+        CLIARG_ONOFF,
+        ".cpyGradToCPU",
+        "toggle copying the gradient to host memory",
+        "1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &cpyGradToCPU,
+        &fpi_cpyGradToCPU
+    },
+    {
+        CLIARG_ONOFF,
+        ".cpyWfToCPU",
+        "toggle copying the WF to host memory",
+        "1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &cpyWfToCPU,
+        &fpi_cpyWfToCPU
+    },
+    {
+        CLIARG_ONOFF,
+        ".cpyIntToCPU",
+        "toggle copying the intensity to host memory",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &cpyIntToCPU,
+        &fpi_cpyIntToCPU
+    },
+    {
         CLIARG_UINT32,
         ".loopnumber",
         "The number of the AO loop, used for stream naming",
@@ -123,6 +175,10 @@ static errno_t customCONFsetup()
         // can toggle while running
         data.fpsptr->parray[fpi_evaluationOn].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_absRef].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_calcWF].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_cpyGradToCPU].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_cpyWfToCPU].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_cpyIntToCPU].fpflag |= FPFLAG_WRITERUN;
     }
 
     // increment counter at every configuration check
@@ -195,12 +251,18 @@ static errno_t help_function()
 
 
 
-static errno_t streamprocess(SGEEHandle evaluator, int64_t useAbsoluteReference)
+static errno_t streamprocess(SGEEHandle evaluator)
 {
     DEBUG_TRACE_FSTART();
     
     // Code
-    errno_t retVal = SGEE_eval_do(evaluator, useAbsoluteReference);
+    errno_t retVal = SGEE_eval_do(
+        evaluator,
+        *absRef,
+        *calcWF,
+        *cpyGradToCPU,
+        *cpyWfToCPU,
+        *cpyIntToCPU);
 
     DEBUG_TRACE_FEXIT();
     return retVal;
@@ -260,7 +322,7 @@ static errno_t compute_function()
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
         if (*evaluationOn)
-            streamprocess(evaluator, *absRef);
+            streamprocess(evaluator);
     }
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 

@@ -32,7 +32,7 @@
 
 // Record and print the time for each evaluation.
 // Note: This includes all debugging and copying processes.
-//#define ENABLE_EVALUATION_TIME_MEASUREMENT
+#define ENABLE_EVALUATION_TIME_MEASUREMENT
 // 0: Evaluation time will be printed to console
 // 1: Evaluation time will be written to SGE_Eval_Times.dat in the current WD.
 #define EVALTIME_PRINT_LOG 1
@@ -74,7 +74,12 @@ SGE_Evaluator::~SGE_Evaluator()
 #endif
 }
 
-errno_t SGE_Evaluator::evaluateDo(bool useAbsoluteReference)
+errno_t SGE_Evaluator::evaluateDo(
+    bool useAbsRef,
+    bool calcWF,
+    bool cpyGradToCPU,
+    bool cpyWfToCPU,
+    bool cpyIntToCPU)
 {
     // Measure the evaluation time
     // (if ENABLE_EVALUATION_TIME_MEASUREMENT is defined)
@@ -84,40 +89,46 @@ errno_t SGE_Evaluator::evaluateDo(bool useAbsoluteReference)
     mp_IHdark->updateGPUCopy();
 
     // Set reference type
-    mp_refManager->setUseAbsReference(useAbsoluteReference);
+    mp_refManager->setUseAbsReference(useAbsRef);
 
     // Kernel call - evaluation happens here!
     evaluateSpots<<<mp_GridLayout->mNumSubapertures,
                     mp_GridLayout->mBlockSize,
                     mp_GridLayout->mShmSize>>>(
-            mp_IHcam->getWriteBuffer(),             //uint16_t* h_imageData,
-            mp_IHdark->getGPUCopy(),                //float* d_darkData,
-            mp_IHcam->mWidth,                       //int imW,
-            mp_GridLayout->getDeviceCopy(),         //SGE_GridLayout* d_GridLayout,
-            mp_refManager->getSearchPosXGPU(),      //int windowCentersX,
-            mp_refManager->getSearchPosYGPU(),      //int windowCentersY,
-            mp_refManager->getKernelBufferGPU(),    //float* d_kernel,
-            mp_refManager->getRefXGPU(),            //float* d_refX
-            mp_refManager->getRefYGPU(),            //float* d_refY
-            mp_refManager->getShiftToGradConstant(),//float shift2gradConst
-            mp_IHgradient->getGPUCopy(),            //float* d_gradOut
-            mp_IHintensity->getGPUCopy(),           //float* d_intensityOut
-            prepareDebugImageDevicePtr(),           //float* d_debugImage
-            mp_d_debug);                            //float* d_debugBuffer
+            mp_IHcam->getWriteBuffer(),              //uint16_t* h_imageData,
+            mp_IHdark->getGPUCopy(),                 //float* d_darkData,
+            mp_IHcam->mWidth,                        //int imW,
+            mp_GridLayout->getDeviceCopy(),          //SGE_GridLayout* d_GridLayout,
+            mp_refManager->getSearchPosXGPU(),       //int windowCentersX,
+            mp_refManager->getSearchPosYGPU(),       //int windowCentersY,
+            mp_refManager->getKernelBufferGPU(),     //float* d_kernel,
+            mp_refManager->getRefXGPU(),             //float* d_refX
+            mp_refManager->getRefYGPU(),             //float* d_refY
+            mp_refManager->getShiftToGradConstant(), //float shift2gradConst
+            (float) mp_refManager->getPixelPitch()/2,//float outOfRangeDistance
+            mp_IHgradient->getGPUCopy(),             //float* d_gradOut
+            mp_IHintensity->getGPUCopy(),            //float* d_intensityOut
+            prepareDebugImageDevicePtr(),            //float* d_debugImage
+            mp_d_debug);                             //float* d_debugBuffer
     // Print error of kernel launch
     printCE(cudaGetLastError());
 
-    // Reconstruct the WF while everything is still on the GPU
-    mp_wfReconstructor->reconstructWavefrontArrGPU_d2d(
-        mp_IHgradient->mNumPx,
-        mp_IHgradient->getGPUCopy(),
-        mp_IHwf->mNumPx,
-        mp_IHwf->getGPUCopy());
+    if (calcWF)
+    { // Reconstruct the WF while everything is still on the GPU
+        mp_wfReconstructor->reconstructWavefrontArrGPU_d2d(
+            mp_IHgradient->mNumPx,
+            mp_IHgradient->getGPUCopy(),
+            mp_IHwf->mNumPx,
+            mp_IHwf->getGPUCopy());
+    }
 
-    // Copy the result (gradient data) from the host to the device
-    mp_IHgradient->updateFromGPU();
-    mp_IHwf->updateFromGPU();
-    mp_IHintensity->updateFromGPU();
+    // Copy the results into host memory
+    if (cpyGradToCPU)
+        mp_IHgradient->updateFromGPU();
+    if (calcWF && cpyWfToCPU)
+        mp_IHwf->updateFromGPU();
+    if (cpyIntToCPU)
+        mp_IHintensity->updateFromGPU();
 
     // If any debug flags are defined, collect data from
     // devide memory and make them accessible / print them

@@ -37,6 +37,7 @@ public:
     float* getRefXGPU();
     float* getRefYGPU();
     float getShiftToGradConstant() { return (float) m_shiftToGradConstant; }
+    double getPixelPitch() { return m_pixelPitch; }
 
 private:
     std::string m_streamPrefix;
