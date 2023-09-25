@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+if [ -z ${FPSLISTADDSCRIPT+x} ]; then
+	printf "\e[1;34m[sourced by cacao-fpslistadd]\e[0m FPS add: evaluate SHS on GPU"
+else
+
+	if [ ! -z "${CACAO_FPSPROC_SHSONGPU_EVAL+x}" ]; then
+		echo "CACAO_FPSPROC_SHSONGPU_EVAL set to ${CACAO_FPSPROC_SHSONGPU_EVAL}"
+
+		if [ "${CACAO_FPSPROC_SHSONGPU_EVAL}" = "ON" ]; then
+            echolog "ON  CACAO_FPSPROC_SHSONGPU_EVAL"
+
+			# FPS name
+			fpsname="shsOnGPU-Eval"
+			fpsarg0="${CACAO_LOOPNUMBER}"
+
+			# FPS full name
+			fpsfname="${fpsname}-${fpsarg0}"
+
+			if grep -q "${fpsname}" fpslist.txt
+			then
+				echolog "Process ${fpsname} already registered - skipping"
+			else
+				echolog "Adding process ${fpsname}"
+				echo "${fpsname}           cacaoio.shsGpuEval     ${fpsarg0}" >> fpslist.txt
+
+				addfpscmdheader
+
+                # Set up process info
+				addfpscmd "setval ${fpsfname}.procinfo.triggermode 3"
+                addfpscmd "setval ${fpsfname}.procinfo.triggersname ${CACAO_SHSSTEAM}"
+                addfpscmd "setval ${fpsfname}.procinfo.loopcntMax -1"
+                # Not sure: addfpscmd "setval ${fpsfname}.procinfo.RTprio 49"
+                # Not sure: addfpscmd "setval ${fpsfname}.procinfo.cset shs"
+
+                # Set input streams
+                addfpscmd "setval ${fpsfname}.ref_name aol8_shsRef_${CACAO_SHSSTEAM}_Ref"
+                addfpscmd "setval ${fpsfname}.shscam ${CACAO_SHSSTEAM}"
+                addfpscmd "setval ${fpsfname}.shsdark ${CACAO_SHSSTEAM}_AVG"
+
+                # Set up other parameters
+                addfpscmd "setval ${fpsfname}.loopnumber ${CACAO_LOOPNUMBER}"
+                addfpscmd "setval ${fpsfname}.loopname ${CACAO_LOOPNAME}"
+			fi
+
+		else
+            echolog "OFF CACAO_FPSPROC_SHSONGPU_EVAL"
+		fi
+
+	else
+		echo "CACAO_FPSPROC_SHSONGPU_EVAL unset"
+	fi
+
+
+fi # end of if [ -z ${FPSLISTADDSCRIPT+x} ]
