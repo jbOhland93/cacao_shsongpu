@@ -1,5 +1,5 @@
 #include "SGE_Evaluator.hpp"
-#include "milkDebugTools.h"
+#include "CLIcore.h"
 
 #include <cuda.h>
 #include <math.h>
