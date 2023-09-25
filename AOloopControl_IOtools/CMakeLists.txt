@@ -79,6 +79,7 @@ set(INCLUDEFILES
 
 
 set(SCRIPTS
+    scripts/cacao-fpslistadd-SHSONGPU_REF
     scripts/cacao-fpslistadd-SHSONGPU_EVAL
     scripts/cacao-avg-stream
     scripts/cacao-setup-logging-fps

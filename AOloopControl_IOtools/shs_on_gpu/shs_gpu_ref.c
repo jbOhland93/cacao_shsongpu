@@ -100,7 +100,7 @@ static CLICMDARGDEF farg[] =
         CLIARG_FLOAT32,
         ".minSpotPrec",
         "Minimum spot precision in urad, for generating a mask",
-        "20.0",
+        "60.0",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &minSpotPrec,
         &fpi_minSpotPrec
@@ -109,7 +109,7 @@ static CLICMDARGDEF farg[] =
         CLIARG_STR,
         ".savingLocation",
         "relative path for saving the reference without trailing slash",
-        ".",
+        "../SHS_REF",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &savingLocation,
         &fpi_savingLocation

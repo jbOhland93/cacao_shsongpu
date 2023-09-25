@@ -51,7 +51,7 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 #       FPS processes to be set up
 # ========================================
 
-
+export CACAO_FPSPROC_SHSONGPU_REF="ON"
 export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
 
 

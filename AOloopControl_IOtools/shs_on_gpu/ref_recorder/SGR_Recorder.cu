@@ -12,6 +12,9 @@ extern "C" {
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 extern "C"
 {
@@ -354,6 +357,16 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         printf("Metadata written to ISIO keywords.\n");
 
         printf("Saving reference fits files ...\n");
+        // Guarantee that saving destination exists
+        struct stat sb;
+        if (!(stat(mSavingLocation.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)))
+            if (mkdir(mSavingLocation.c_str(), 0700) != 0)
+            {
+                mErrDescr = "Error creating saving folder for fits files.";
+                mState = RECSTATE::ERROR;
+                return RETURN_FAILURE;
+            }
+        // Save files
         saveImage(IHspotMask);
         saveImage(IHcpuRef);
         saveImage(IHavgI);
