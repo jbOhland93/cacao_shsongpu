@@ -97,7 +97,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_ONOFF,
-        ".absRef",
+        ".comp.absRef",
         "toggle use of relative/absolute reference",
         "0",
         CLIARG_HIDDEN_DEFAULT,
@@ -106,7 +106,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_ONOFF,
-        ".calcWF",
+        ".comp.calcWF",
         "toggle WF reconstruction",
         "1",
         CLIARG_HIDDEN_DEFAULT,
@@ -115,7 +115,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_ONOFF,
-        ".cpyGradToCPU",
+        ".comp.cpyGradToCPU",
         "toggle copying the gradient to host memory",
         "1",
         CLIARG_HIDDEN_DEFAULT,
@@ -124,7 +124,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_ONOFF,
-        ".cpyWfToCPU",
+        ".comp.cpyWfToCPU",
         "toggle copying the WF to host memory",
         "1",
         CLIARG_HIDDEN_DEFAULT,
@@ -133,7 +133,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_ONOFF,
-        ".cpyIntToCPU",
+        ".comp.cpyIntToCPU",
         "toggle copying the intensity to host memory",
         "0",
         CLIARG_HIDDEN_DEFAULT,

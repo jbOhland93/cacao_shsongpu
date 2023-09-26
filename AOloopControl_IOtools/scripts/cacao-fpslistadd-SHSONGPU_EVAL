@@ -39,6 +39,8 @@ else
                 addfpscmd "setval ${fpsfname}.shsdark ${CACAO_SHSSTEAM}_AVG"
 
                 # Set up other parameters
+				addfpscmd "setval ${fpsfname}.comp.calcWF ON"
+                addfpscmd "setval ${fpsfname}.comp.cpyWfToCPU ON"
                 addfpscmd "setval ${fpsfname}.loopnumber ${CACAO_LOOPNUMBER}"
                 addfpscmd "setval ${fpsfname}.loopname ${CACAO_LOOPNAME}"
 			fi
