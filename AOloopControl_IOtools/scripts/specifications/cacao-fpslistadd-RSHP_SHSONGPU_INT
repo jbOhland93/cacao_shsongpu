@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-if [ ! -z "${CACAO_FPSPROC_RSHP_SHS_GPU_WF+x}" ]; then
-	echo "CACAO_FPSPROC_RSHP_SHS_GPU_WF set to ${CACAO_FPSPROC_RSHP_SHS_GPU_WF}"
+if [ ! -z "${CACAO_FPSPROC_RSHP_SHSONGPU_INT+x}" ]; then
+	echo "CACAO_FPSPROC_RSHP_SHSONGPU_INT set to ${CACAO_FPSPROC_RSHP_SHSONGPU_INT}"
 
-    if [ "${CACAO_FPSPROC_RSHP_SHS_GPU_WF}" = "ON" ]; then
-        echolog "ON  CACAO_FPSPROC_RSHP_SHS_GPU_WF"
+    if [ "${CACAO_FPSPROC_RSHP_SHSONGPU_INT}" = "ON" ]; then
+        echolog "ON  CACAO_FPSPROC_RSHP_SHSONGPU_INT"
 
-        export CACAO_RESHAPE_NAME="WF"
-        export CACAO_RESHAPE_SRC="aol${CACAO_LOOPNUMBER}_shsEval_wfOut"
+        export CACAO_RESHAPE_NAME="Intensity"
+        export CACAO_RESHAPE_SRC="aol${CACAO_LOOPNUMBER}_shsEval_intOut"
 
         # Record the previous state of CACAO_FPSPROC_RESHAPE_1D_PUPIL
         if [ -z "${CACAO_FPSPROC_RESHAPE_1D_PUPIL+x}" ]; then
@@ -28,8 +28,8 @@ if [ ! -z "${CACAO_FPSPROC_RSHP_SHS_GPU_WF+x}" ]; then
         fi
 
     else
-        echolog "OFF CACAO_FPSPROC_RSHP_SHS_GPU_WF"
+        echolog "OFF CACAO_FPSPROC_RSHP_SHSONGPU_INT"
     fi
 else
-    echo "CACAO_FPSPROC_RSHP_SHS_GPU_WF unset"
+    echo "CACAO_FPSPROC_RSHP_SHSONGPU_INT unset"
 fi

@@ -79,13 +79,19 @@ set(INCLUDEFILES
 
 set(SCRIPTS
     scripts/cacao-fpslistadd-AVG_STREAM
+    scripts/cacao-fpslistadd-LOG_STREAM
     scripts/cacao-fpslistadd-RESHAPE_1D_PUPIL
-    scripts/cacao-fpslistadd-RSHP_SHS_GPU_GRAD
-    scripts/cacao-fpslistadd-RSHP_SHS_GPU_INT
-    scripts/cacao-fpslistadd-RSHP_SHS_GPU_WF
     scripts/cacao-fpslistadd-SHSONGPU_EVAL
     scripts/cacao-fpslistadd-SHSONGPU_REF
     scripts/cacao-setup-logging-fps
+    scripts/specifications/cacao-fpslistadd-AVG_SHSONGPU_SHS
+    scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_SHS
+    scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_GRAD
+    scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_WF
+    scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_INT
+    scripts/specifications/cacao-fpslistadd-RSHP_SHSONGPU_GRAD
+    scripts/specifications/cacao-fpslistadd-RSHP_SHSONGPU_INT
+    scripts/specifications/cacao-fpslistadd-RSHP_SHSONGPU_WF
 )
 
 set(LINKLIBS

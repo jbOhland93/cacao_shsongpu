@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-if [ ! -z "${CACAO_FPSPROC_RSHP_SHS_GPU_GRAD+x}" ]; then
-	echo "CACAO_FPSPROC_RSHP_SHS_GPU_GRAD set to ${CACAO_FPSPROC_RSHP_SHS_GPU_GRAD}"
+if [ ! -z "${CACAO_FPSPROC_RSHP_SHSONGPU_GRAD+x}" ]; then
+	echo "CACAO_FPSPROC_RSHP_SHSONGPU_GRAD set to ${CACAO_FPSPROC_RSHP_SHSONGPU_GRAD}"
 
-    if [ "${CACAO_FPSPROC_RSHP_SHS_GPU_GRAD}" = "ON" ]; then
-        echolog "ON  CACAO_FPSPROC_RSHP_SHS_GPU_GRAD"
+    if [ "${CACAO_FPSPROC_RSHP_SHSONGPU_GRAD}" = "ON" ]; then
+        echolog "ON  CACAO_FPSPROC_RSHP_SHSONGPU_GRAD"
 
         export CACAO_RESHAPE_NAME="Gradient"
         export CACAO_RESHAPE_SRC="aol${CACAO_LOOPNUMBER}_shsEval_gradOut"
@@ -28,8 +28,8 @@ if [ ! -z "${CACAO_FPSPROC_RSHP_SHS_GPU_GRAD+x}" ]; then
         fi
 
     else
-        echolog "OFF CACAO_FPSPROC_RSHP_SHS_GPU_GRAD"
+        echolog "OFF CACAO_FPSPROC_RSHP_SHSONGPU_GRAD"
     fi
 else
-    echo "CACAO_FPSPROC_RSHP_SHS_GPU_GRAD unset"
+    echo "CACAO_FPSPROC_RSHP_SHSONGPU_GRAD unset"
 fi

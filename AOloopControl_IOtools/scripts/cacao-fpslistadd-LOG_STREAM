@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+if [ -z ${FPSLISTADDSCRIPT+x} ]; then
+	printf "\e[1;34m[sourced by cacao-fpslistadd]\e[0m FPS add: log a stream into fits cubes"
+else
+
+	if [ ! -z "${CACAO_FPSPROC_LOG_STREAM+x}" ]; then
+		echo "CACAO_FPSPROC_LOG_STREAM set to ${CACAO_FPSPROC_LOG_STREAM}"
+
+		# Default name
+		if [ ! -z "${CACAO_LOG_NAME+x}" ]; then
+			echo "CACAO_LOG_NAME set to ${CACAO_LOG_NAME}"
+			NAME=$CACAO_LOG_NAME
+		else
+			NAME="<NONE>"
+		fi
+
+		# Default log source
+		if [ ! -z "${CACAO_LOG_SRC+x}" ]; then
+			echo "Logging source set to ${CACAO_LOG_SRC}\n"
+			SRC=$CACAO_LOG_SRC
+		else
+			SRC=$CACAO_WFSSTREAM
+		fi
+
+        # Default log dir
+        if [ ! -z "${CACAO_LOG_DST+x}" ]; then
+            DST="../logdir-${CACAO_LOOPNAME}/$(date +%Y%m%d)/${CACAO_LOG_DST}"
+			echo "Logging directory set to ${DST}\n"
+		else
+			DST="../logdir-${CACAO_LOOPNAME}/$(date +%Y%m%d)/fitsLogPath"
+		fi
+        # Ensure the logging directory exists
+        if [ ! -d "${DST}" ]; then
+            mkdir -p $DST
+        fi
+
+        # Default cubesize
+		if [ ! -z "${CACAO_LOG_CUBESIZE+x}" ]; then
+			echo "CACAO_LOG_CUBESIZE set to ${CACAO_LOG_CUBESIZE}"
+			CSIZE=$CACAO_LOG_CUBESIZE
+		else
+			CSIZE="64"
+		fi
+
+		if [ "${CACAO_FPSPROC_LOG_STREAM}" = "ON" ]; then
+            echolog "ON  CACAO_FPSPROC_LOG_STREAM"
+
+			# FPS name
+			if [ "${NAME}" = "<NONE>" ]; then
+				fpsname="logStream"
+			else
+				fpsname="log-${NAME}"
+			fi
+			fpsarg0="${CACAO_LOOPNUMBER}"
+
+			# FPS full name
+			fpsfname="${fpsname}-${fpsarg0}"
+
+			if grep -q "${fpsname}" fpslist.txt
+			then
+				echolog "Process ${fpsname} already registered - skipping"
+			else
+				echolog "Adding process ${fpsname}"
+				echo "${fpsname}           streamFITSlog     ${fpsarg0}" >> fpslist.txt
+
+				addfpscmdheader
+				
+				# Default number of frames
+				NUM_FRAMES="512"
+
+                # Set up process info
+				addfpscmd "setval ${fpsfname}.procinfo.triggermode 3"
+                addfpscmd "setval ${fpsfname}.procinfo.triggersname ${SRC}"
+                addfpscmd "setval ${fpsfname}.procinfo.loopcntMax -1"
+                addfpscmd "setval ${fpsfname}.procinfo.triggertimeout 60"
+
+                # Set parameters
+                addfpscmd "setval ${fpsfname}.sname ${SRC}"
+                addfpscmd "setval ${fpsfname}.dirname ../${DST}"
+                addfpscmd "setval ${fpsfname}.cubesize ${CSIZE}"
+			fi
+
+		else
+            echolog "OFF CACAO_FPSPROC_LOG_STREAM"
+		fi
+
+	else
+		echo "CACAO_FPSPROC_LOG_STREAM unset"
+	fi
+
+
+fi # end of if [ -z ${FPSLISTADDSCRIPT+x} ]

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+if [ ! -z "${CACAO_FPSPROC_AVG_SHSONGPU_SHS+x}" ]; then
+	echo "CACAO_FPSPROC_AVG_SHSONGPU_SHS set to ${CACAO_FPSPROC_AVG_SHSONGPU_SHS}"
+
+    if [ "${CACAO_FPSPROC_AVG_SHSONGPU_SHS}" = "ON" ]; then
+        echolog "ON  CACAO_FPSPROC_AVG_SHSONGPU_SHS"
+
+        export CACAO_AVG_NAME="SHS"
+        export CACAO_AVG_SRC=$CACAO_SHSSTREAM
+
+        # Record the previous state of CACAO_FPSPROC_AVG_STREAM
+        if [ -z "${CACAO_FPSPROC_AVG_STREAM+x}" ]; then
+            AVG_WAS_DEFINED=false
+        else
+            AVG_WAS_DEFINED=true
+            ORIGINAL_AVG_DEFINITION=$CACAO_FPSPROC_AVG_STREAM
+        fi
+
+        export CACAO_FPSPROC_AVG_STREAM="ON"
+        source cacao-fpslistadd-AVG_STREAM
+        
+        # Restore prefious state of CACAO_FPSPROC_AVG_STREAM
+        if [ "$AVG_WAS_DEFINED" = true ]; then
+            export CACAO_FPSPROC_AVG_STREAM=$ORIGINAL_AVG_DEFINITION
+        else
+            unset CACAO_FPSPROC_AVG_STREAM
+        fi
+
+    else
+        echolog "OFF CACAO_FPSPROC_AVG_SHSONGPU_SHS"
+    fi
+else
+    echo "CACAO_FPSPROC_AVG_SHSONGPU_SHS unset"
+fi

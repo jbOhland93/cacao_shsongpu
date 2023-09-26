@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+if [ ! -z "${CACAO_FPSPROC_LOG_SHSONGPU_GRAD+x}" ]; then
+	echo "CACAO_FPSPROC_LOG_SHSONGPU_GRAD set to ${CACAO_FPSPROC_LOG_SHSONGPU_GRAD}"
+
+    if [ "${CACAO_FPSPROC_LOG_SHSONGPU_GRAD}" = "ON" ]; then
+        echolog "ON  CACAO_FPSPROC_LOG_SHSONGPU_GRAD"
+
+        # Parameters
+		CACAO_LOG_NAME="Gradient"
+		CACAO_LOG_SRC="aol${CACAO_LOOPNUMBER}_shsEval_gradOut"
+        CACAO_LOG_DST="fitsLogGrad"
+		CACAO_LOG_CUBESIZE=4096
+
+        # Record the previous state of CACAO_FPSPROC_LOG_STREAM
+        if [ -z "${CACAO_FPSPROC_LOG_STREAM+x}" ]; then
+            RESHAPE_WAS_DEFINED=false
+        else
+            RESHAPE_WAS_DEFINED=true
+            ORIGINAL_RESHAPE_DEFINITION=$CACAO_FPSPROC_LOG_STREAM
+        fi
+
+        export CACAO_FPSPROC_LOG_STREAM="ON"
+        source cacao-fpslistadd-LOG_STREAM
+        
+        # Restore prefious state of CACAO_FPSPROC_LOG_STREAM
+        if [ "$RESHAPE_WAS_DEFINED" = true ]; then
+            export CACAO_FPSPROC_LOG_STREAM=$ORIGINAL_RESHAPE_DEFINITION
+        else
+            unset CACAO_FPSPROC_LOG_STREAM
+        fi
+
+    else
+        echolog "OFF CACAO_FPSPROC_LOG_SHSONGPU_GRAD"
+    fi
+else
+    echo "CACAO_FPSPROC_LOG_SHSONGPU_GRAD unset"
+fi

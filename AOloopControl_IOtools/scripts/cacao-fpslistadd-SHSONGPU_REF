@@ -28,17 +28,18 @@ else
 
                 # Set up process info
 				addfpscmd "setval ${fpsfname}.procinfo.triggermode 3"
-                addfpscmd "setval ${fpsfname}.procinfo.triggersname ${CACAO_SHSSTEAM}"
+                addfpscmd "setval ${fpsfname}.procinfo.triggersname ${CACAO_SHSSTREAM}"
                 # Setting default number of frames for reference
                 addfpscmd "setval ${fpsfname}.procinfo.loopcntMax 32"
                 # Not sure: addfpscmd "setval ${fpsfname}.procinfo.RTprio 49"
                 # Not sure: addfpscmd "setval ${fpsfname}.procinfo.cset shs"
 
                 # Set input streams
-                addfpscmd "setval ${fpsfname}.in_name ${CACAO_SHSSTEAM}"
-                addfpscmd "setval ${fpsfname}.dark ${CACAO_SHSSTEAM}_AVG"
+                addfpscmd "setval ${fpsfname}.in_name ${CACAO_SHSSTREAM}"
+                addfpscmd "setval ${fpsfname}.dark ${CACAO_SHSSTREAM}_AVG"
 
                 # Set up other parameters
+				addfpscmd "setval ${fpsfname}.savingLocation ../../logdir-${CACAO_LOOPNAME}/$(date +%Y%m%d)/shsRef"
                 addfpscmd "setval ${fpsfname}.loopnumber ${CACAO_LOOPNUMBER}"
                 addfpscmd "setval ${fpsfname}.loopname ${CACAO_LOOPNAME}"
 			fi
