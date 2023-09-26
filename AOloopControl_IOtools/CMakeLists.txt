@@ -79,8 +79,12 @@ set(INCLUDEFILES
 
 
 set(SCRIPTS
-    scripts/cacao-fpslistadd-SHSONGPU_REF
+    scripts/cacao-fpslistadd-RESHAPE_1D_PUPIL
+    scripts/cacao-fpslistadd-RSHP_SHS_GPU_GRAD
+    scripts/cacao-fpslistadd-RSHP_SHS_GPU_INT
+    scripts/cacao-fpslistadd-RSHP_SHS_GPU_WF
     scripts/cacao-fpslistadd-SHSONGPU_EVAL
+    scripts/cacao-fpslistadd-SHSONGPU_REF
     scripts/cacao-avg-stream
     scripts/cacao-setup-logging-fps
     scripts/cacao-setup-reshape-fps

@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+if [ -z ${FPSLISTADDSCRIPT+x} ]; then
+	printf "\e[1;34m[sourced by cacao-fpslistadd]\e[0m FPS add: reshape a 1D image into a 2D pupil mask"
+else
+
+	if [ ! -z "${CACAO_FPSPROC_RESHAPE_1D_PUPIL+x}" ]; then
+		echo "CACAO_FPSPROC_RESHAPE_1D_PUPIL set to ${CACAO_FPSPROC_RESHAPE_1D_PUPIL}"
+
+        if [ ! -z "${CACAO_RESHAPE_NAME+x}" ]; then
+            echo "CACAO_RESHAPE_NAME set to ${CACAO_RESHAPE_NAME}"
+
+            if [ ! -z "${CACAO_RESHAPE_SRC+x}" ]; then
+                echo "CACAO_RESHAPE_SRC set to ${CACAO_RESHAPE_SRC}"
+            
+                if [ "${CACAO_FPSPROC_RESHAPE_1D_PUPIL}" = "ON" ]; then
+                    echolog "ON  CACAO_FPSPROC_RESHAPE_1D_PUPIL"
+
+                    # FPS name
+                    fpsname="reshape-${CACAO_RESHAPE_NAME}"
+                    fpsarg0="${CACAO_LOOPNUMBER}"
+
+                    # FPS full name
+                    fpsfname="${fpsname}-${fpsarg0}"
+
+                    if grep -q "${fpsname}" fpslist.txt
+                    then
+                        echolog "Process ${fpsname} already registered - skipping"
+                    else
+                        echolog "Adding process ${fpsname}"
+                        echo "${fpsname}           cacaoio.pupilReshape     ${fpsarg0}" >> fpslist.txt
+
+                        addfpscmdheader
+
+                        # Set up process info
+                        addfpscmd "setval ${fpsfname}.procinfo.triggermode 3"
+                        addfpscmd "setval ${fpsfname}.procinfo.triggersname ${CACAO_RESHAPE_SRC}"
+                        addfpscmd "setval ${fpsfname}.procinfo.loopcntMax -1"
+
+                        # Set input streams
+                        addfpscmd "setval ${fpsfname}.input_name ${CACAO_RESHAPE_SRC}"
+                        addfpscmd "setval ${fpsfname}.mask_name aol8_shsRef_${CACAO_SHSSTEAM}_Mask"
+                    fi
+
+                else
+                    echolog "OFF CACAO_FPSPROC_RESHAPE_1D_PUPIL"
+                fi
+            
+            else
+                echo "CACAO_RESHAPE_SRC unset"
+            fi
+        else
+            echo "CACAO_RESHAPE_NAME unset"
+        fi
+
+	else
+		echo "CACAO_FPSPROC_RESHAPE_1D_PUPIL unset"
+	fi
+
+
+fi # end of if [ -z ${FPSLISTADDSCRIPT+x} ]
