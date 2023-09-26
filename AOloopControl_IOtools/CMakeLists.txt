@@ -85,11 +85,7 @@ set(SCRIPTS
     scripts/cacao-fpslistadd-RSHP_SHS_GPU_WF
     scripts/cacao-fpslistadd-SHSONGPU_EVAL
     scripts/cacao-fpslistadd-SHSONGPU_REF
-    scripts/cacao-avg-stream
     scripts/cacao-setup-logging-fps
-    scripts/cacao-setup-reshape-fps
-    scripts/cacao-setup-shs-gpu-eval-fps
-    scripts/cacao-setup-shs-gpu-ref-fps
 )
 
 set(LINKLIBS
