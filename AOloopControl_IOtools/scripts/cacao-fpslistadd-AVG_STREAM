@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+if [ -z ${FPSLISTADDSCRIPT+x} ]; then
+	printf "\e[1;34m[sourced by cacao-fpslistadd]\e[0m FPS add: evaluate SHS on GPU"
+else
+
+	if [ ! -z "${CACAO_FPSPROC_AVG_STREAM+x}" ]; then
+		echo "CACAO_FPSPROC_AVG_STREAM set to ${CACAO_FPSPROC_AVG_STREAM}"
+
+		if [ "${CACAO_FPSPROC_AVG_STREAM}" = "ON" ]; then
+            echolog "ON  CACAO_FPSPROC_AVG_STREAM"
+
+			# FPS name
+			fpsname="avgStream"
+			fpsarg0="${CACAO_LOOPNUMBER}"
+
+			# FPS full name
+			fpsfname="${fpsname}-${fpsarg0}"
+
+			if grep -q "${fpsname}" fpslist.txt
+			then
+				echolog "Process ${fpsname} already registered - skipping"
+			else
+				echolog "Adding process ${fpsname}"
+				echo "${fpsname}           streamave     ${fpsarg0}" >> fpslist.txt
+
+				addfpscmdheader
+				
+				# Default number of frames
+				NUM_FRAMES="512"
+				# Default avg stream
+				if [ ! -z "${CACAO_AVG_SRC+x}" ]; then
+					echo "Averaging source set to ${CACAO_AVG_SRC}\n"
+					SRC=$CACAO_AVG_SRC
+				else
+					SRC=$CACAO_WFSSTREAM
+				fi
+
+                # Set up process info
+				addfpscmd "setval ${fpsfname}.procinfo.triggermode 3"
+                addfpscmd "setval ${fpsfname}.procinfo.triggersname ${SRC}"
+                addfpscmd "setval ${fpsfname}.procinfo.loopcntMax ${NUM_FRAMES}"
+
+                # Set parameters
+                addfpscmd "setval ${fpsfname}.in_name ${SRC}"
+                addfpscmd "setval ${fpsfname}.outave_name ${SRC}_AVG"
+                addfpscmd "setval ${fpsfname}.NBcoadd ${NUM_FRAMES}"
+				addfpscmd "setval ${fpsfname}.comp.ave ON"
+			fi
+
+		else
+            echolog "OFF CACAO_FPSPROC_AVG_STREAM"
+		fi
+
+	else
+		echo "CACAO_FPSPROC_AVG_STREAM unset"
+	fi
+
+
+fi # end of if [ -z ${FPSLISTADDSCRIPT+x} ]

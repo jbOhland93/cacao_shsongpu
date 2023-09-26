@@ -77,8 +77,8 @@ set(INCLUDEFILES
     shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.hpp    
 )
 
-
 set(SCRIPTS
+    scripts/cacao-fpslistadd-AVG_STREAM
     scripts/cacao-fpslistadd-RESHAPE_1D_PUPIL
     scripts/cacao-fpslistadd-RSHP_SHS_GPU_GRAD
     scripts/cacao-fpslistadd-RSHP_SHS_GPU_INT
