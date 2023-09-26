@@ -33,7 +33,7 @@ export CACAO_LOOPRUNDIR="${CACAO_LOOPNAME}-rundir"
 # input SHS stream
 # TODO: follow naming convention
 # TODO: implement changable names in ximea acquisition program
-export CACAO_SHSSTEAM="ximeaCam"
+export CACAO_SHSSTREAM="ximeaCam"
 
 # input WFS stream (equals result of SHS evaluation in this case)
 export CACAO_WFSSTREAM="aol${CACAO_LOOPNUMBER}_shsEval_wfOut"
@@ -51,8 +51,31 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 #       FPS processes to be set up
 # ========================================
 
+## Darkframe recording
+# Average the stream specified in CACAO_SHSSTREAM
+export CACAO_FPSPROC_AVG_SHSONGPU_SHS="ON"
+
+## SHS Evaluation
+# Record a reference for the SHS
 export CACAO_FPSPROC_SHSONGPU_REF="ON"
+# Evaluate SHS images on GPU, based on the recorded reference
 export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
+
+## Pupil reshaping of evaluation outputs for monitoring
+## Note: Only works if streams are transferred into host memory.
+##       Change that in the evaluation fps under .comp
+# Reshape the gradient
+export CACAO_FPSPROC_RSHP_SHSONGPU_GRAD="ON"
+# Reshape the wavefront
+export CACAO_FPSPROC_RSHP_SHSONGPU_WF="ON"
+# Reshape the intensity
+export CACAO_FPSPROC_RSHP_SHSONGPU_INT="ON"
+
+## Logging of various streams
+export CACAO_FPSPROC_LOG_SHSONGPU_SHS="OFF"
+export CACAO_FPSPROC_LOG_SHSONGPU_GRAD="OFF"
+export CACAO_FPSPROC_LOG_SHSONGPU_WF="ON"
+export CACAO_FPSPROC_LOG_SHSONGPU_INT="OFF"
 
 
 # DM combination
