@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+#!/usr/bin/env bash
+
+# Check if the user is root
+if [ "$EUID" -eq 0 ]; then
+  echo "Please do not run as root as the tmux session will be invisible otherwise."
+  exit 1
+fi
+
+source cacaovars.*.bash
+
+SESSION_NAME="shsCam-${CACAO_LOOPNUMBER}"
+COMMANDPATH="/home/artao-user/c++Projects/ximea-xib-64-2-milk/build/"
+COMMAND="./xiB-64-2-milk"
+CPU_SET_NAME="xicam"
+REAL_TIME_PRIORITY="49"
+CAMSTREAM="${MILK_SHM_DIR}/ximeaCam.im.shm"
+LINKSTREAM="${MILK_SHM_DIR}/aol${CACAO_LOOPNUMBER}_shsCam.im.shm"
+
+# Check if the tmux session already exists
+tmux has-session -t "$SESSION_NAME" 2>/dev/null
+
+if [ $? != 0 ]; then
+  echo "Creating new session ${SESSION_NAME}"
+  tmux new-session -d -s "$SESSION_NAME"
+else
+  echo "Session ${SESSION_NAME} already exists. Skipping creation."
+fi
+
+# Check if the real-time process is already running
+PID=$(pgrep -f "$COMMAND")
+
+if [ -n "$PID" ]; then
+  echo "Real-time process is already running with PID $PID. Skipping launch."
+else
+  echo "Launching real-time process."
+  tmux send-keys -t "$SESSION_NAME" "cd $COMMANDPATH" C-m
+  tmux send-keys -t "$SESSION_NAME" "$COMMAND &" C-m
+  tmux send-keys -t "$SESSION_NAME" "fg" C-m
+  sleep 2
+
+  # Recheck the PID after launch
+  PID=$(pgrep -f "$COMMAND")
+
+  # Apply real-time priority and move to CPU set
+  echo "Applying real-time priority to PID $PID"
+  sudo chrt -r -p "$REAL_TIME_PRIORITY" "$PID"
+  echo "Moving PID $PID to CPU set $CPU_SET_NAME"
+  sudo cset proc -m -p "$PID" -t "$CPU_SET_NAME"
+fi
+
+# Link the streams
+if [ ! -L "$LINKSTREAM" ]; then
+  echo "Creating symlink to camstream in oder to match naming conventions."
+  ln -s $CAMSTREAM $LINKSTREAM
+else
+  echo "Camstream symlink already exists."
+fi
+
+# Finish the script
+echo "Please attach to the session in order to control the camera using:"
+echo "tmux a -t $SESSION_NAME"
