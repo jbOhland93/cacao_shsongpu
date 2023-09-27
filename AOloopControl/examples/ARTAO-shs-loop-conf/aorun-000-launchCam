@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-#!/usr/bin/env bash
+# Script to launch the ximea camera control. This script:
+#   - creates a dedicated tmux session
+#   - launches the camera control inside the session
+#   - moves the process to its dedicated cset and applies a RTprio
+#   - generates a symlink to the output stream to maintain naming conventions
 
 # Check if the user is root
 if [ "$EUID" -eq 0 ]; then
@@ -58,6 +62,6 @@ else
   echo "Camstream symlink already exists."
 fi
 
-# Finish the script
+# End script
 echo "Please attach to the session in order to control the camera using:"
 echo "tmux a -t $SESSION_NAME"
