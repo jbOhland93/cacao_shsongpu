@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
-# Script to launch the ximea camera control. This script:
+# Script to launch the Dynamic Optics DM control. This script:
 #   - creates a dedicated tmux session
-#   - launches the camera control inside the session
+#   - launches the DM control inside the session
 #   - moves the process to its dedicated cset and applies a RTprio
-#   - generates a symlink to the output stream to maintain naming conventions
 
 # Check if the user is root
 if [ "$EUID" -eq 0 ]; then
@@ -14,13 +13,12 @@ fi
 
 source cacaovars.*.bash
 
-SESSION_NAME="shsCam-${CACAO_LOOPNUMBER}"
-COMMANDPATH="/home/artao-user/c++Projects/ximea-xib-64-2-milk/build/"
-COMMAND="./xiB-64-2-milk"
-CPU_SET_NAME="xicam"
+SESSION_NAME="DO_DM-${CACAO_LOOPNUMBER}"
+COMMANDPATH="/home/artao-user/c++Projects/milk-2-dynamic-optics-dm/build"
+COMMAND="./milk-2-dynamic-optics-dm"
+CPU_SET_NAME="dmdrv"
 REAL_TIME_PRIORITY="49"
-CAMSTREAM="${MILK_SHM_DIR}/ximeaCam.im.shm"
-LINKSTREAM="${MILK_SHM_DIR}/aol${CACAO_LOOPNUMBER}_shsCam.im.shm"
+INPUT_STREAM="dm01disp"
 
 # Check if the tmux session already exists
 tmux has-session -t "$SESSION_NAME" 2>/dev/null
@@ -40,7 +38,7 @@ if [ -n "$PID" ]; then
 else
   echo "Launching real-time process."
   tmux send-keys -t "$SESSION_NAME" "cd $COMMANDPATH" C-m
-  tmux send-keys -t "$SESSION_NAME" "$COMMAND &" C-m
+  tmux send-keys -t "$SESSION_NAME" "$COMMAND $INPUT_STREAM &" C-m
   tmux send-keys -t "$SESSION_NAME" "fg" C-m
   sleep 2
 
@@ -52,14 +50,6 @@ else
   sudo chrt -r -p "$REAL_TIME_PRIORITY" "$PID"
   echo "Moving PID $PID to CPU set $CPU_SET_NAME"
   sudo cset proc -m -p "$PID" -t "$CPU_SET_NAME"
-fi
-
-# Link the streams
-if [ ! -L "$LINKSTREAM" ]; then
-  echo "Creating symlink to camstream in oder to match naming conventions."
-  ln -s $CAMSTREAM $LINKSTREAM
-else
-  echo "Camstream symlink already exists."
 fi
 
 # End script
