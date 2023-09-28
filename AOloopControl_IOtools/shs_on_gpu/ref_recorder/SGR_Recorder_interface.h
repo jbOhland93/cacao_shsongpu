@@ -18,7 +18,6 @@ SGRRHandle create_SGR_Recorder(
     float mlaPitch,             // Distance of the microlenses
     float mlaDist,              // Distance of the microlenses to the cam chip
     uint32_t numSamples,        // number of samples to be recorded
-    const char* streamPrefix,   // Prefix for the ISIO streams
     const char* savingLocation, // Prefix for the ISIO streams
     int64_t visualize);         // If true, additional streams for
                                 // visual testing are generated

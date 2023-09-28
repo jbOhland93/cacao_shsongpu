@@ -260,24 +260,6 @@ static errno_t compute_function()
     }
     
     // === SET UP REF RECORDER HERE
-    // Allocate a buffer for the stream prefix
-    const char* funPrefix = "_shsRef_";
-    uint8_t fpLen = strlen(funPrefix);
-    char loopPrefix[(int)((
-        3                           // "aol"
-        +ceil(log10(*loopnumber))   // loopnumber
-        //+1                          // "_"
-        // +lnLen                      // loopname
-        +fpLen                      // function prefix
-        )*sizeof(char))];
-    // Build the stream prefix
-    sprintf(loopPrefix, "%s%d%s",
-        "aol",
-        *loopnumber,
-        //"_",
-        //loopname,
-        funPrefix);
-    // Construct the recorder
     SGRRHandle recorder = create_SGR_Recorder(
         inimg.im,
         darkimg.im,
@@ -285,7 +267,6 @@ static errno_t compute_function()
         *mlapitch,
         *shsfoclen,
         loopcnt,
-        loopPrefix,
         savingLocation,
         *visualize);
     printf("\nSGR recorder status: %s", get_SGRR_state_descr(recorder));

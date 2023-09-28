@@ -22,7 +22,6 @@ public:
         float mlaPitch_um,   // Distance of the microlenses in um
         float mlaDist_um,    // Distance of the microlenses to the cam chip in um
         uint32_t numSamples, // number of samples to be recorded
-        const char* streamPrefix = "", // Prefix for the ISIO streams
         const char* savingLocation = ".", // Location for saving fits
         bool visualize = false); // If true, additional streams for
                                  // visual testing are generated
@@ -57,8 +56,7 @@ private:
     // If visualization is true, additional output images will
     // be writen to SHM in order to verify the process
     bool mVisualize = true;
-    std::string mTeststreamPrefix; // Prefix for visualization streams
-    std::string mStreamPrefix; // Prefix for all streams to be generated
+    std::string mTeststreamPrefix = "Vrfy-"; // Prefix for visualization streams
     std::string mSavingLocation; // Folder for saving reference files
 
 // SHS parameters
@@ -105,8 +103,6 @@ private:
     std::string mTmpStreamName{ "" };
 
 // Helper functions ==
-    // Prepends the stream prefix to the given name
-    const char* makeStreamname(const char* name);
     // Prepends the test stream prefix to the given name
     const char* makeTestStreamname(const char* name);
     // Analyzes the first frame and sets up the analysis

@@ -28,9 +28,9 @@ else
 
 			# FPS name
 			if [ "${NAME}" = "<NONE>" ]; then
-				fpsname="avgerageStream"
+				fpsname="averageStream"
 			else
-				fpsname="avgerage-${NAME}"
+				fpsname="average-${NAME}"
 			fi
 			fpsarg0="${CACAO_LOOPNUMBER}"
 

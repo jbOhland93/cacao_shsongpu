@@ -10,7 +10,6 @@ extern "C"
         float mlaPitch,
         float mlaDist,
         uint32_t numSamples,
-        const char* streamPrefix,
         const char* savingLocation,
         int64_t visualize)
     {
@@ -21,7 +20,6 @@ extern "C"
             mlaPitch,
             mlaDist,
             numSamples,
-            streamPrefix,
             savingLocation,
             visualize > 0);
     }

@@ -34,11 +34,12 @@ else
                 # Not sure: addfpscmd "setval ${fpsfname}.procinfo.cset shs"
 
                 # Set input streams
-                addfpscmd "setval ${fpsfname}.ref_name aol8_shsRef_${CACAO_SHSSTREAM}_Ref"
+                addfpscmd "setval ${fpsfname}.ref_name ${CACAO_SHSSTREAM}_RefPositions"
                 addfpscmd "setval ${fpsfname}.shscam ${CACAO_SHSSTREAM}"
                 addfpscmd "setval ${fpsfname}.shsdark ${CACAO_SHSSTREAM}_AVG"
 
                 # Set up other parameters
+				addfpscmd "setval ${fpsfname}.on_off ON"
 				addfpscmd "setval ${fpsfname}.comp.calcWF ON"
                 addfpscmd "setval ${fpsfname}.comp.cpyWfToCPU ON"
                 addfpscmd "setval ${fpsfname}.loopnumber ${CACAO_LOOPNUMBER}"
