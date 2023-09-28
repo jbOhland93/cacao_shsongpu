@@ -112,7 +112,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_FLOAT32,
         ".WFSrefcmult",
-        "mult*(wfsref-wfszpo)+(1-mult)*wfsrefc -> wfsrefc",
+        "mult*(wfsref-wfszpo)+(1-mult)*wfsref  -> wfsrefc",
         "1.0",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &WFSrefcmult,
