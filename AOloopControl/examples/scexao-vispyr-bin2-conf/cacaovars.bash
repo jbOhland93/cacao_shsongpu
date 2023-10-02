@@ -154,7 +154,8 @@ export CACAO_FPSPROC_MKPF="ON"
 export CACAO_FPSPROC_APPLYPF="ON"
 
 
-
+export CACAO_FPSPROC_SCICROPMASK="OFF"
+export CACAO_FPSPROC_WFSCROPMASK="OFF"
 
 
 # User-provided additions to cacaovars

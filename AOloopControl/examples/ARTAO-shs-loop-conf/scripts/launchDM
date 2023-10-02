@@ -13,15 +13,15 @@ fi
 
 source cacaovars.*.bash
 
-SESSION_NAME="DO_DM-${CACAO_LOOPNUMBER}"
+export SESSION_NAME="DO_DM-${CACAO_LOOPNUMBER}"
 COMMANDPATH="/home/artao-user/c++Projects/milk-2-dynamic-optics-dm/build"
 COMMAND="./milk-2-dynamic-optics-dm"
 CPU_SET_NAME="dmdrv"
 REAL_TIME_PRIORITY="49"
-INPUT_STREAM="dm01disp"
+INPUT_STREAM="aol${CACAO_LOOPNUMBER}_dmdisp"
 
 # Check if the tmux session already exists
-tmux has-session -t "$SESSION_NAME" 2>/dev/null
+tmux has-session -t "${SESSION_NAME}" 2>/dev/null
 
 if [ $? != 0 ]; then
   echo "Creating new session ${SESSION_NAME}"
@@ -51,6 +51,9 @@ else
   echo "Moving PID $PID to CPU set $CPU_SET_NAME"
   sudo cset proc -m -p "$PID" -t "$CPU_SET_NAME"
 fi
+
+# Exit on return values != 0
+set -e
 
 # End script
 echo "Please attach to the session in order to control the camera using:"

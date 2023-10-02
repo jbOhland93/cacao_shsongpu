@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Take an SHS reference for SHS evaluation on a GPU"
+
+
+# Extended description
+MSextdescr="Reads from aolX_shsCam stream
+Subtracts aolX_shsCam_AVG stream
+Locates spots for a given number of frames
+Creates reference positions, a mask and an intensity map"
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+
+NBframe="64"
+MSopt+=( "n:nbframe:set_NBframe:nbframe[long]:set number of frames" )
+function set_NBframe() {
+	NBframe="$1"
+}
+
+source milk-argparse
+
+
+# Checking stream
+streamcheckOK="OK"
+checkstream aol${CACAO_LOOPNUMBER}_shsCam
+
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	cacaomsglog "ERROR streamcheck"
+	exit 1
+fi
+
+cacaomsglog "NBframe ${NBframe}"
+
+mkdir -p conf
+datestring="$(date -u +'%Y-%m-%dT%H:%M:%S.%NZ')"
+
+
+# Checking FPS
+FPScheckOK="OK"
+checkFPSON CACAO_FPSPROC_SHSONGPU_REF ${CACAO_FPSPROC_SHSONGPU_REF}
+echo "FPScheckOK = ${FPScheckOK}"
+
+if [ ${FPScheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] FPS check failed"
+	exit 1
+fi
+
+set +e
+
+cacaomsglog "START"
+
+sendFPScmd "setval shsOnGPU-Ref-${CACAO_LOOPNUMBER}.procinfo.loopcntMax ${NBframe}"
+sendFPScmd "confwupdate shsOnGPU-Ref-${CACAO_LOOPNUMBER}"
+sendFPScmd "runstart shsOnGPU-Ref-${CACAO_LOOPNUMBER}"
+
+cacaomsglog "END"

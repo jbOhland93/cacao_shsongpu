@@ -83,6 +83,10 @@ mkdir -p ./conf/RMmodesWFS/
 
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.procinfo.loopcntMax ${NBloop}"
 
+echo "########### CACAO_WFSRATE = ${CACAO_WFSFRATE}"
+echo "########### CACAO_LATENCYHARDWFR = ${CACAO_LATENCYHARDWFR}"
+
+
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.WFSfrequ ${CACAO_WFSFRATE}"
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.hardwlatfr ${CACAO_LATENCYHARDWFR}"
 

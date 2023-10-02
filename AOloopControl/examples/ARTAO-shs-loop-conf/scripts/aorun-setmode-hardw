@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Connect to the ARTAO hardware."
+
+
+# Extended description
+MSextdescr="Script to connect to the ARTAO hardware.
+This includes
+   - the XIMEA highspeed PCIe camera, which is the SHS of the loop and
+   - the Dynamic Optics bimorph DM.
+This script will launch two external processes which enable the control of the devices.
+Each process will be launched in a dedicated tmux session and shielded cpu set with RTprio."
+
+# Check cacaovars
+(source cacao-check-cacaovars)
+exit_code=$?
+
+# Check the exit code and exit if non-zero
+if [ $exit_code -ne 0 ]; then
+  exit $exit_code
+fi
+
+# Cacao logging function without messing up our environment
+logmsg() {
+    (
+        # Store message as positional parameters ($1, $1 ...) will be
+        # absorbed by the source call and cause errors in cacao-check-cacaovars
+        LOGGING_MESSAGE=$1
+        set --
+        source cacao-check-cacaovars 1>/dev/null
+        cacaomsglog "$LOGGING_MESSAGE"
+    ) 2>&1 | grep -v "SCRIPT"
+}
+
+set +e
+
+printf "\n"
+logmsg "START"
+printf "\n"
+
+logmsg "Launching camera control process ..."
+source scripts/launchCam
+logmsg "Camera control process launched. Connect via"
+logmsg "tmux a -t ${SESSION_NAME}"
+
+printf "\n"
+echo $PWD
+set +e
+logmsg "Launching DM control process ..."
+set +e
+source scripts/launchDM
+logmsg "DM control process launched. Connect via"
+logmsg "tmux a -t ${SESSION_NAME}"
+
+printf "\n"
+logmsg "END"
+
+set -e

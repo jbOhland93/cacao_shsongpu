@@ -52,45 +52,40 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 #       FPS processes to be set up
 # ========================================
 
-## Darkframe recording
-# Average the stream specified in CACAO_SHSSTREAM
-# fps name: average-SHS-8
-#export CACAO_FPSPROC_AVG_SHSONGPU_SHS="ON"
-
 ## SHS Evaluation
 # Record a reference for the SHS
 # fps name: shsOnGPU-Ref-8
-#export CACAO_FPSPROC_SHSONGPU_REF="ON"
+export CACAO_FPSPROC_SHSONGPU_REF="ON"
 # Evaluate SHS images on GPU, based on the recorded reference
 # fps name: shsOnGPU-Eval-8
-#export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
+export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
 
 ## Pupil reshaping of evaluation outputs for monitoring
 ## Note: Only works if streams are transferred into host memory.
 ##       Change that in the evaluation fps under .comp
 # Reshape the gradient
 # fps name: reshape-Gradient-8
-##export CACAO_FPSPROC_RSHP_SHSONGPU_GRAD="ON"
+export CACAO_FPSPROC_RSHP_SHSONGPU_GRAD="ON"
 # Reshape the wavefront
 # fps name: reshape-Wavefront-8
-##export CACAO_FPSPROC_RSHP_SHSONGPU_WF="ON"
+export CACAO_FPSPROC_RSHP_SHSONGPU_WF="ON"
 # Reshape the intensity
 # fps name: reshape-Intensity-8
-##export CACAO_FPSPROC_RSHP_SHSONGPU_INT="ON"
+export CACAO_FPSPROC_RSHP_SHSONGPU_INT="ON"
 
 ## Logging of various streams
 # Log SHS camera
 # fps name: log-SHS-8
-##export CACAO_FPSPROC_LOG_SHSONGPU_SHS="OFF"
+export CACAO_FPSPROC_LOG_SHSONGPU_SHS="OFF"
 # Log extracted gradient field (1D, two lines)
 # fps name: log-Gradient-8
-##export CACAO_FPSPROC_LOG_SHSONGPU_GRAD="OFF"
+export CACAO_FPSPROC_LOG_SHSONGPU_GRAD="OFF"
 # Log reconstructed wavefront (1D)
 # fps name: log-Wavefront-8
-##export CACAO_FPSPROC_LOG_SHSONGPU_WF="ON"
+export CACAO_FPSPROC_LOG_SHSONGPU_WF="ON"
 # Log SHS intensity (1D)
 # fps name: log-Intensity-8
-##export CACAO_FPSPROC_LOG_SHSONGPU_INT="OFF"
+export CACAO_FPSPROC_LOG_SHSONGPU_INT="OFF"
 
 
 # DM combination
@@ -115,8 +110,8 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 #   aol8_dmZP6      ->dm01disp10
 #   aol8_dmturb     ->dm01disp10
 #   aol8_dmZP7      ->dm01disp11
-#export CACAO_FPSPROC_DMCH2DISP="ON"
-#export CACAO_FPSPROC_DMCH2DISPSIM="ON"
+export CACAO_FPSPROC_DMCH2DISP="ON"
+export CACAO_FPSPROC_DMCH2DISPSIM="ON"
 
 # DM turbulence simulator
 # Outputs:

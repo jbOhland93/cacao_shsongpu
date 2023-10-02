@@ -14,7 +14,7 @@ fi
 
 source cacaovars.*.bash
 
-SESSION_NAME="shsCam-${CACAO_LOOPNUMBER}"
+export SESSION_NAME="shsCam-${CACAO_LOOPNUMBER}"
 COMMANDPATH="/home/artao-user/c++Projects/ximea-xib-64-2-milk/build/"
 COMMAND="./xiB-64-2-milk"
 CPU_SET_NAME="xicam"
@@ -23,7 +23,7 @@ CAMSTREAM="${MILK_SHM_DIR}/ximeaCam.im.shm"
 LINKSTREAM="${MILK_SHM_DIR}/aol${CACAO_LOOPNUMBER}_shsCam.im.shm"
 
 # Check if the tmux session already exists
-tmux has-session -t "$SESSION_NAME" 2>/dev/null
+tmux has-session -t "${SESSION_NAME}" 2>/dev/null
 
 if [ $? != 0 ]; then
   echo "Creating new session ${SESSION_NAME}"
@@ -33,7 +33,9 @@ else
 fi
 
 # Check if the real-time process is already running
+echo $COMMAND
 PID=$(pgrep -f "$COMMAND")
+echo $PID
 
 if [ -n "$PID" ]; then
   echo "Real-time process is already running with PID $PID. Skipping launch."
@@ -53,6 +55,9 @@ else
   echo "Moving PID $PID to CPU set $CPU_SET_NAME"
   sudo cset proc -m -p "$PID" -t "$CPU_SET_NAME"
 fi
+
+# Exit on return values != 0
+set -e
 
 # Link the streams
 if [ ! -L "$LINKSTREAM" ]; then
