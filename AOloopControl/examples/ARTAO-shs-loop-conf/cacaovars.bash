@@ -55,15 +55,15 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 ## Darkframe recording
 # Average the stream specified in CACAO_SHSSTREAM
 # fps name: average-SHS-8
-export CACAO_FPSPROC_AVG_SHSONGPU_SHS="ON"
+#export CACAO_FPSPROC_AVG_SHSONGPU_SHS="ON"
 
 ## SHS Evaluation
 # Record a reference for the SHS
 # fps name: shsOnGPU-Ref-8
-export CACAO_FPSPROC_SHSONGPU_REF="ON"
+#export CACAO_FPSPROC_SHSONGPU_REF="ON"
 # Evaluate SHS images on GPU, based on the recorded reference
 # fps name: shsOnGPU-Eval-8
-export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
+#export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
 
 ## Pupil reshaping of evaluation outputs for monitoring
 ## Note: Only works if streams are transferred into host memory.
@@ -115,8 +115,14 @@ export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
 #   aol8_dmZP6      ->dm01disp10
 #   aol8_dmturb     ->dm01disp10
 #   aol8_dmZP7      ->dm01disp11
-##export CACAO_FPSPROC_DMCH2DISP="ON"
+#export CACAO_FPSPROC_DMCH2DISP="ON"
 #export CACAO_FPSPROC_DMCH2DISPSIM="ON"
+
+# DM turbulence simulator
+# Outputs:
+#   dmstream = Stream into DM comb
+#       default: aol8_dmturb - links to dm01disp10
+export CACAO_FPSPROC_DMATMTURB="ON"
 
 
 
@@ -138,7 +144,7 @@ export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
 #   wfsstream = WF
 #       default: aol8_wfsim.
 #       Links to actual WF output. No need to change.
-##export CACAO_FPSPROC_MLAT="ON"
+export CACAO_FPSPROC_MLAT="ON"
 
 
 # Acquire WFS stream
@@ -184,7 +190,7 @@ export CACAO_FPSPROC_SHSONGPU_EVAL="ON"
 #               Feeding this back into the corrected reference effectively
 #               removes these residuals from the measured WF.
 #               The pace for the backfeeing is given by WFSrefcgain.
-export CACAO_FPSPROC_ACQUWFS="ON"
+#export CACAO_FPSPROC_ACQUWFS="ON"
 
 
 # Acquire linear RM
@@ -198,7 +204,7 @@ export CACAO_FPSPROC_ACQUWFS="ON"
 #       Create them by calling the cacao-mkDMpokemodes script.
 #       Default fitsfile will be set by aorun script.
 #   Determine the hardwarelatency
-##export CACAO_FPSPROC_MEASURELINRESP="ON"
+export CACAO_FPSPROC_MEASURELINRESP="ON"
 
 
 
@@ -218,7 +224,7 @@ export CACAO_FPSPROC_ACQUWFS="ON"
 #       default: ../conf/CMmodesDM/CMmodesDM.fits
 #   CModesWFS = control matrix WFS modes
 #       default: ../conf/CMmodesWFS/CMmodesWFS.fits
-##export CACAO_FPSPROC_COMPSTRCM="ON"
+export CACAO_FPSPROC_COMPSTRCM="ON"
 
 
 
