@@ -87,6 +87,8 @@ set(SCRIPTS
     scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_GRAD
     scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_WF
     scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_INT
+    scripts/specifications/cacao-fpslistadd-RSHP_ACQWF_AVG
+    scripts/specifications/cacao-fpslistadd-RSHP_ACQWF_C
     scripts/specifications/cacao-fpslistadd-RSHP_SHSONGPU_GRAD
     scripts/specifications/cacao-fpslistadd-RSHP_SHSONGPU_INT
     scripts/specifications/cacao-fpslistadd-RSHP_SHSONGPU_WF

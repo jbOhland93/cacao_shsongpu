@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+if [ ! -z "${CACAO_FPSPROC_RSHP_ACQWF_C+x}" ]; then
+	echo "CACAO_FPSPROC_RSHP_ACQWF_C set to ${CACAO_FPSPROC_RSHP_ACQWF_C}"
+
+    if [ "${CACAO_FPSPROC_RSHP_ACQWF_C}" = "ON" ]; then
+        echolog "ON  CACAO_FPSPROC_RSHP_ACQWF_C"
+
+        export CACAO_RESHAPE_NAME="WF-Corrected"
+        export CACAO_RESHAPE_SRC="aol${CACAO_LOOPNUMBER}_imWFS2"
+
+        # Record the previous state of CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        if [ -z "${CACAO_FPSPROC_RESHAPE_1D_PUPIL+x}" ]; then
+            RESHAPE_WAS_DEFINED=false
+        else
+            RESHAPE_WAS_DEFINED=true
+            ORIGINAL_RESHAPE_DEFINITION=$CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        fi
+
+        export CACAO_FPSPROC_RESHAPE_1D_PUPIL="ON"
+        source cacao-fpslistadd-RESHAPE_1D_PUPIL
+        
+        # Restore prefious state of CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        if [ "$RESHAPE_WAS_DEFINED" = true ]; then
+            export CACAO_FPSPROC_RESHAPE_1D_PUPIL=$ORIGINAL_RESHAPE_DEFINITION
+        else
+            unset CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        fi
+
+    else
+        echolog "OFF CACAO_FPSPROC_RSHP_ACQWF_C"
+    fi
+else
+    echo "CACAO_FPSPROC_RSHP_ACQWF_C unset"
+fi

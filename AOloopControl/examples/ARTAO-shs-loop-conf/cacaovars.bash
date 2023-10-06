@@ -72,6 +72,12 @@ export CACAO_FPSPROC_RSHP_SHSONGPU_WF="ON"
 # Reshape the intensity
 # fps name: reshape-Intensity-8
 export CACAO_FPSPROC_RSHP_SHSONGPU_INT="ON"
+# Reshape the wavefront after correction
+# fps name: reshape-WF-Corrected-8
+export CACAO_FPSPROC_RSHP_ACQWF_C="ON"
+# Reshape the time-averaged wavefront
+# fps name: reshape-WF-AVG-8
+export CACAO_FPSPROC_RSHP_ACQWF_AVG="ON"
 
 ## Logging of various streams
 # Log SHS camera
@@ -185,7 +191,7 @@ export CACAO_FPSPROC_MLAT="ON"
 #               Feeding this back into the corrected reference effectively
 #               removes these residuals from the measured WF.
 #               The pace for the backfeeing is given by WFSrefcgain.
-#export CACAO_FPSPROC_ACQUWFS="ON"
+export CACAO_FPSPROC_ACQUWFS="ON"
 
 
 # Acquire linear RM

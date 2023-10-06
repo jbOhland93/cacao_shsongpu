@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+if [ ! -z "${CACAO_FPSPROC_RSHP_ACQWF_AVG+x}" ]; then
+	echo "CACAO_FPSPROC_RSHP_ACQWF_AVG set to ${CACAO_FPSPROC_RSHP_ACQWF_AVG}"
+
+    if [ "${CACAO_FPSPROC_RSHP_ACQWF_AVG}" = "ON" ]; then
+        echolog "ON  CACAO_FPSPROC_RSHP_ACQWF_AVG"
+
+        export CACAO_RESHAPE_NAME="WF-AVG"
+        export CACAO_RESHAPE_SRC="aol${CACAO_LOOPNUMBER}_imWFS3"
+
+        # Record the previous state of CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        if [ -z "${CACAO_FPSPROC_RESHAPE_1D_PUPIL+x}" ]; then
+            RESHAPE_WAS_DEFINED=false
+        else
+            RESHAPE_WAS_DEFINED=true
+            ORIGINAL_RESHAPE_DEFINITION=$CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        fi
+
+        export CACAO_FPSPROC_RESHAPE_1D_PUPIL="ON"
+        source cacao-fpslistadd-RESHAPE_1D_PUPIL
+        
+        # Restore prefious state of CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        if [ "$RESHAPE_WAS_DEFINED" = true ]; then
+            export CACAO_FPSPROC_RESHAPE_1D_PUPIL=$ORIGINAL_RESHAPE_DEFINITION
+        else
+            unset CACAO_FPSPROC_RESHAPE_1D_PUPIL
+        fi
+
+    else
+        echolog "OFF CACAO_FPSPROC_RSHP_ACQWF_AVG"
+    fi
+else
+    echo "CACAO_FPSPROC_RSHP_ACQWF_AVG unset"
+fi

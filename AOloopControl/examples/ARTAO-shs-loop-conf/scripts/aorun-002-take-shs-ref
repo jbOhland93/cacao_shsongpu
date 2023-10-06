@@ -60,4 +60,6 @@ sendFPScmd "setval shsOnGPU-Ref-${CACAO_LOOPNUMBER}.procinfo.loopcntMax ${NBfram
 sendFPScmd "confwupdate shsOnGPU-Ref-${CACAO_LOOPNUMBER}"
 sendFPScmd "runstart shsOnGPU-Ref-${CACAO_LOOPNUMBER}"
 
+
+
 cacaomsglog "END"

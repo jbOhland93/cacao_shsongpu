@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Shack-Hartmann Sensor (SHS) evaluation on GPU"
+
+
+# Extended description
+MSextdescr="SHS evaluation on GPU
+
+Floating-window correlation spot detection and wavefront reconstruction.
+Can create gradient, wavefront and intensity outputs.
+"
+
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+MSarg+=( "action:string:action (start/stop/check)" )
+
+
+source milk-argparse
+
+
+ACTION="${inputMSargARRAY[0]}"
+
+
+ACTIONOK=0
+
+
+
+if [ ${ACTION} == "check" ]; then
+	ACTIONOK=1
+fi
+
+# Checking FPS
+FPScheckOK="OK"
+checkFPSON CACAO_FPSPROC_SHSONGPU_EVAL ${CACAO_FPSPROC_SHSONGPU_EVAL}
+echo "FPScheckOK = ${FPScheckOK}"
+
+if [ ${FPScheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] FPS check failed"
+	exit 1
+fi
+
+set +e
+shsEvalRunning=0
+echo "${CACAO_LOOPNUMBER}"
+echo "Check if evaluation process is running. An error message will apear if it doesn't - that's expected."
+pOK=$(ps -alx| grep shsOnGPU-Eval-${CACAO_LOOPNUMBER} | grep RUNSTART | wc -l)
+if [ $pOK -gt 0 ]; then
+	cacaomsglog "Process shsOnGPU-Eval-${CACAO_LOOPNUMBER} is already running"
+	shsEvalRunning=1
+else
+	cacaomsglog "Process shsOnGPU-Eval-${CACAO_LOOPNUMBER} not currently running"
+	shsEvalRunning=0
+fi
+
+
+if [ ${ACTION} == "start" ]; then
+	ACTIONOK=1
+	cacaomsglog "START"
+
+	# ======================================================================
+	# Starting SHS evaluation process
+	# ======================================================================
+	if [ ${shsEvalRunning} == "0" ]; then
+		sendFPScmd "confwupdate shsOnGPU-Eval-${CACAO_LOOPNUMBER}"
+		sendFPScmd "runstart shsOnGPU-Eval-${CACAO_LOOPNUMBER}"
+	else
+		cacaomsglog "Evaluation already running -> nothing to do"
+	fi
+fi
+
+
+if [ ${ACTION} == "stop" ]; then
+	ACTIONOK=1
+	cacaomsglog "STOP"
+	sendFPScmd "runstop shsOnGPU-Eval-${CACAO_LOOPNUMBER}"
+fi
+
+
+
+
+if [ ${ACTIONOK} == 0 ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] ACTION $ACTION undefined"
+	cacaomsglog "ERROR action undefined"
+	exit 1
+fi
+
+
+cacaomsglog "END"
