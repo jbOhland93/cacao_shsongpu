@@ -76,9 +76,11 @@ public:
     std::vector<T> readCircularBufAt(uint32_t x, uint32_t y)
     {
         std::vector<T> v;
+        uint32_t xIm = fromROIxToImX(x);
+        uint32_t yIm = fromROIyToImY(y);
         T* cbBuf = (T*) mp_image->CBimdata;
         for (int i = 0; i < mp_image->md->CBsize; i++)
-            v.push_back(cbBuf[i*mNumPx + m_currentSlice*mWidth*mHeight + y*mWidth + x]);
+            v.push_back(cbBuf[i*mNumPx + m_currentSlice*mWidth*mHeight + yIm*mWidth + xIm]);
         return v;
     }
     
