@@ -178,7 +178,7 @@ static errno_t compute_function()
     SGEReshapeHandle reshaper = create_SGE_Reshaper(
         inputimg.im,
         maskimg.im,
-        linesAsSlices);
+        *linesAsSlices);
     printf("== Reshaper constructed. Ready for reshaping.\n");
     // ===
     
