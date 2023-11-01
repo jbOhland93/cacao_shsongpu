@@ -25,7 +25,7 @@ set(SOURCEFILES
     shs_on_gpu/shs_gpu.c
     shs_on_gpu/shs_gpu_ref.c
     shs_on_gpu/util/GaussianKernel.cu
-    shs_on_gpu/util/ImageHandlerBase.cu
+    shs_on_gpu/util/ImageHandler2DBase.cu
     shs_on_gpu/util/OneDGaussianFit.cpp
     shs_on_gpu/util/SpotFitter.cpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructor.cpp
@@ -61,8 +61,8 @@ set(INCLUDEFILES
     shs_on_gpu/util/atypeUtil.hpp
     shs_on_gpu/util/CudaUtil.hpp
     shs_on_gpu/util/GaussianKernel.hpp
-    shs_on_gpu/util/ImageHandler.hpp
-    shs_on_gpu/util/ImageHandlerBase.hpp
+    shs_on_gpu/util/ImageHandler2D.hpp
+    shs_on_gpu/util/ImageHandler2DBase.hpp
     shs_on_gpu/util/OneDGaussianFit.hpp
     shs_on_gpu/util/Point.hpp
     shs_on_gpu/util/Rectangle.hpp
