@@ -14,7 +14,7 @@ typedef void * SGEReshapeHandle;
 SGEReshapeHandle create_SGE_Reshaper(
     IMAGE* input,           // Stream with SHS reference positions
     IMAGE* mask,            // Stream of the SHS camera
-    int64_t linesAsSlices); // Reshape lines into slices instead of stacked if != 0
+    int64_t linesAsSlices); // Reshape lines into slices instead of stacked if > 0
     
 // Desctructor
 void free_SGE_Reshaper(SGEReshapeHandle);
