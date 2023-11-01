@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Loads a fits-file into shm, reshapes all slices and saves it to disk again."
+
+
+# Extended description
+MSextdescr="FITS based reshaping of 1D image slices into 2d image slices, using the wfs mask in shm.
+
+The given FITS file will temporarily be loaded into shm.
+The wfs mask is assumed to be in shm already, following the naming convention of aolx_shsCam_RefMask.
+Each data point of the 1D slices will be assigned to a pixel in a 2D image.
+"
+
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+MSarg+=( "fitsfile:string:fitsfile" )
+
+source milk-argparse
+
+FITS_PATH="${inputMSargARRAY[0]}"
+if [ ! -f "$FITS_PATH" ]; then
+  echo "Error: File '$FITS_PATH' not found."
+  exit 1
+fi
+
+# Split the file path into folder path and file name
+FITS_FOLDER=$(dirname "$FITS_PATH")
+FITS_NAME=$(basename "$FITS_PATH")
+
+streamcheckOK="OK"
+IMMASK=aol${CACAO_LOOPNUMBER}_shsCam_RefMask
+checkstream $IMMASK
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	exit 1
+fi
+
+# Function to wait for a file to exist
+wait_for_shmim() {
+  local shmim="$1"
+
+  # Loop until the file exists
+  while [ ! -f "$MILK_SHM_DIR/$shmim" ]; do
+    sleep 0.1 # Wait for 5 seconds before checking again
+  done
+}
+
+set +e
+echo "${CACAO_LOOPNUMBER}"
+
+cd $FITS_FOLDER
+
+# FITS image, loaded locally
+LOCAL_FITS_IM=FITSIM
+# FITS image, copied to SHM
+SHM_FITS_IM=FITSSHMIM
+# Reshaped image
+SHM_RESHAPE=${SHM_FITS_IM}_reshape
+# Destination fits file for the reshaped image
+FITS_RESHAPE="${FITS_NAME%.fits}_rshp.fits"
+
+MILK_QUIET=1 milk-all << EOF
+mload cacaoAOloopControlIOtools
+
+# Load fits to SHM
+loadfits ${FITS_NAME} ${LOCAL_FITS_IM}
+imcpshm ${LOCAL_FITS_IM} ${SHM_FITS_IM}
+
+# Read mask
+readshmim ${IMMASK}
+
+# Reshape image
+cacaoio.pupilReshape .linesAsSlices ON
+cacaoio.pupilReshape ${SHM_FITS_IM} ${IMMASK}
+
+# Save reshaped image to fits
+readshmim ${SHM_RESHAPE}
+saveFITS ${SHM_RESHAPE} ${FITS_RESHAPE}
+
+# Destroy generated images
+rmshmim ${SHM_FITS_IM}
+rmshmim ${SHM_RESHAPE}
+
+exitCLI
+EOF
