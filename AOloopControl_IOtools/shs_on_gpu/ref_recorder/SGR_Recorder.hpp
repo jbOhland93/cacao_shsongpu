@@ -2,7 +2,7 @@
 #define SGR_RECORDER_HPP
 
 #include "SGR_ReferenceKW.hpp"
-#include "../util/ImageHandler.hpp"
+#include "../util/ImageHandler2D.hpp"
 #include "../util/GaussianKernel.hpp"
 #include <errno.h>
 #include <string>
@@ -78,19 +78,19 @@ private:
     uint32_t mNumPixels;
 
     // Stream for the result of mpInput-mpDark
-    spImageHandler(float) mIHdarkSubtract;
+    spImHandler2D(float) mIHdarkSubtract;
     // Binary image, thresholded from darkSubtract
-    spImageHandler(uint8_t) mIHthresh;
+    spImHandler2D(uint8_t) mIHthresh;
     // Stream for erosion of thresh to estimate spot positions
-    spImageHandler(uint8_t) mIHerode;
+    spImHandler2D(uint8_t) mIHerode;
     // Stream for the convolution of darkSubtract and kernel
-    spImageHandler(float) mIHconvolution;
+    spImHandler2D(float) mIHconvolution;
     // Recording stream for the spot intensities
-    spImageHandler(float) mIHintensityREC;
+    spImHandler2D(float) mIHintensityREC;
     // Recording stream for the spot positions
-    spImageHandler(float) mIHposREC;
+    spImHandler2D(float) mIHposREC;
     // A display for the search grid. Only used if mVisualize == true.
-    spImageHandler(float) mIHgridVisualization;
+    spImHandler2D(float) mIHgridVisualization;
 
 // Preliminary search grid, used for calibration
     Point<uint32_t> mGridSize;

@@ -208,16 +208,16 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         intensityName.append(intensityNameSuffix);
 
         // Initialize the  image handlers for the evaluation
-        spImageHandler(float) IHavgI = ImageHandler<float>::newImageHandler(
+        spImHandler2D(float) IHavgI = ImageHandler2D<float>::newImageHandler2D(
             intensityName, mGridSize.mX, mGridSize.mY, 1, 10);
         IHavgI->setPersistent(true);
-        spImageHandler(float) IHavgP = ImageHandler<float>::newImageHandler(
+        spImHandler2D(float) IHavgP = ImageHandler2D<float>::newImageHandler2D(
             "7_eval-AVGpos", mGridSize.mX*2, mGridSize.mY);
         IHavgP->setPersistent(mVisualize);
-        spImageHandler(float) IHstdDvP = ImageHandler<float>::newImageHandler(
+        spImHandler2D(float) IHstdDvP = ImageHandler2D<float>::newImageHandler2D(
             "7_eval-STDDVpos", mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
-        spImageHandler(uint8_t) IHspotMask = ImageHandler<uint8_t>::newImageHandler(
+        spImHandler2D(uint8_t) IHspotMask = ImageHandler2D<uint8_t>::newImageHandler2D(
             maskName, mGridSize.mX, mGridSize.mY, 1, 10);
         IHspotMask->setPersistent(true);
 
@@ -295,7 +295,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // The reference is an image with 2 lines:
         // First line holds the average X positions of the spots within the mask
         // Second line holds the average Y positions of the spots within the mask
-        spImageHandler(float) IHcpuRef = ImageHandler<float>::newImageHandler(
+        spImHandler2D(float) IHcpuRef = ImageHandler2D<float>::newImageHandler2D(
             refName, numOfValidSpots, 2, 1, 10);
         IHcpuRef->setPersistent(true);
 
@@ -315,10 +315,10 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         printf("Reference generated.\n\t=> Stream name: %s\n", IHcpuRef->getImage()->name);
 
         // Set keywords to streams - include relevant metadata
-        std::vector<std::shared_ptr<ImageHandlerBase>> IHs;
-        IHs.push_back(std::static_pointer_cast<ImageHandlerBase>(IHavgI));
-        IHs.push_back(std::static_pointer_cast<ImageHandlerBase>(IHspotMask));
-        IHs.push_back(std::static_pointer_cast<ImageHandlerBase>(IHcpuRef));
+        std::vector<std::shared_ptr<ImageHandler2DBase>> IHs;
+        IHs.push_back(std::static_pointer_cast<ImageHandler2DBase>(IHavgI));
+        IHs.push_back(std::static_pointer_cast<ImageHandler2DBase>(IHspotMask));
+        IHs.push_back(std::static_pointer_cast<ImageHandler2DBase>(IHcpuRef));
         for (int i = 0; i < IHs.size(); i++)
         {
             try
@@ -439,7 +439,7 @@ void SGR_Recorder::prepareSpotFinding()
     printf("\n\n=== SGR_Recorder: Preparing spot finding ===\n\n");
     // Set up the dark subtraction image handler
     try {
-        mIHdarkSubtract = newImHandlerFrmIm(float, "1-darksub", mpInput);
+        mIHdarkSubtract = newImHandler2DFrmIm(float, "1-darksub", mpInput);
         mIHdarkSubtract->setPersistent(mVisualize);
         mImgWidth = mIHdarkSubtract->mWidth;
         mImgHeight = mIHdarkSubtract->mHeight;
@@ -474,7 +474,7 @@ void SGR_Recorder::prepareSpotFinding()
 
     // Apply thresholding according to the statistics
     try {
-        mIHthresh = newImHandlerFrmIm(uint8_t, "2-thresh", mpInput);
+        mIHthresh = newImHandler2DFrmIm(uint8_t, "2-thresh", mpInput);
         mIHthresh->setPersistent(mVisualize);
         mIHthresh->cpy_thresh(mIHdarkSubtract->getImage(), thresh);
     }
@@ -489,7 +489,7 @@ void SGR_Recorder::prepareSpotFinding()
     // Get spot center estimates by erosion of the thresholded image
     std::vector<Point<uint32_t>> particlesFiltered;
     try {
-        mIHerode = newImHandlerFrmIm(uint8_t, "3-erode", mIHthresh->getImage());
+        mIHerode = newImHandler2DFrmIm(uint8_t, "3-erode", mIHthresh->getImage());
         mIHerode->setPersistent(mVisualize);
         std::vector<Point<uint32_t>> particles;
         while (mIHerode->erode(5, true, &particles) > 0);
@@ -538,17 +538,17 @@ void SGR_Recorder::prepareSpotFinding()
     
     try {
         // Prepare the convolution image stream
-        mIHconvolution = newImHandlerFrmIm(float, "5-convol", mpInput);
+        mIHconvolution = newImHandler2DFrmIm(float, "5-convol", mpInput);
         mIHconvolution->setPersistent(mVisualize);
 
         // Prepare the averaging image streams for intensity and positions
-        mIHintensityREC = ImageHandler<float>::newImageHandler(
+        mIHintensityREC = ImageHandler2D<float>::newImageHandler2D(
                 "6-recordAmp",
                 mGridSize.mX, mGridSize.mY, 1,
                 0,
                 mSamplesExpected);
         mIHintensityREC->setPersistent(mVisualize);
-        mIHposREC = ImageHandler<float>::newImageHandler(
+        mIHposREC = ImageHandler2D<float>::newImageHandler2D(
                 "6-recordSpotPos",
                 mGridSize.mX*2, mGridSize.mY, 1,
                 0,
@@ -622,7 +622,7 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
 
     if (mVisualize)
     {
-        mIHgridVisualization = newImHandlerFrmIm(float,
+        mIHgridVisualization = newImHandler2DFrmIm(float,
             makeTestStreamname("gridShow"), mIHdarkSubtract->getImage());
         mIHgridVisualization->setPersistent(true);
         // Copy the SHS image as visual reference

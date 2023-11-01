@@ -1,3 +1,4 @@
+// A class for handling 2D image streams with support of slices in the 3rd dimension.
 // This class provides basic functionality for the more specific SGR_ImageHandler
 
 #ifndef IMAGEHANDLERBASE_HPP
@@ -11,8 +12,8 @@
 #include "ImageStreamIO/ImageStreamIO.h"
 #include "../util/Rectangle.hpp"
 
-#define spIHBase std::shared_ptr<ImageHandlerBase>
-class ImageHandlerBase
+#define spIHBase std::shared_ptr<ImageHandler2DBase>
+class ImageHandler2DBase
 {
 public:
     // The width of the image
@@ -24,7 +25,7 @@ public:
     // The total number of pixels in the image
     const uint32_t mNumPx;
 
-    ~ImageHandlerBase();
+    ~ImageHandler2DBase();
 
     // Returns the image object
     IMAGE* getImage() { return mp_image; }
@@ -71,7 +72,7 @@ protected:
     Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
 
     // Ctor
-    ImageHandlerBase(uint32_t width, uint32_t height, uint32_t depth = 1);
+    ImageHandler2DBase(uint32_t width, uint32_t height, uint32_t depth = 1);
     // Updates locally stored image data for quick access
     // Has to be called by decendants
     void updateImMetadata();
@@ -102,7 +103,7 @@ protected:
     {
         uint8_t naxis = im->md->naxis;
         if (naxis > 3)
-            throw std::runtime_error("ImageHandlerBase::imSizeToVector: dimensionality cannot be greater than 3.");
+            throw std::runtime_error("ImageHandler2DBase::imSizeToVector: dimensionality cannot be greater than 3.");
         uint32_t* size = im->md->size;
 
         std::vector<uint32_t> sVec;
@@ -119,7 +120,7 @@ private:
     int m_gpuCopySize = 0;
     void* mp_d_imData = nullptr;
 
-    ImageHandlerBase(); // No publically available default ctor
+    ImageHandler2DBase(); // No publically available default ctor
 
     // Returns the index of the keyword with the corresponding name.
     // If no corresponding keyword has been found, this method returns -1.
@@ -132,16 +133,16 @@ private:
 // Template declarations
 
 template <typename U>
-inline void ImageHandlerBase::setKeyword(int index, std::string name, U data)
+inline void ImageHandler2DBase::setKeyword(int index, std::string name, U data)
 {
-    throw std::runtime_error("ImageHandlerBase::setKeyword: Only int64_t, double and string supported.");
+    throw std::runtime_error("ImageHandler2DBase::setKeyword: Only int64_t, double and string supported.");
 }
 
 template <>
-inline void ImageHandlerBase::setKeyword(int index, std::string name, int64_t data)
+inline void ImageHandler2DBase::setKeyword(int index, std::string name, int64_t data)
 {
     if (index >= mp_image->md->NBkw)
-        throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
+        throw std::runtime_error("ImageHandler2DBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'L';
@@ -150,10 +151,10 @@ inline void ImageHandlerBase::setKeyword(int index, std::string name, int64_t da
 }
 
 template <>
-inline void ImageHandlerBase::setKeyword(int index, std::string name, double data)
+inline void ImageHandler2DBase::setKeyword(int index, std::string name, double data)
 {
     if (index >= mp_image->md->NBkw)
-        throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
+        throw std::runtime_error("ImageHandler2DBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'D';
@@ -162,10 +163,10 @@ inline void ImageHandlerBase::setKeyword(int index, std::string name, double dat
 }
 
 template <>
-inline void ImageHandlerBase::setKeyword(int index, std::string name, std::string data)
+inline void ImageHandler2DBase::setKeyword(int index, std::string name, std::string data)
 {
     if (index >= mp_image->md->NBkw)
-        throw std::runtime_error("ImageHandlerBase::setKeyword: Index is larger than the number of available keywords.");
+        throw std::runtime_error("ImageHandler2DBase::setKeyword: Index is larger than the number of available keywords.");
     IMAGE_KEYWORD kw;
     std::strncpy(kw.name, name.c_str(), name.length());
     kw.type = 'S';
@@ -177,13 +178,13 @@ inline void ImageHandlerBase::setKeyword(int index, std::string name, std::strin
 
 
 template <typename U>
-inline bool ImageHandlerBase::getKeyword(std::string name, U* dst)
+inline bool ImageHandler2DBase::getKeyword(std::string name, U* dst)
 {
-    throw std::runtime_error("ImageHandlerBase::getKeyword: Only int64_t, double and string supported.");
+    throw std::runtime_error("ImageHandler2DBase::getKeyword: Only int64_t, double and string supported.");
 }
 
 template <>
-inline bool ImageHandlerBase::getKeyword(std::string name, int64_t* dst)
+inline bool ImageHandler2DBase::getKeyword(std::string name, int64_t* dst)
 {
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
@@ -199,7 +200,7 @@ inline bool ImageHandlerBase::getKeyword(std::string name, int64_t* dst)
 }
 
 template <>
-inline bool ImageHandlerBase::getKeyword(std::string name, double* dst)
+inline bool ImageHandler2DBase::getKeyword(std::string name, double* dst)
 {
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)
@@ -215,7 +216,7 @@ inline bool ImageHandlerBase::getKeyword(std::string name, double* dst)
 }
 
 template <>
-inline bool ImageHandlerBase::getKeyword(std::string name, std::string* dst)
+inline bool ImageHandler2DBase::getKeyword(std::string name, std::string* dst)
 {
     int kwIdx = getKWindex(name);
     if (kwIdx >= 0)

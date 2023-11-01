@@ -1,7 +1,7 @@
 #ifndef GAUSSIANKERNEL_HPP
 #define GAUSSIANKERNEL_HPP
 
-#include "ImageHandler.hpp"
+#include "ImageHandler2D.hpp"
 
 #define spGKernel std::shared_ptr<GaussianKernel>
 
@@ -19,7 +19,7 @@ public:
     float getStdDev() { return mStandardDeviation; }
     size_t getKernelSize() { return mKernelSize; }
     // Returns the image handler of the kernel
-    spImageHandler(float) getKernelIH() { return mp_IHkernel; }
+    spImHandler2D(float) getKernelIH() { return mp_IHkernel; }
 
     // Returns a pointer to a kernel copy on the device.
     // If no copy exists yet, the data is copied to the device.
@@ -31,7 +31,7 @@ private:
     float mStandardDeviation;
     size_t mKernelSize;
     int mKernelCenter;
-    spImageHandler(float) mp_IHkernel;
+    spImHandler2D(float) mp_IHkernel;
     bool mPersistent;
 
     float* d_kernel = nullptr;

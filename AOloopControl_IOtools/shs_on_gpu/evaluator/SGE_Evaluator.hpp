@@ -3,7 +3,7 @@
 
 #include "SGE_ReferenceManager.hpp"
 #include "SGE_GridLayout.hpp"
-#include "../util/ImageHandler.hpp"
+#include "../util/ImageHandler2D.hpp"
 #include "../wf_reconstructor/modalwfreconstructor.hpp"
 #include <errno.h>
 #include <iostream>
@@ -33,19 +33,19 @@ public:
 private:
     std::string m_streamPrefix;
 
-    spImageHandler(uint16_t) mp_IHcam;
-    spImageHandler(float) mp_IHdark;
+    spImHandler2D(uint16_t) mp_IHcam;
+    spImHandler2D(float) mp_IHdark;
     spRefManager mp_refManager;
     spGridLayout mp_GridLayout;
 
     // The image holding the WF gradient after the image eval
-    spImageHandler(float) mp_IHgradient;
+    spImHandler2D(float) mp_IHgradient;
     // The image holding the intensity over the pupil
-    spImageHandler(float) mp_IHintensity;
+    spImHandler2D(float) mp_IHintensity;
     // The modal WF reconstructor on the pupil of the reference
     spWFReconst mp_wfReconstructor;
     // The image holding the reconstructed WF
-    spImageHandler(float) mp_IHwf;
+    spImHandler2D(float) mp_IHwf;
 
     // Setup functions
     void setupCudaEnvironment(int deviceID);
@@ -57,7 +57,7 @@ private:
 
     // Members for debugging
     cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing
-    spImageHandler(float) mp_IHdebug = nullptr; // Debug image in host memory
+    spImHandler2D(float) mp_IHdebug = nullptr; // Debug image in host memory
     int m_debugBufSize; // Size of the debug buffer
     float* mp_h_debug;  // Debug array in host memory
     float* mp_d_debug;  // Debug array in device memory

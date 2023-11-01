@@ -1,26 +1,28 @@
 // This is a generic image handler, i.e. it should work for all datatypes.
+// All functionality is implemented with 2D image streams in mind
+// with support of slices in the 3rd dimension.
 // Generic specifications cannot be written into the compile unit (.cpp)
 // Therefore, this is a long and inline heavy file. Sorry for that.
 
 #ifndef IMAGEHANDLER_HPP
 #define IMAGEHANDLER_HPP
 
-#include "ImageHandlerBase.hpp"
+#include "ImageHandler2DBase.hpp"
 #include "atypeUtil.hpp"
 #include <memory>
 #include <vector>
 #include <limits>
 
-#define spImageHandler(type) std::shared_ptr<ImageHandler<type>>
-#define newImHandlerFrmIm(type, name, image) ImageHandler<type>::newHandlerfrmImage(name, image)
+#define spImHandler2D(type) std::shared_ptr<ImageHandler2D<type>>
+#define newImHandler2DFrmIm(type, name, image) ImageHandler2D<type>::newHandler2DfrmImage(name, image)
 
 template <typename T>
-class ImageHandler : public ImageHandlerBase
+class ImageHandler2D : public ImageHandler2DBase
 {
 public:
 
 // ========== FACTORY FUNCTIONS ==========
-    static spImageHandler(T) newImageHandler(
+    static spImHandler2D(T) newImageHandler2D(
         std::string name,
         size_t width,
         size_t height,
@@ -28,14 +30,14 @@ public:
         uint8_t numKeywords = 0,
         uint32_t circBufSize = 0);
     // Creates a new image of the same size, but converts the data.
-    static spImageHandler(T) newHandlerfrmImage(
+    static spImHandler2D(T) newHandler2DfrmImage(
         std::string name,
         IMAGE* im,
         uint8_t numKeywords = 0,
         uint32_t circBufSize = 0);
     // Creates an image handler that operates on an already existing image.
     // Throws an error if the generic type does not match the image type.
-    static spImageHandler(T) newHandlerAdoptImage(std::string imName);
+    static spImHandler2D(T) newHandler2DAdoptImage(std::string imName);
 
 // ========== IMAGE HANDLING ==========    
     // Copies the data from im and converts to own datatype
@@ -119,8 +121,8 @@ public:
 private:
     T* mp_data = nullptr;
 // ========== CONSTRUCTORS ==========
-    ImageHandler(); // No publically available default ctor
-    ImageHandler(
+    ImageHandler2D(); // No publically available default ctor
+    ImageHandler2D(
         std::string name,
         uint32_t width,
         uint32_t height,
@@ -128,7 +130,7 @@ private:
         uint8_t atype,
         uint8_t numKeywords,
         uint32_t circBufSize = 10);
-    ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, uint32_t sizeZ);
+    ImageHandler2D(std::string imName, uint32_t sizeX, uint32_t sizeY, uint32_t sizeZ);
 
 // ========== HELPER FUNCTIONS ==========
     
@@ -146,7 +148,7 @@ private:
 
 // Default implementation, throws an error
 template <typename T>
-inline spImageHandler(T) ImageHandler<T>::newImageHandler(
+inline spImHandler2D(T) ImageHandler2D<T>::newImageHandler2D(
     std::string name,
     size_t width,
     size_t height,
@@ -155,14 +157,14 @@ inline spImageHandler(T) ImageHandler<T>::newImageHandler(
     uint32_t circBufSize)
 {
     throw std::runtime_error(
-        "ImageHandler<T>::newImageHandler: Type not supported.");
+        "ImageHandler2D<T>::newImageHandler2D: Type not supported.");
     return nullptr;
 }
 
 // Defining specific factory functions via a makro ... way shorter!
 #define IH_FACTORY(type, atype)                                         \
 template <>                                                             \
-inline spImageHandler(type) ImageHandler<type>::newImageHandler(        \
+inline spImHandler2D(type) ImageHandler2D<type>::newImageHandler2D(        \
     std::string name,                                                   \
     size_t width,                                                       \
     size_t height,                                                      \
@@ -170,7 +172,7 @@ inline spImageHandler(type) ImageHandler<type>::newImageHandler(        \
     uint8_t numKeywords,                                                \
     uint32_t circBufSize)                                               \
 {                                                                       \
-    spImageHandler(type) sp(new ImageHandler<type>(                     \
+    spImHandler2D(type) sp(new ImageHandler2D<type>(                     \
         name,                                                           \
         width,                                                          \
         height,                                                         \
@@ -193,35 +195,35 @@ IH_FACTORY(double, _DATATYPE_DOUBLE);
 // ==END== specifications of factory functions ==END==
 
 template <typename T>
-inline spImageHandler(T) ImageHandler<T>::newHandlerfrmImage(
+inline spImHandler2D(T) ImageHandler2D<T>::newHandler2DfrmImage(
         std::string name,
         IMAGE* im,
         uint8_t numKeywords,
         uint32_t circBufSize)
 {
     std::vector<uint32_t> sVec = imSizeToVector(im);
-    spImageHandler(T) spIH = 
-        newImageHandler(name, sVec[0], sVec[1], sVec[2], numKeywords, circBufSize);
+    spImHandler2D(T) spIH = 
+        newImageHandler2D(name, sVec[0], sVec[1], sVec[2], numKeywords, circBufSize);
     spIH->cpy(im);
     return spIH;
 }
 
 template <typename T>
-inline spImageHandler(T) ImageHandler<T>::newHandlerAdoptImage(std::string imName)
+inline spImHandler2D(T) ImageHandler2D<T>::newHandler2DAdoptImage(std::string imName)
 {
     IMAGE im;
     errno_t err = ImageStreamIO_openIm(&im, imName.c_str());
     if (err != 0)
-        throw std::runtime_error("ImageHandler::newHandlerAdoptImage: could not open image.");
+        throw std::runtime_error("ImageHandler2D::newHandlerAdoptImage: could not open image.");
 
     // Check if the call has been done correctly
     uint8_t atypeIm = im.md->datatype;
     uint8_t atypeArg = getAtype<T>();
     if (atypeIm != atypeArg)
-        throw std::runtime_error("ImageHandler::newHandlerAdoptImage: image atype does not match the generic type of this call.");
+        throw std::runtime_error("ImageHandler2D::newHandlerAdoptImage: image atype does not match the generic type of this call.");
     
     std::vector<uint32_t> sVec = imSizeToVector(&im);
-    spImageHandler(T) sp(new ImageHandler<T>(im.name, sVec[0], sVec[1], sVec[2]));
+    spImHandler2D(T) sp(new ImageHandler2D<T>(im.name, sVec[0], sVec[1], sVec[2]));
 
     ImageStreamIO_closeIm(&im);
     return sp;
@@ -230,18 +232,18 @@ inline spImageHandler(T) ImageHandler<T>::newHandlerAdoptImage(std::string imNam
 // ===== specifications for image handling =====
 
 template <typename T>
-inline void ImageHandler<T>::cpy(IMAGE* im)
+inline void ImageHandler2D<T>::cpy(IMAGE* im)
 {   
     // Check image dimension
     if (mDepth == 1 && im->md->naxis > 2)
-        throw std::runtime_error("ImageHandler::cpy: dimension of source image too high.\n");
+        throw std::runtime_error("ImageHandler2D::cpy: dimension of source image too high.\n");
     else if (mDepth > 1 && im->md->naxis != 3)
-        throw std::runtime_error("ImageHandler::cpy: expected three dimensions.\n");
+        throw std::runtime_error("ImageHandler2D::cpy: expected three dimensions.\n");
     
     // Check image sizes
     std::vector<uint32_t> sVec = imSizeToVector(im);
     if (sVec != getSizeVector())
-        throw std::runtime_error("ImageHandler::cpy: Incompatible size of input image.\n");
+        throw std::runtime_error("ImageHandler2D::cpy: Incompatible size of input image.\n");
 
     // Prepare read-buffer
     void* readBuffer;
@@ -256,12 +258,12 @@ inline void ImageHandler<T>::cpy(IMAGE* im)
 }
 
 template <typename T>
-inline void ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
+inline void ImageHandler2D<T>::cpy_subtract(IMAGE* A, IMAGE* B)
 {
     // Check image sizes
     std::vector<uint32_t> sVec = getSizeVector();
     if (sVec != imSizeToVector(A) || sVec != imSizeToVector(B))
-        throw std::runtime_error("ImageHandler::cpy_subtract: Incompatible size of input image(s).\n");
+        throw std::runtime_error("ImageHandler2D::cpy_subtract: Incompatible size of input image(s).\n");
 
     // Prepare buffers
     void* readBufferA;
@@ -280,11 +282,11 @@ inline void ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
 }
 
 template <typename T>
-inline void ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
+inline void ImageHandler2D<T>::cpy_thresh(IMAGE* im, double thresh)
 {
     // Check image sizes
     if (getSizeVector() != imSizeToVector(im))
-        throw std::runtime_error("ImageHandler::cpy_thresh: Incompatible size of input image.\n");
+        throw std::runtime_error("ImageHandler2D::cpy_thresh: Incompatible size of input image.\n");
 
     // Prepare buffer
     void* readBuffer;
@@ -299,11 +301,11 @@ inline void ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
 }
 
 template <typename T>
-inline void ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
+inline void ImageHandler2D<T>::cpy_convolve(IMAGE* A, IMAGE* K)
 {
     // Check image size
     if (getSizeVector() != imSizeToVector(A))
-        throw std::runtime_error("ImageHandler::cpy_convolve: Incompatible size of input A.\n");
+        throw std::runtime_error("ImageHandler2D::cpy_convolve: Incompatible size of input A.\n");
 
     // Prepare buffer
     void* bA;
@@ -354,7 +356,7 @@ inline void ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
 
 // Implementation of ctor
 template<typename T>
-inline ImageHandler<T>::ImageHandler(
+inline ImageHandler2D<T>::ImageHandler2D(
         std::string name,
         uint32_t width,
         uint32_t height,
@@ -363,7 +365,7 @@ inline ImageHandler<T>::ImageHandler(
         uint8_t numKeywords,
         uint32_t circBufSize)
         :
-        ImageHandlerBase(width, height, depth)
+        ImageHandler2DBase(width, height, depth)
 {
     int naxis = mDepth > 1 ? 3 : 2;
     uint32_t * imsize = new uint32_t[naxis]();
@@ -392,8 +394,8 @@ inline ImageHandler<T>::ImageHandler(
 
 // Implementation of adoption ctor
 template<typename T>
-inline ImageHandler<T>::ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, uint32_t sizeZ)
-    : ImageHandlerBase(sizeX, sizeY, sizeZ)
+inline ImageHandler2D<T>::ImageHandler2D(std::string imName, uint32_t sizeX, uint32_t sizeY, uint32_t sizeZ)
+    : ImageHandler2DBase(sizeX, sizeY, sizeZ)
 {
     // Open the image
     ImageStreamIO_openIm(mp_image, imName.c_str());
@@ -405,7 +407,7 @@ inline ImageHandler<T>::ImageHandler(std::string imName, uint32_t sizeX, uint32_
 }
 
 template <typename T>
-uint32_t ImageHandler<T>::erode(uint8_t neighboursToSurvive, bool inPlace, std::vector<Point<uint32_t>>* d)
+uint32_t ImageHandler2D<T>::erode(uint8_t neighboursToSurvive, bool inPlace, std::vector<Point<uint32_t>>* d)
 {
     uint32_t remainingPixels = 0;
     int x;

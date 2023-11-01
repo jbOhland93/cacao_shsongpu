@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <sstream>
 
-SpotFitter::SpotFitter(spImageHandler(float) imageHandler)
+SpotFitter::SpotFitter(spImHandler2D(float) imageHandler)
     : mImageHandler(imageHandler)
 {
 }
@@ -70,8 +70,8 @@ void SpotFitter::makeLineouts(bool forceFullWidth,
     {
         std::string name = streamPrefix;
         name.append("spotLO");
-        spImageHandler(double) lineoutIH =
-            ImageHandler<double>::newImageHandler(
+        spImHandler2D(double) lineoutIH =
+            ImageHandler2D<double>::newImageHandler2D(
                 name,
                 mLineoutLength * 2,
                 mSpotROIs.size());
@@ -97,14 +97,14 @@ void SpotFitter::fitCurves(std::string streamPrefix, bool visualize)
     }
 
     // Prepare image handlers for fit visualization if desired
-    spImageHandler(double) fitIH = nullptr;
-    spImageHandler(double) errIH = nullptr;
+    spImHandler2D(double) fitIH = nullptr;
+    spImHandler2D(double) errIH = nullptr;
     if (visualize)
     {
 
         std::string name = streamPrefix;
         name.append("spotLnOuzFits");
-        fitIH = ImageHandler<double>::newImageHandler(
+        fitIH = ImageHandler2D<double>::newImageHandler2D(
                 name,
                 mLineoutLength * 2,
                 mSpotROIs.size());
@@ -113,7 +113,7 @@ void SpotFitter::fitCurves(std::string streamPrefix, bool visualize)
 
         name = streamPrefix;
         name.append("LnOutFitErrs");
-        errIH = ImageHandler<double>::newImageHandler(
+        errIH = ImageHandler2D<double>::newImageHandler2D(
                 name,
                 mLineoutLength * 2,
                 mSpotROIs.size());

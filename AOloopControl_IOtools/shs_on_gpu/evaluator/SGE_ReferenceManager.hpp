@@ -1,7 +1,7 @@
 #ifndef SGE_REFERENCEMANAGER_HPP
 #define SGE_REFERENCEMANAGER_HPP
 
-#include "../util/ImageHandler.hpp"
+#include "../util/ImageHandler2D.hpp"
 #include "../util/GaussianKernel.hpp"
 #include <errno.h>
 
@@ -25,9 +25,9 @@ public:
     // Can be reversed by calling this function with false.
     void setUseAbsReference(bool useAbsoluteReference);
 
-    spImageHandler(float) getRefIH() { return mp_IHreference; }
-    spImageHandler(uint8_t) getMaskIH() { return mp_IHmask; }
-    spImageHandler(float) getIntensityIH() { return mp_IHintensity; }
+    spImHandler2D(float) getRefIH() { return mp_IHreference; }
+    spImHandler2D(uint8_t) getMaskIH() { return mp_IHmask; }
+    spImHandler2D(float) getIntensityIH() { return mp_IHintensity; }
 
     uint16_t getNumSpots() { return m_numSpots; }
     int64_t getKernelSize() { return mp_kernel->getKernelSize(); }
@@ -48,9 +48,9 @@ private:
     spGKernel mp_kernel;
 
     // Reference images, adopted
-    spImageHandler(float) mp_IHreference = nullptr;
-    spImageHandler(uint8_t) mp_IHmask = nullptr;
-    spImageHandler(float) mp_IHintensity = nullptr;
+    spImHandler2D(float) mp_IHreference = nullptr;
+    spImHandler2D(uint8_t) mp_IHmask = nullptr;
+    spImHandler2D(float) mp_IHintensity = nullptr;
     // Image arrays on device
     float* mdp_dark = nullptr;
     uint16_t* mdp_searchPosX = nullptr;

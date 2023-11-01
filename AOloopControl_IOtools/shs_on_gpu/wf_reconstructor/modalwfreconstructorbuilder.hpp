@@ -2,13 +2,13 @@
 #define MODALWFRECONSTRUCTORBUILDER_HPP
 
 #include "modalwfreconstructor.hpp"
-#include "../util/ImageHandler.hpp"
+#include "../util/ImageHandler2D.hpp"
 
 // A class for building a modal WF reconstructor on a pupil
 class ModalWFReconstructorBuilder {
 public:
     ModalWFReconstructorBuilder(
-        spImageHandler(uint8_t) mask,
+        spImHandler2D(uint8_t) mask,
         std::string streamPrefix,
         int numModes = -1);
     // (Re)calculates the reconstruction matrix, using the given number of WF modes.

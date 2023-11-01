@@ -9,7 +9,7 @@ SGE_Reshaper::SGE_Reshaper(
     // Adopt input stream
     if (!checkAtype<float>(input->md->datatype))
         throw std::runtime_error("SGE_Reshaper: the input stream has to be of type float.\n");
-    mp_IHinput = ImageHandler<float>::newHandlerAdoptImage(input->name);
+    mp_IHinput = ImageHandler2D<float>::newHandler2DAdoptImage(input->name);
 
     // Set up pupil
     if (!checkAtype<uint8_t>(mask->md->datatype))
@@ -38,14 +38,14 @@ SGE_Reshaper::SGE_Reshaper(
     outputName.append("_reshape");
     if (!linesAsSlices)
     {   // Order each reshaped pupil below the last one.
-        mp_IHoutput = ImageHandler<float>::newImageHandler(
+        mp_IHoutput = ImageHandler2D<float>::newImageHandler2D(
             outputName,
             mp_pupil->getWidth(),
             mp_pupil->getHeight()*numFrames);
     }
     else
     {   // Use each reshaped pupil as a slice
-        mp_IHoutput = ImageHandler<float>::newImageHandler(
+        mp_IHoutput = ImageHandler2D<float>::newImageHandler2D(
             outputName,
             mp_pupil->getWidth(),
             mp_pupil->getHeight(),

@@ -1,9 +1,9 @@
-#include "ImageHandlerBase.hpp"
+#include "ImageHandler2DBase.hpp"
 
 #include <cuda.h>
 #include "CudaUtil.hpp"
 
-ImageHandlerBase::~ImageHandlerBase()
+ImageHandler2DBase::~ImageHandler2DBase()
 {   
     // Destroy the image only if persistent is not enabled.
     if (!mPersistent)
@@ -16,7 +16,7 @@ ImageHandlerBase::~ImageHandlerBase()
     delete mp_image;
 }
 
-cudaError_t ImageHandlerBase::mapImForGPUaccess()
+cudaError_t ImageHandler2DBase::mapImForGPUaccess()
 {
     return cudaHostRegister(
             ImageStreamIO_get_image_d_ptr(mp_image),
@@ -24,7 +24,7 @@ cudaError_t ImageHandlerBase::mapImForGPUaccess()
             cudaHostRegisterMapped);
 }
 
-void ImageHandlerBase::setSlice(uint32_t sliceIndex)
+void ImageHandler2DBase::setSlice(uint32_t sliceIndex)
 {
     if (sliceIndex >= mDepth)
         throw std::runtime_error("SGR_ImageHandler::setSlice: out of range.");
@@ -32,7 +32,7 @@ void ImageHandlerBase::setSlice(uint32_t sliceIndex)
         m_currentSlice = sliceIndex;
 }
 
-void ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
+void ImageHandler2DBase::setROI(Rectangle<uint32_t> roi)
 {
     if (roi.x()+roi.w() >= mWidth || roi.y()+roi.h() >= mHeight)
         throw std::runtime_error("SGR_ImageHandler::setROI: out of range.");
@@ -40,17 +40,17 @@ void ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
         mROI = roi;
 }
 
-void ImageHandlerBase::setROI(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
+void ImageHandler2DBase::setROI(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 {
     setROI(Rectangle<uint32_t>(x,y,w,h));
 }
 
-void ImageHandlerBase::unsetROI()
+void ImageHandler2DBase::unsetROI()
 {
     mROI = Rectangle<uint32_t>(0,0, mWidth, mHeight);
 }
 
-ImageHandlerBase::ImageHandlerBase(
+ImageHandler2DBase::ImageHandler2DBase(
         uint32_t width,
         uint32_t height,
         uint32_t depth)
@@ -64,20 +64,20 @@ ImageHandlerBase::ImageHandlerBase(
     mp_image = new IMAGE();
 }
 
-void ImageHandlerBase::updateImMetadata()
+void ImageHandler2DBase::updateImMetadata()
 {
     mp_h_imData = ImageStreamIO_get_image_d_ptr(mp_image);
     m_dataSize = mp_image->md->imdatamemsize;
 }
 
-void* ImageHandlerBase::getDeviceCopy()
+void* ImageHandler2DBase::getDeviceCopy()
 {
     if (m_gpuCopySize != mp_image->md->imdatamemsize)
         updateDeviceCopy();
     return mp_d_imData;
 }
 
-void ImageHandlerBase::updateDeviceCopy()
+void ImageHandler2DBase::updateDeviceCopy()
 {
     cudaError_t err;
     if (m_gpuCopySize != mp_image->md->imdatamemsize && mp_d_imData != nullptr) 
@@ -105,12 +105,12 @@ void ImageHandlerBase::updateDeviceCopy()
     }
 }
 
-void ImageHandlerBase::updateFromDevice()
+void ImageHandler2DBase::updateFromDevice()
 {
     if (mp_d_imData == nullptr)
-        throw std::runtime_error("ImageHandlerBase::updateFromDevice: No device copy used.\n");
+        throw std::runtime_error("ImageHandler2DBase::updateFromDevice: No device copy used.\n");
     if (m_gpuCopySize != mp_image->md->imdatamemsize)
-        throw std::runtime_error("ImageHandlerBase::updateFromDevice: Array size mismatch.\n");
+        throw std::runtime_error("ImageHandler2DBase::updateFromDevice: Array size mismatch.\n");
     
     void* dst;
     ImageStreamIO_readLastWroteBuffer(mp_image, &dst);
@@ -124,28 +124,28 @@ void ImageHandlerBase::updateFromDevice()
     ImageStreamIO_UpdateIm(mp_image);
 }
 
-uint32_t ImageHandlerBase::fromROIxToImX(uint32_t x)
+uint32_t ImageHandler2DBase::fromROIxToImX(uint32_t x)
 {
     if (x >= mROI.w()) // x is uint3_t, thus always > 0
-        throw std::runtime_error("ImageHandlerBase::toROIx: x is out of range.");
+        throw std::runtime_error("ImageHandler2DBase::toROIx: x is out of range.");
     else
         return x + mROI.x();
 }
 
-uint32_t ImageHandlerBase::fromROIyToImY(uint32_t y)
+uint32_t ImageHandler2DBase::fromROIyToImY(uint32_t y)
 {
     if (y >= mROI.h()) // y is uint3_t, thus always > 0
-        throw std::runtime_error("ImageHandlerBase::toROIy: y is out of range.");
+        throw std::runtime_error("ImageHandler2DBase::toROIy: y is out of range.");
     else
         return y + mROI.y();
 }
 
-std::vector<uint32_t> ImageHandlerBase::getSizeVector()
+std::vector<uint32_t> ImageHandler2DBase::getSizeVector()
 {
     return std::vector<uint32_t>({mWidth, mHeight, mDepth});
 }
 
-int ImageHandlerBase::getKWindex(std::string name)
+int ImageHandler2DBase::getKWindex(std::string name)
 {
     for (int i = 0; i < mp_image->md->NBkw; i++)
     {

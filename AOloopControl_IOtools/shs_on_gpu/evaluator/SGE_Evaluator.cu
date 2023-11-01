@@ -159,13 +159,13 @@ void SGE_Evaluator::setupReferenceManager(IMAGE* ref, IMAGE* cam, IMAGE* dark)
 
 void SGE_Evaluator::adoptInputStreams(std::string camName, std::string darkName)
 {
-    mp_IHcam = ImageHandler<uint16_t>::newHandlerAdoptImage(camName);
+    mp_IHcam = ImageHandler2D<uint16_t>::newHandler2DAdoptImage(camName);
     cudaError_t err = mp_IHcam->mapImForGPUaccess();
     if (err != cudaSuccess)
         throw std::runtime_error(
             "SGE_Evaluator::SGE_Evaluator: Camera image buffer could not be registered, but this evaluation relies on mapped memory."
             );
-    mp_IHdark = ImageHandler<float>::newHandlerAdoptImage(darkName);
+    mp_IHdark = ImageHandler2D<float>::newHandler2DAdoptImage(darkName);
 }
 
 void SGE_Evaluator::setupGridLayout(int deviceID)
@@ -180,12 +180,12 @@ void SGE_Evaluator::createOutputImages()
     gradientImgName.append("gradOut");
     try {   // See if the gradient image already exists. If so: adopt it!
         mp_IHgradient =
-            ImageHandler<float>::newHandlerAdoptImage(gradientImgName);
+            ImageHandler2D<float>::newHandler2DAdoptImage(gradientImgName);
     }
     catch(std::runtime_error)
     {       // Gradient image does not exist yet. Create a new one.
         mp_IHgradient =
-            ImageHandler<float>::newHandlerfrmImage(
+            ImageHandler2D<float>::newHandler2DfrmImage(
                 gradientImgName,
                 mp_refManager->getRefIH()->getImage());
     }
@@ -196,11 +196,11 @@ void SGE_Evaluator::createOutputImages()
     intensityImgName.append("intOut");
     try {   // See if the intensity image already exists. If so: adopt it!
         mp_IHintensity =
-            ImageHandler<float>::newHandlerAdoptImage(intensityImgName);
+            ImageHandler2D<float>::newHandler2DAdoptImage(intensityImgName);
     }
     catch(std::runtime_error)
     {       // Gradient image does not exist yet. Create a new one.
-        mp_IHintensity = ImageHandler<float>::newImageHandler(
+        mp_IHintensity = ImageHandler2D<float>::newImageHandler2D(
             intensityImgName, mp_refManager->getNumSpots(), 1);
     }
     mp_IHintensity->setPersistent(true);
@@ -210,11 +210,11 @@ void SGE_Evaluator::createOutputImages()
     wfImgName.append("wfOut");
     try {   // See if the wf image already exists. If so: adopt it!
         mp_IHwf =
-            ImageHandler<float>::newHandlerAdoptImage(wfImgName);
+            ImageHandler2D<float>::newHandler2DAdoptImage(wfImgName);
     }
     catch(std::runtime_error)
     {       // WF image does not exist yet. Create a new one.
-        mp_IHwf = ImageHandler<float>::newImageHandler(
+        mp_IHwf = ImageHandler2D<float>::newImageHandler2D(
             wfImgName, mp_refManager->getNumSpots(), 1);
     }
     mp_IHwf->setPersistent(true);
@@ -251,7 +251,7 @@ void SGE_Evaluator::initDebugFields()
     printf("Initializing debugging image for visual inspection of evaluation steps ...\n");
     std::string debugImgName = m_streamPrefix;
     debugImgName.append("DEBUG");
-    mp_IHdebug = ImageHandler<float>::newImageHandler(
+    mp_IHdebug = ImageHandler2D<float>::newImageHandler2D(
         debugImgName.c_str(), mp_IHdark->mWidth, mp_IHdark->mHeight);
     mp_IHdebug->setPersistent(true);
 #endif

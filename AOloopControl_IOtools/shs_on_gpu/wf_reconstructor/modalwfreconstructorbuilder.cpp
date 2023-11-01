@@ -1,7 +1,7 @@
 #include "modalwfreconstructorbuilder.hpp"
 
 ModalWFReconstructorBuilder::ModalWFReconstructorBuilder(
-        spImageHandler(uint8_t) mask,
+        spImHandler2D(uint8_t) mask,
         std::string streamPrefix,
         int numModes)
     : mStreamPrefix(streamPrefix)

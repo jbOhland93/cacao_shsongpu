@@ -133,7 +133,7 @@ void ModalWFReconstructor::setupReconstructionMatrix(
     // Port the matrix to an image stream of type float
     std::string imgName = streamPrefix;
     imgName.append("ReconstMat");
-    mp_IHreconstructionMatrix = ImageHandler<float>::newImageHandler(
+    mp_IHreconstructionMatrix = ImageHandler2D<float>::newImageHandler2D(
         imgName,
         wfSize,
         gradSize);

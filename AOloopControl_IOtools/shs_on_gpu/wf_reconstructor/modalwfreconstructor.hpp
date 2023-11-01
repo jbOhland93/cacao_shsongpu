@@ -2,7 +2,7 @@
 #define MODALWFRECONSTRUCTOR_HPP
 
 #include "subclasses/wfgradmodegenerator.hpp"
-#include "../util/ImageHandler.hpp"
+#include "../util/ImageHandler2D.hpp"
 #include <cublas_v2.h>
 
 #define spWFReconst std::shared_ptr<ModalWFReconstructor>
@@ -28,7 +28,7 @@ public:
 private:
     cublasHandle_t m_cublasHandle;
     spPupil mPupil;
-    spImageHandler(float) mp_IHreconstructionMatrix;
+    spImHandler2D(float) mp_IHreconstructionMatrix;
     gsl_matrix_float_view m_reconstMatView;
     gsl_matrix_float* mp_reconstMat;
 

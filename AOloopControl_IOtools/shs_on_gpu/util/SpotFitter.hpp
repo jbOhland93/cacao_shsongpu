@@ -1,7 +1,7 @@
 #ifndef SPOTFITTER_HPP
 #define SPOTFITTER_HPP
 
-#include "ImageHandler.hpp"
+#include "ImageHandler2D.hpp"
 
 #include "Rectangle.hpp"
 #include "OneDGaussianFit.hpp"
@@ -10,7 +10,7 @@
 class SpotFitter
 {
 public:
-    SpotFitter(spImageHandler(float) imageHandler);
+    SpotFitter(spImHandler2D(float) imageHandler);
     
     // Sets a set of square ROIs for the fits.
     // ROIs which do not fully overlap with the image are discarded.
@@ -55,7 +55,7 @@ public:
         bool visualize = false);
     
 private:
-    const spImageHandler(float) mImageHandler;
+    const spImHandler2D(float) mImageHandler;
     std::vector<Rectangle<uint32_t>> mSpotROIs;
     uint32_t mLineoutWidth = 0;
     uint32_t mLineoutLength = 0;

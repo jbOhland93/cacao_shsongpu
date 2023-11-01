@@ -2,7 +2,7 @@
 #define SGE_RESHAPER_HPP
 
 #include "../wf_reconstructor/subclasses/pupil.hpp"
-#include "../util/ImageHandler.hpp"
+#include "../util/ImageHandler2D.hpp"
 #include <errno.h>
 
 // A class for rearranging 1D samples into a pupil of valid fields
@@ -19,11 +19,11 @@ public:
     errno_t reshapeDo();
 private:
     // Input stream
-    spImageHandler(float) mp_IHinput;
+    spImHandler2D(float) mp_IHinput;
     // The pupil representing valid and invalid fields
     spPupil mp_pupil;
     // Output stream
-    spImageHandler(float) mp_IHoutput;
+    spImHandler2D(float) mp_IHoutput;
 };
 
 #endif // SGE_RESHAPER_HPP
