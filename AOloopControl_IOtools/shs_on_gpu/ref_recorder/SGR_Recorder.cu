@@ -209,7 +209,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
 
         // Initialize the  image handlers for the evaluation
         spImageHandler(float) IHavgI = ImageHandler<float>::newImageHandler(
-            intensityName, mGridSize.mX, mGridSize.mY, 10);
+            intensityName, mGridSize.mX, mGridSize.mY, 1, 10);
         IHavgI->setPersistent(true);
         spImageHandler(float) IHavgP = ImageHandler<float>::newImageHandler(
             "7_eval-AVGpos", mGridSize.mX*2, mGridSize.mY);
@@ -218,7 +218,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
             "7_eval-STDDVpos", mGridSize.mX*2, mGridSize.mY);
         IHstdDvP->setPersistent(mVisualize);
         spImageHandler(uint8_t) IHspotMask = ImageHandler<uint8_t>::newImageHandler(
-            maskName, mGridSize.mX, mGridSize.mY, 10);
+            maskName, mGridSize.mX, mGridSize.mY, 1, 10);
         IHspotMask->setPersistent(true);
 
         // Calculate the stability threshold for the mask
@@ -296,7 +296,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // First line holds the average X positions of the spots within the mask
         // Second line holds the average Y positions of the spots within the mask
         spImageHandler(float) IHcpuRef = ImageHandler<float>::newImageHandler(
-            refName, numOfValidSpots, 2, 10);
+            refName, numOfValidSpots, 2, 1, 10);
         IHcpuRef->setPersistent(true);
 
         // Store the (valid) average positions in the reference stream
@@ -544,14 +544,13 @@ void SGR_Recorder::prepareSpotFinding()
         // Prepare the averaging image streams for intensity and positions
         mIHintensityREC = ImageHandler<float>::newImageHandler(
                 "6-recordAmp",
-                mGridSize.mX, mGridSize.mY,
+                mGridSize.mX, mGridSize.mY, 1,
                 0,
                 mSamplesExpected);
         mIHintensityREC->setPersistent(mVisualize);
         mIHposREC = ImageHandler<float>::newImageHandler(
                 "6-recordSpotPos",
-                mGridSize.mX*2,
-                mGridSize.mY,
+                mGridSize.mX*2, mGridSize.mY, 1,
                 0,
                 mSamplesExpected);
         mIHposREC->setPersistent(mVisualize);

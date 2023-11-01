@@ -3,7 +3,8 @@
 
 SGE_Reshaper::SGE_Reshaper(
         IMAGE* input,               // Input image stream
-        IMAGE* mask)                // Stream holding the mask
+        IMAGE* mask,                // Stream holding the mask
+        bool linesAsSlices)         // Reshape lines into slices instead of vertical stacking
 {
     // Adopt input stream
     if (!checkAtype<float>(input->md->datatype))
@@ -31,13 +32,25 @@ SGE_Reshaper::SGE_Reshaper(
     uint32_t numFrames = mp_IHinput->mHeight;
 
     // Set up output
-    // Order each reshaped pupil below the last one.
+    // Each line of the input is one frame
+    
     std::string outputName = input->name;
     outputName.append("_reshape");
-    mp_IHoutput = ImageHandler<float>::newImageHandler(
-        outputName,
-        mp_pupil->getWidth(),
-        mp_pupil->getHeight()*numFrames);
+    if (!linesAsSlices)
+    {   // Order each reshaped pupil below the last one.
+        mp_IHoutput = ImageHandler<float>::newImageHandler(
+            outputName,
+            mp_pupil->getWidth(),
+            mp_pupil->getHeight()*numFrames);
+    }
+    else
+    {   // Use each reshaped pupil as a slice
+        mp_IHoutput = ImageHandler<float>::newImageHandler(
+            outputName,
+            mp_pupil->getWidth(),
+            mp_pupil->getHeight(),
+            numFrames);
+    }
     mp_IHoutput->setPersistent(true);
 }
 

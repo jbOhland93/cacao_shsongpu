@@ -12,7 +12,8 @@ public:
     // Ctor, doing the initialization
     SGE_Reshaper(
         IMAGE* input,               // Input image stream
-        IMAGE* mask);               // Stream holding the mask
+        IMAGE* mask,                // Stream holding the mask
+        bool linesAsSlices = false);// Reshape lines into slices instead of vertical stacking
 
     // Triggers the reshaping
     errno_t reshapeDo();

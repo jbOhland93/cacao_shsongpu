@@ -7,6 +7,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <algorithm>
+#include <vector>
 #include "ImageStreamIO/ImageStreamIO.h"
 #include "../util/Rectangle.hpp"
 
@@ -18,6 +19,8 @@ public:
     const uint32_t mWidth;
     // The height of the image
     const uint32_t mHeight;
+    // The depth of the image
+    const uint32_t mDepth;
     // The total number of pixels in the image
     const uint32_t mNumPx;
 
@@ -32,6 +35,8 @@ public:
     void setPersistent(bool persistent) { mPersistent = persistent; }
     cudaError_t mapImForGPUaccess();
 
+    // Setting the current slice
+    void setSlice(uint32_t sliceIndex);
     // Setting a ROI
     void setROI(Rectangle<uint32_t> roi);
     void setROI(uint32_t x, uint32_t y, uint32_t w, uint32_t h);
@@ -57,6 +62,7 @@ protected:
     IMAGE* mp_image;
     void* mp_h_imData = nullptr;
     uint64_t m_dataSize = 0;
+    uint64_t m_currentSlice = 0;
     // If false, the image will be destoyed with the desturction of this instance
     bool mPersistent = false;
     // The cnt0 value of the last frame that has been copied to the GPU.
@@ -65,7 +71,7 @@ protected:
     Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
 
     // Ctor
-    ImageHandlerBase(uint32_t width, uint32_t height);
+    ImageHandlerBase(uint32_t width, uint32_t height, uint32_t depth = 1);
     // Updates locally stored image data for quick access
     // Has to be called by decendants
     void updateImMetadata();
@@ -86,6 +92,26 @@ protected:
     uint32_t fromROIxToImX(uint32_t x);
     // Transform from ROI coordinates to image coordinates
     uint32_t fromROIyToImY(uint32_t y);
+
+    // Get the size vector of this class
+    std::vector<uint32_t> getSizeVector();
+    
+    // Convert the size of an image to a vector of exactly 3 elements
+    // Throws an error if the image features a higher dimensionality
+    static std::vector<uint32_t> imSizeToVector(IMAGE* im)
+    {
+        uint8_t naxis = im->md->naxis;
+        if (naxis > 3)
+            throw std::runtime_error("ImageHandlerBase::imSizeToVector: dimensionality cannot be greater than 3.");
+        uint32_t* size = im->md->size;
+
+        std::vector<uint32_t> sVec;
+        sVec.push_back(size[0]);
+        sVec.push_back(naxis > 1 ? size[1] : 1);
+        sVec.push_back(naxis > 2 ? size[2] : 1);
+
+        return sVec;
+    }
 
     
 private:

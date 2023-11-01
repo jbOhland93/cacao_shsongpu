@@ -3,8 +3,6 @@
 #include <cuda.h>
 #include "CudaUtil.hpp"
 
-
-
 ImageHandlerBase::~ImageHandlerBase()
 {   
     // Destroy the image only if persistent is not enabled.
@@ -26,12 +24,20 @@ cudaError_t ImageHandlerBase::mapImForGPUaccess()
             cudaHostRegisterMapped);
 }
 
+void ImageHandlerBase::setSlice(uint32_t sliceIndex)
+{
+    if (sliceIndex >= mDepth)
+        throw std::runtime_error("SGR_ImageHandler::setSlice: out of range.");
+    else
+        m_currentSlice = sliceIndex;
+}
+
 void ImageHandlerBase::setROI(Rectangle<uint32_t> roi)
 {
     if (roi.x()+roi.w() >= mWidth || roi.y()+roi.h() >= mHeight)
-            throw std::runtime_error("SGR_ImageHandler::setROI: out of range.");
-        else
-            mROI = roi;
+        throw std::runtime_error("SGR_ImageHandler::setROI: out of range.");
+    else
+        mROI = roi;
 }
 
 void ImageHandlerBase::setROI(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
@@ -46,11 +52,13 @@ void ImageHandlerBase::unsetROI()
 
 ImageHandlerBase::ImageHandlerBase(
         uint32_t width,
-        uint32_t height)
+        uint32_t height,
+        uint32_t depth)
         :
         mWidth(width),
         mHeight(height),
-        mNumPx(width*height),
+        mDepth(depth),
+        mNumPx(width*height*depth),
         mROI(0,0,width,height)
 {
     mp_image = new IMAGE();
@@ -130,6 +138,11 @@ uint32_t ImageHandlerBase::fromROIyToImY(uint32_t y)
         throw std::runtime_error("ImageHandlerBase::toROIy: y is out of range.");
     else
         return y + mROI.y();
+}
+
+std::vector<uint32_t> ImageHandlerBase::getSizeVector()
+{
+    return std::vector<uint32_t>({mWidth, mHeight, mDepth});
 }
 
 int ImageHandlerBase::getKWindex(std::string name)

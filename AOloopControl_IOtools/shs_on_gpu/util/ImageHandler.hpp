@@ -24,6 +24,7 @@ public:
         std::string name,
         size_t width,
         size_t height,
+        size_t depth = 1,
         uint8_t numKeywords = 0,
         uint32_t circBufSize = 0);
     // Creates a new image of the same size, but converts the data.
@@ -65,23 +66,23 @@ public:
     void updateFromGPU() { updateFromDevice(); }
     // Reads the element at x/y from the last written buffer
     T read(uint32_t x, uint32_t y)
-        { return mp_data[fromROIyToImY(y)*mWidth + fromROIxToImX(x)]; }
+        { return mp_data[m_currentSlice*mWidth*mHeight + fromROIyToImY(y)*mWidth + fromROIxToImX(x)]; }
     // Writes the given element at teh x/y position into the write buffer
     void write(T e, uint32_t x, uint32_t y)
-        { mp_data[fromROIyToImY(y)*mWidth + fromROIxToImX(x)] = e; }
+        { mp_data[m_currentSlice*mWidth*mHeight + fromROIyToImY(y)*mWidth + fromROIxToImX(x)] = e; }
     // Reads all the samples at x/y from the circular buffer
     std::vector<T> readCircularBufAt(uint32_t x, uint32_t y)
     {
         std::vector<T> v;
         T* cbBuf = (T*) mp_image->CBimdata;
         for (int i = 0; i < mp_image->md->CBsize; i++)
-            v.push_back(cbBuf[i*mNumPx + y*mWidth + x]);
+            v.push_back(cbBuf[i*mNumPx + m_currentSlice*mWidth*mHeight + y*mWidth + x]);
         return v;
     }
     
 
 // ========== OPERATIONS ==========
-    // Sums all the pixels in the current ROI
+    // Sums all the pixels in the current ROI of the current slice
     double getSumOverROI()
     {
         double sum = 0;
@@ -90,7 +91,7 @@ public:
                 sum += (double) read(ix, iy);
         return sum;
     }
-    // Gets the maximum pixel value in the current ROI
+    // Gets the maximum pixel value in the current ROI of the current slice
     T getMaxInROI(uint32_t* maxposX = nullptr, uint32_t* maxposY= nullptr)
     {
         T max = std::numeric_limits<T>::min();
@@ -108,8 +109,8 @@ public:
             }
         return max;
     }
-    // Erodes the image inside the ROI
-    // Returns the number of remaining valid pixels
+    // Erodes the image inside the ROI at the current slice
+    // Returns the number of remaining valid pixels in the current slice
     // neighboursToSurvive: selfexplanatory
     // inPlace: if true, one eroded pixel will affect the survival of the next one
     // d: the coordinates to dissolved particles are appended to this vector
@@ -123,10 +124,11 @@ private:
         std::string name,
         uint32_t width,
         uint32_t height,
+        uint32_t depth,
         uint8_t atype,
         uint8_t numKeywords,
         uint32_t circBufSize = 10);
-    ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY);
+    ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, uint32_t sizeZ);
 
 // ========== HELPER FUNCTIONS ==========
     
@@ -148,6 +150,7 @@ inline spImageHandler(T) ImageHandler<T>::newImageHandler(
     std::string name,
     size_t width,
     size_t height,
+    size_t depth,
     uint8_t numKeywords,
     uint32_t circBufSize)
 {
@@ -159,17 +162,19 @@ inline spImageHandler(T) ImageHandler<T>::newImageHandler(
 // Defining specific factory functions via a makro ... way shorter!
 #define IH_FACTORY(type, atype)                                         \
 template <>                                                             \
-inline spImageHandler(type) ImageHandler<type>::newImageHandler(    \
+inline spImageHandler(type) ImageHandler<type>::newImageHandler(        \
     std::string name,                                                   \
     size_t width,                                                       \
     size_t height,                                                      \
+    size_t depth,                                                       \
     uint8_t numKeywords,                                                \
     uint32_t circBufSize)                                               \
 {                                                                       \
-    spImageHandler(type) sp(new ImageHandler<type>(                 \
+    spImageHandler(type) sp(new ImageHandler<type>(                     \
         name,                                                           \
         width,                                                          \
         height,                                                         \
+        depth,                                                          \
         atype,                                                          \
         numKeywords,                                                    \
         circBufSize));                                                  \
@@ -194,9 +199,9 @@ inline spImageHandler(T) ImageHandler<T>::newHandlerfrmImage(
         uint8_t numKeywords,
         uint32_t circBufSize)
 {
-    uint32_t* size = im->md->size;
+    std::vector<uint32_t> sVec = imSizeToVector(im);
     spImageHandler(T) spIH = 
-        newImageHandler(name, size[0], size[1], numKeywords, circBufSize);
+        newImageHandler(name, sVec[0], sVec[1], sVec[2], numKeywords, circBufSize);
     spIH->cpy(im);
     return spIH;
 }
@@ -215,7 +220,8 @@ inline spImageHandler(T) ImageHandler<T>::newHandlerAdoptImage(std::string imNam
     if (atypeIm != atypeArg)
         throw std::runtime_error("ImageHandler::newHandlerAdoptImage: image atype does not match the generic type of this call.");
     
-    spImageHandler(T) sp(new ImageHandler<T>(im.name, im.md->size[0], im.md->size[1]));
+    std::vector<uint32_t> sVec = imSizeToVector(&im);
+    spImageHandler(T) sp(new ImageHandler<T>(im.name, sVec[0], sVec[1], sVec[2]));
 
     ImageStreamIO_closeIm(&im);
     return sp;
@@ -225,10 +231,16 @@ inline spImageHandler(T) ImageHandler<T>::newHandlerAdoptImage(std::string imNam
 
 template <typename T>
 inline void ImageHandler<T>::cpy(IMAGE* im)
-{
+{   
+    // Check image dimension
+    if (mDepth == 1 && im->md->naxis > 2)
+        throw std::runtime_error("ImageHandler::cpy: dimension of source image too high.\n");
+    else if (mDepth > 1 && im->md->naxis != 3)
+        throw std::runtime_error("ImageHandler::cpy: expected three dimensions.\n");
+    
     // Check image sizes
-    uint32_t* size = im->md->size;
-    if (size[0] != mWidth || size[1] != mHeight)
+    std::vector<uint32_t> sVec = imSizeToVector(im);
+    if (sVec != getSizeVector())
         throw std::runtime_error("ImageHandler::cpy: Incompatible size of input image.\n");
 
     // Prepare read-buffer
@@ -247,12 +259,8 @@ template <typename T>
 inline void ImageHandler<T>::cpy_subtract(IMAGE* A, IMAGE* B)
 {
     // Check image sizes
-    uint32_t* sizeA = A->md->size;
-    uint32_t* sizeB = B->md->size;
-    if (   sizeA[0] != mWidth
-        || sizeB[0] != mWidth
-        || sizeA[1] != mHeight
-        || sizeB[1] != mHeight)
+    std::vector<uint32_t> sVec = getSizeVector();
+    if (sVec != imSizeToVector(A) || sVec != imSizeToVector(B))
         throw std::runtime_error("ImageHandler::cpy_subtract: Incompatible size of input image(s).\n");
 
     // Prepare buffers
@@ -275,8 +283,7 @@ template <typename T>
 inline void ImageHandler<T>::cpy_thresh(IMAGE* im, double thresh)
 {
     // Check image sizes
-    uint32_t* size = im->md->size;
-    if (size[0] != mWidth || size[1] != mHeight)
+    if (getSizeVector() != imSizeToVector(im))
         throw std::runtime_error("ImageHandler::cpy_thresh: Incompatible size of input image.\n");
 
     // Prepare buffer
@@ -295,8 +302,7 @@ template <typename T>
 inline void ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
 {
     // Check image size
-    uint32_t* size = A->md->size;
-    if (size[0] != mWidth || size[1] != mHeight)
+    if (getSizeVector() != imSizeToVector(A))
         throw std::runtime_error("ImageHandler::cpy_convolve: Incompatible size of input A.\n");
 
     // Prepare buffer
@@ -318,25 +324,29 @@ inline void ImageHandler<T>::cpy_convolve(IMAGE* A, IMAGE* K)
     float k;    // Value of the kernel
     int32_t bi; // The buffer index, calculated from x and y
     
-    // Do convolution
-    for (int32_t ix = 0; ix < mWidth; ix++)
-        for (int32_t iy = 0; iy < mHeight; iy++)
-        {
-            r = 0;
-            for (int32_t kx = -kcX; kx < kw-kcX; kx++)
-                for (int32_t ky = -kcY; ky < kh-kcY; ky++)
-                {
-                    if (ix+kx >= 0 && ix+kx < mWidth                            // Only inside of A
-                        && iy+ky >= 0 && iy+ky < mHeight)
+    // Do convolution of all slices
+    for (int32_t is = 0; is < mDepth; is++)
+    {
+        // Do convolution of slice
+        for (int32_t ix = 0; ix < mWidth; ix++)
+            for (int32_t iy = 0; iy < mHeight; iy++)
+            {
+                r = 0;
+                for (int32_t kx = -kcX; kx < kw-kcX; kx++)
+                    for (int32_t ky = -kcY; ky < kh-kcY; ky++)
                     {
-                        bi = (ky+kcY)*kw + kx+kcX;                              // Kernel index
-                        k = convertAtypeArrayElement<float>(bK, tK, bi);        // Kernel value
-                        bi = (iy+ky)*mWidth + ix+kx;                            // Image index
-                        r += convertAtypeArrayElement<float>(bA, tA, bi) * k;   // Convolution value
+                        if (ix+kx >= 0 && ix+kx < mWidth                            // Only inside of A
+                            && iy+ky >= 0 && iy+ky < mHeight)
+                        {
+                            bi = (ky+kcY)*kw + kx+kcX;                              // Kernel index
+                            k = convertAtypeArrayElement<float>(bK, tK, bi);        // Kernel value
+                            bi = is*mWidth*mHeight + (iy+ky)*mWidth + ix+kx;        // Image index
+                            r += convertAtypeArrayElement<float>(bA, tA, bi) * k;   // Convolution value
+                        }
                     }
-                }
-            mp_data[iy*mWidth + ix] = (T) r;
-        }
+                mp_data[is*mWidth*mHeight + iy*mWidth + ix] = (T) r;
+            }
+    }
     
     updateWrittenImage();
 }
@@ -348,16 +358,19 @@ inline ImageHandler<T>::ImageHandler(
         std::string name,
         uint32_t width,
         uint32_t height,
+        uint32_t depth,
         uint8_t atype,
         uint8_t numKeywords,
         uint32_t circBufSize)
         :
-        ImageHandlerBase(width, height)
+        ImageHandlerBase(width, height, depth)
 {
-    int naxis = 2;
+    int naxis = mDepth > 1 ? 3 : 2;
     uint32_t * imsize = new uint32_t[naxis]();
     imsize[0] = mWidth;
     imsize[1] = mHeight;
+    if (mDepth > 1)
+        imsize[2] = mDepth;
     int shared = 1; // image will be in shared memory
     ImageStreamIO_createIm_gpu(
             mp_image,
@@ -379,8 +392,8 @@ inline ImageHandler<T>::ImageHandler(
 
 // Implementation of adoption ctor
 template<typename T>
-inline ImageHandler<T>::ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY)
-    : ImageHandlerBase(sizeX, sizeY)
+inline ImageHandler<T>::ImageHandler(std::string imName, uint32_t sizeX, uint32_t sizeY, uint32_t sizeZ)
+    : ImageHandlerBase(sizeX, sizeY, sizeZ)
 {
     // Open the image
     ImageStreamIO_openIm(mp_image, imName.c_str());
@@ -428,7 +441,7 @@ uint32_t ImageHandler<T>::erode(uint8_t neighboursToSurvive, bool inPlace, std::
             x = fromROIxToImX(ix);
             y = fromROIyToImY(iy);
             // Only consider pixel if it is greater than 0
-            if (mp_data[y*mWidth + x] > 0)
+            if (mp_data[m_currentSlice*mWidth*mHeight + y*mWidth + x] > 0)
             {   // Count the neighbours
                 neighbours = 0;
                 for (int j = 0; j < 8; j++)
@@ -436,7 +449,8 @@ uint32_t ImageHandler<T>::erode(uint8_t neighboursToSurvive, bool inPlace, std::
                     if (x+nOffX[j] >= 0 && x+nOffX[j] < mWidth &&
                         y+nOffY[j] >= 0 && y+nOffY[j] < mHeight)
                     {
-                        neighbourIndex = (y+nOffY[j])*mWidth + x + nOffX[j];
+                        neighbourIndex =
+                            m_currentSlice*mWidth*mHeight + (y+nOffY[j])*mWidth + x + nOffX[j];
                         if (readBuffer[neighbourIndex] > 0)
                             neighbours++;
                     }
@@ -444,14 +458,14 @@ uint32_t ImageHandler<T>::erode(uint8_t neighboursToSurvive, bool inPlace, std::
                 if (neighbours == 0)
                 {   // Standalonepixel - Dissolving particle.
                     if (d != nullptr)
-                        d->push_back(
-                            Point<uint32_t>(x,y,mp_data[y*mWidth + x], true));
+                        d->push_back(Point<uint32_t>(
+                                x,y,mp_data[m_currentSlice*mWidth*mHeight + y*mWidth + x], true));
                     // Set to zero.
-                    mp_data[y*mWidth + x] = 0;
+                    mp_data[m_currentSlice*mWidth*mHeight + y*mWidth + x] = 0;
                 }
                 else if (neighbours < neighboursToSurvive)
                     // Edgepixel - set to zero.
-                    mp_data[y*mWidth + x] = 0;
+                    mp_data[m_currentSlice*mWidth*mHeight + y*mWidth + x] = 0;
                 else
                     // Embedded pixel, leave as it is.
                     remainingPixels++;
