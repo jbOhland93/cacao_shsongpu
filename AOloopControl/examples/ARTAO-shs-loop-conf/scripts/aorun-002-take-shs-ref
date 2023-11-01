@@ -29,6 +29,7 @@ source milk-argparse
 # Checking stream
 streamcheckOK="OK"
 checkstream aol${CACAO_LOOPNUMBER}_shsCam
+checkstream aol${CACAO_LOOPNUMBER}_shsCam_AVG
 
 if [ ${streamcheckOK} == "FAIL" ]; then
 	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"

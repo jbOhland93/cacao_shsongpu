@@ -23,9 +23,7 @@ IM_MASK="aol${CACAO_LOOPNUMBER}_shsCam_RefMask"
 # prerequisites
 #
 RequiredCommands=( milk )
-RequiredFiles=( \
-    ${MILK_SHM_DIR}/${IM_MASK}.im.shm \
-    )
+RequiredFiles=()
 RequiredPipes=()
 RequiredDirs=()
 
@@ -69,40 +67,56 @@ if [ ${ACTION} == "check" ]; then
 	ACTIONOK=1
 fi
 
-# Checking FPS
+# Checking FPS & Image Streams
+# Checking stream
+streamcheckOK="OK"
+checkstream ${IM_MASK}
+
 FPScheckOK="OK"
 case "${STREAMOPT}" in
   "${SOPTGRAD}")
+  	checkstream ${IM_GRAD}
+	IMNAME="${IM_GRAD}"
     checkFPSON CACAO_FPSPROC_RSHP_SHSONGPU_GRAD ${CACAO_FPSPROC_RSHP_SHSONGPU_GRAD}
     FPSNAME="${FPS_GRAD}"
-	IMNAME="${IM_GRAD}"
     ;;
   "${SOPTWF}")
+  	checkstream ${IM_WF}
+	IMNAME="${IM_WF}"
     checkFPSON CACAO_FPSPROC_RSHP_SHSONGPU_WF ${CACAO_FPSPROC_RSHP_SHSONGPU_WF}
     FPSNAME="${FPS_WF}"
-	IMNAME="${IM_WF}"
     ;;
   "${SOPTINT}")
+  	checkstream ${IM_INT}
+  	IMNAME="${IM_INT}"
     checkFPSON CACAO_FPSPROC_RSHP_SHSONGPU_INT ${CACAO_FPSPROC_RSHP_SHSONGPU_INT}
     FPSNAME="${FPS_INT}"
-	IMNAME="${IM_INT}"
     ;;
   "${SOPTWFC}")
+  	checkstream ${IM_WF_C}
+  	IMNAME="${IM_WF_C}"
     checkFPSON CACAO_FPSPROC_RSHP_ACQWF_C ${CACAO_FPSPROC_RSHP_ACQWF_C}
     FPSNAME="${FPS_WF_C}"
-	IMNAME="${IM_WF_C}"
     ;;
   "${SOPTWFAVG}")
+  	checkstream ${IM_MASK}
+	IMNAME="${IM_MASK}"
     checkFPSON CACAO_FPSPROC_RSHP_ACQWF_AVG ${CACAO_FPSPROC_RSHP_ACQWF_AVG}
     FPSNAME="${FPS_WF_AVG}"
-	IMNAME="${IM_WF_AVG}"
     ;;
   *)
     echo "Unexpected input stream option. Must be either ${SOPTGRAD}, ${SOPTWF} or ${SOPTINT}."
     exit 1
     ;;
 esac
+echo "streamcheckOK = ${streamcheckOK}"
 echo "FPScheckOK = ${FPScheckOK}"
+
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	cacaomsglog "ERROR streamcheck"
+	exit 1
+fi
 
 if [ ${FPScheckOK} == "FAIL" ]; then
 	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] FPS check failed"

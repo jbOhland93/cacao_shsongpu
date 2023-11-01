@@ -62,17 +62,22 @@ cacao-fpsctrl-TUI
 Alternatively, feel free to run ``milk-fpsCTRL`` anywhere you like.
 
 ## 2. Start image acquisition and DM
-# select hardware mode
-./scripts/aorun-setmode-hardw
-# Note: A simulation mode is not implemented as this state, but may be added in the future.
+Select hardware mode
 
+```bash
+./scripts/aorun-setmode-hardw
+```
+Note: A simulation mode is not implemented as this state, but may be added in the future.
 
 The [camera control process](https://github.com/jbOhland93/ximea-xib-64-2-milk) has already started, but the image acquisiton needs to be launched:
 
 ```bash
 # Attach to the camera control terminal
 tmux a -t shsCam-8
+```
 
+```bash
+# XIMEA CAMERA CONTROL APPLICATION
 # Display control options
 help
 
@@ -139,19 +144,21 @@ cacao-aorun-026-takeref -n 2000
 ./scripts/aorun-004-reshape-to-wfs-pupil acqWfAVG start
 ```
 
-## 5. Measure DM to WFS latency
-
+## 6. Measure DM to WFS latency
+Note that the fps of the latency measurement, ``mlat-x``, has ``.option.slowDM`` enabled as the bimorph DM features a rise time of ~1 ms, which is longer than the frame duration of the acquisition process. This value is automatically set according to the `fpssetup.setval.conf` file.
 ```bash
 # Measure latency
 cacao-aorun-020-mlat -w
 ```
 
-
-
-## 6. Acquire Calibration
+## 7. Acquire Calibration
+In this section, the response matrix of the DM is recorded and converted into a control matrix. This process is devided into several steps:
+1. Generation of poke modes
 
 
 ### 6.1. Prepare DM poke modes
+Instead of indexing through the actuators of the DM, cacao probes the DM using pre-defined mode sets. These *can* be single acutator pokes, but depending on the DM type, there may be more desirable modes. Especially for DMs with a localized actuator response, like MEMS DMs or bimorphs, the hadamard modes are a good choice as the signal for each poke is maximized.
+The modes are pre-generated into fits-files for better performance.
 
 ```bash
 # Create DM poke mode cubes
@@ -168,10 +175,8 @@ The following files are written to ./conf/RMmodesDM/
 | `Hpixindex.fits  `   | Hadamard pixel index                                |
 | `SmodesC.fits    `   | *Simple* (single actuator) pokes                    |
 
-
-
-### 6.2. Run acquisition
-
+### 6.2. Acquire WFS response
+In this example, we are going to use the Hadamard modes as the ARTAO system uses a bimorph DM and will therefore benefit from pokes that are distributed over the whole aperture.
 
 ```bash
 # Acquire response matrix - Hadamard modes
@@ -181,37 +186,20 @@ cacao-aorun-030-acqlinResp -n 4 HpokeC
 This could take a while. Check status on milk-procCTRL.
 To inspect results, display file conf/RMmodesWFS/HpokeC.WFSresp.fits.
 
-### Decode Hadamard matrix
+### 6.3 Decode Hadamard matrix
+For the calculation of the control matrix, the response matrix has to be written in DM space. As we used Hadamard pokes to record the response, the raw data has to be decoded, i.e. transformed to a zonal response matrix, using the `Hmat.fits` that has been generated previously.
 
 ```bash
 cacao-aorun-031-RMHdecode
 ```
+
+TODO: Write a script to reshape the WFS response modes into the pupil in order to verify the result
+This should take the decoded modes (conf/RMmodesWFS/zrespM-H.fits) as argument.
+
 To inspect results, display file conf/RMmodesWFS/zrespM-H.fits.
 This should visually look like a zonal response matrix.
 
-
-### 6.3. Make DM and WFS masks
-
-```bash
-cacao-aorun-032-RMmkmask
-```
-Check results:
-- conf/dmmask.fits
-- conf/wfsmask.fits
-
-If needed, rerun command with non-default parameters (see -h for options).
-Note: we are not going to apply the masks in this example, so OK if not net properly. The masks are informative here, allowing us to view which DM actuators and WFS pixels have the best response.
-
-
-### 6.4. Create synthetic (Fourier) response matrix
-
-```bash
-cacao-aorun-033-RM-mksynthetic -c 25 -a 2.0
-```
-
-
-## 7. Compute control matrix (straight)
-
+### 6.4. Compute control matrix (straight)
 Compute control modes, in both WFS and DM spaces.
 Set GPU device (if GPU available).
 
@@ -223,6 +211,8 @@ Then run the compstrCM process to compute CM and load it to shared memory :
 ```bash
 cacao-aorun-039-compstrCM
 ```
+
+TODO: Use the fits reshaping tool, written before, to reshape WFS control modes (conf/CMmodesWFS/CMmodesWFS.fits) as argument.
 
 Check results:
 - conf/CMmodesDM/CMmodesDM.fits
@@ -254,12 +244,7 @@ cacao-aorun-070-cmval2dm start
 
 ```
 
-
-python -m pycacao.calib.mkmodes randhad HpokeCrand.fits (edited) 
-python -m pycacao.calib.rmdecode
-
-
-Closing the loop and setting loop parameters with mfilt:
+### 8.2 Closing the loop and setting loop parameters with mfilt:
 
 ```bash
 # Set loop gain
@@ -275,28 +260,16 @@ cacao-fpsctrl setval mfilt loopmult 0.98
 
 # close loop
 cacao-fpsctrl setval mfilt loopON ON
-
 ```
 
 Misc tools:
-
 ```bash
-# Astrogrid control
-cacao-DMastrogrid start
-cacao-DMastrogrid stop
-
 # Set WFS reference to flat illumination over wfsmask
 cacao-wfsref-setflat
 ```
 
-scexao-specific tools
-```bash
 
-```
-
-
-
-### 8.2. Zero Point Offsetting
+### 8.3. Zero Point Offsetting
 
 ```bash
 cacao-aorun-071-zpo start
@@ -396,9 +369,9 @@ From main directory (upstream of rootdir) :
 cacao-msglogCTRL stop
 cacao-task-manager -C 0 scexao-vispyr-bin2
 rm -rf .vispyr2.cacaotaskmanager-log
+# Erase everything in shared memory (optional)
+rm -rf ${MILK_SHM_DIR}/*
 ```
-
-
 
 # Logging streams to disk
 
