@@ -9,10 +9,9 @@ set(SOURCEFILES
 	${SRCNAME}.c
     ${SRCNAME}.h
     acquireWFSim.c
+    acquireWFSspec.c
     ao188_preprocessor.c
     findspots.c
-    WFScamsim.c
-    WFSmap.c
     shs_on_gpu/evaluator/SGE_Evaluator.cu
     shs_on_gpu/evaluator/SGE_Evaluator_interface.cpp
     shs_on_gpu/evaluator/SGE_GridLayout.cu
@@ -35,17 +34,18 @@ set(SOURCEFILES
     shs_on_gpu/wf_reconstructor/subclasses/wfglocalresponsegenerator.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgradmodegenerator.cpp
-    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.cpp    
+    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.cpp
+    WFScamsim.c
+    WFSmap.c
 )
 
 set(INCLUDEFILES
 	${SRCNAME}.h
+    AOloopControl_IOtools.h
     acquireWFSim.h
+    acquireWFSspec.h
     ao188_preprocessor.h
     findspots.h
-    AOloopControl_IOtools.h
-    WFScamsim.h
-    WFSmap.h
     shs_on_gpu/evaluator/SGE_CUDAkernel.hpp
     shs_on_gpu/evaluator/SGE_Evaluator.hpp
     shs_on_gpu/evaluator/SGE_Evaluator_interface.h
@@ -74,7 +74,9 @@ set(INCLUDEFILES
     shs_on_gpu/wf_reconstructor/subclasses/wfglocalresponsegenerator.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgradmodegenerator.hpp
-    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.hpp    
+    shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.hpp
+    WFScamsim.h
+    WFSmap.h
 )
 
 set(SCRIPTS

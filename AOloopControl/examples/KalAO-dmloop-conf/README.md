@@ -78,7 +78,7 @@ cacao-aorun-025-acqWFS start
 
 ```bash
 # Measure latency
-cacao-aorun-020-mlat -w
+cacao-aorun-020-mlat
 ```
 
 
@@ -92,7 +92,7 @@ cacao-aorun-020-mlat -w
 # Create DM poke mode cubes
 cacao-mkDMpokemodes
 ```
-The following files are written to ./conf/DMmodes/ :
+The following files are written to ./conf/RMmodes/ :
 - DMmask.fits    : DM mask
 - FpokesC.8.fits : Fourier modes
 - Zmodes.fits    : Zernike modes
@@ -108,13 +108,18 @@ The following files are written to ./conf/DMmodes/ :
 ```bash
 # Acquire response matrix - Fourier modes
 cacao-fpsctrl setval measlinresp procinfo.loopcntMax 20
-cacao-aorun-030-acqlinResp -w FpokesC.8
+cacao-aorun-030-acqlinResp FpokesC.8
 
-# NOTE: Alternate option is Hadamard modes
+# Hadamard modes calibration (will compute zonal RM)
 # Acquire response matrix - Hadamard modes
-#cacao-fpsctrl setval measlinresp procinfo.loopcntMax 3
-#cacao-aorun-030-acqlinResp HpokeC
+cacao-fpsctrl setval measlinresp procinfo.loopcntMax 3
+cacao-aorun-030-acqlinResp HpokeC
+cacao-aorun-031-RMHdecode
+cacao-aorun-032-RMmkmask
 ```
+:warning: DM and WFS masks will be required to comput contro modes. They can be computed from a zonal RM (as shown above), or written by hand (single precision floats, 0.0 and 1.0 values).
+
+
 
 ### Take reference
 
@@ -167,10 +172,10 @@ Closing the loop and setting loop parameters with mfilt:
 
 ```bash
 # Set loop gain
-cacao-fpsctrl setval mfilt loopgain 0.1
+cacao-fpsctrl setval mfilt loopgain 0.95
 
 # Set loop mult
-cacao-fpsctrl setval mfilt loopmult 0.98
+cacao-fpsctrl setval mfilt loopmult 0.9
 
 # close loop
 cacao-fpsctrl setval mfilt loopON ON

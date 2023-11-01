@@ -78,7 +78,7 @@ cacao-aorun-025-acqWFS start
 
 ```bash
 # Measure latency
-cacao-aorun-020-mlat -w
+cacao-aorun-020-mlat
 ```
 
 
@@ -109,7 +109,7 @@ The following files are written to ./conf/DMmodes/ :
 ```bash
 # Acquire response matrix - Simple modes
 cacao-fpsctrl setval measlinresp procinfo.loopcntMax 20
-cacao-aorun-030-acqlinResp -w SmodesC
+cacao-aorun-030-acqlinResp SmodesC
 
 # NOTE: Alternate option is Hadamard modes
 # Acquire response matrix - Hadamard modes
