@@ -28,8 +28,8 @@ SGE_Reshaper::SGE_Reshaper(
         throw std::runtime_error(
             "SGE_Reshaper: the width of the input image does not correspond to the number of valid fields in the pupil.\n");
     }
-    // Each line of the input corresponds to one reshaped pupil
-    uint32_t numFrames = mp_IHinput->mHeight;
+    // Each line of each slice of the input corresponds to one reshaped pupil
+    uint32_t numFrames = mp_IHinput->mHeight * mp_IHinput->mDepth;
 
     // Set up output
     // Each line of the input is one frame
@@ -58,7 +58,10 @@ errno_t SGE_Reshaper::reshapeDo()
 {
     float* readBuf = mp_IHinput->getWriteBuffer();
     float* writeBuf = mp_IHoutput->getWriteBuffer();
-    for (uint32_t i = 0; i < mp_IHinput->mHeight; i++)
+
+    // Each line of each slice of the input corresponds to one reshaped pupil
+    uint32_t numFrames = mp_IHinput->mHeight * mp_IHinput->mDepth;
+    for (uint32_t i = 0; i < numFrames; i++)
     {   // For every frame
         mp_pupil->fill2DarrWithValues(
             mp_IHinput->mWidth,
