@@ -25,6 +25,9 @@ static char *inputname;
 // stream name of the mask stream
 static char *maskname;
 
+static int64_t *linesAsSlices;
+static long      fpi_linesAsSlices = -1;
+
 
 static CLICMDARGDEF farg[] =
 {
@@ -45,6 +48,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_VISIBLE_DEFAULT,
         (void **) &maskname,
         NULL
+    },
+    {
+        CLIARG_ONOFF,
+        ".linesAsSlices",
+        "reshape input lines to 2D slices",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &linesAsSlices,
+        &fpi_linesAsSlices
     }
 };
 
@@ -165,7 +177,8 @@ static errno_t compute_function()
     // Construct the reshaper
     SGEReshapeHandle reshaper = create_SGE_Reshaper(
         inputimg.im,
-        maskimg.im);
+        maskimg.im,
+        linesAsSlices);
     printf("== Reshaper constructed. Ready for reshaping.\n");
     // ===
     

@@ -5,11 +5,13 @@ extern "C"
 {
     SGEReshapeHandle create_SGE_Reshaper(
         IMAGE* input,
-        IMAGE* mask)
+        IMAGE* mask,
+        int64_t linesAsSlices)
     {
         return new SGE_Reshaper(
             input,
-            mask);
+            mask,
+            linesAsSlices > 0);
     }
 
     void free_SGE_Reshaper(SGEReshapeHandle p)

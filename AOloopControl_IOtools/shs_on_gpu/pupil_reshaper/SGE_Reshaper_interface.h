@@ -12,8 +12,9 @@ extern "C" {
 typedef void * SGEReshapeHandle;
 // Constructor
 SGEReshapeHandle create_SGE_Reshaper(
-    IMAGE* input,   // Stream with SHS reference positions
-    IMAGE* mask);   // Stream of the SHS camera
+    IMAGE* input,           // Stream with SHS reference positions
+    IMAGE* mask,            // Stream of the SHS camera
+    int64_t linesAsSlices); // Reshape lines into slices instead of stacked if != 0
     
 // Desctructor
 void free_SGE_Reshaper(SGEReshapeHandle);
