@@ -1,6 +1,6 @@
 #ifndef WFGRAD_HPP
 #define WFGRAD_HPP
-#include "pupil.hpp"
+#include "../../util/Pupil.hpp"
 
 #define spWFGrad std::shared_ptr<WFGrad>
 

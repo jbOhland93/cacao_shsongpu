@@ -1,7 +1,7 @@
 #ifndef SGE_RESHAPER_HPP
 #define SGE_RESHAPER_HPP
 
-#include "../wf_reconstructor/subclasses/pupil.hpp"
+#include "../util/Pupil.hpp"
 #include "../util/ImageHandler2D.hpp"
 #include <errno.h>
 

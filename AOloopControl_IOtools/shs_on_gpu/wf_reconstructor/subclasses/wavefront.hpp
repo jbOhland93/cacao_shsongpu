@@ -1,6 +1,6 @@
 #ifndef WAVEFRONT_HPP
 #define WAVEFRONT_HPP
-#include "pupil.hpp"
+#include "../../util/Pupil.hpp"
 
 #define spWF std::shared_ptr<Wavefront>
 

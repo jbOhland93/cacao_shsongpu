@@ -1,4 +1,4 @@
-#include "pupil.hpp"
+#include "Pupil.hpp"
 #include <cmath>
 #include <iostream>
 

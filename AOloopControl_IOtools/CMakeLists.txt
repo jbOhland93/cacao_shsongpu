@@ -26,10 +26,10 @@ set(SOURCEFILES
     shs_on_gpu/util/GaussianKernel.cu
     shs_on_gpu/util/ImageHandler2DBase.cu
     shs_on_gpu/util/OneDGaussianFit.cpp
+    shs_on_gpu/util/Pupil.cpp
     shs_on_gpu/util/SpotFitter.cpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructor.cpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.cpp
-    shs_on_gpu/wf_reconstructor/subclasses/pupil.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wavefront.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfglocalresponsegenerator.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.cpp
@@ -65,11 +65,11 @@ set(INCLUDEFILES
     shs_on_gpu/util/ImageHandler2DBase.hpp
     shs_on_gpu/util/OneDGaussianFit.hpp
     shs_on_gpu/util/Point.hpp
+    shs_on_gpu/util/Pupil.hpp
     shs_on_gpu/util/Rectangle.hpp
     shs_on_gpu/util/SpotFitter.hpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructor.hpp
     shs_on_gpu/wf_reconstructor/modalwfreconstructorbuilder.hpp
-    shs_on_gpu/wf_reconstructor/subclasses/pupil.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wavefront.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfglocalresponsegenerator.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.hpp
