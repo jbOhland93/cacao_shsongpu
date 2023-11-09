@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <typeinfo>
+#include <string>
 
 template<typename T>
 class Point

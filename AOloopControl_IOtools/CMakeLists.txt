@@ -23,6 +23,7 @@ set(SOURCEFILES
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
     shs_on_gpu/shs_gpu.c
     shs_on_gpu/shs_gpu_ref.c
+    shs_on_gpu/util/Circle.cpp
     shs_on_gpu/util/GaussianKernel.cu
     shs_on_gpu/util/ImageHandler2DBase.cu
     shs_on_gpu/util/OneDGaussianFit.cpp
@@ -59,6 +60,7 @@ set(INCLUDEFILES
     shs_on_gpu/shs_gpu.h
     shs_on_gpu/shs_gpu_ref.h
     shs_on_gpu/util/atypeUtil.hpp
+    shs_on_gpu/util/Circle.hpp
     shs_on_gpu/util/CudaUtil.hpp
     shs_on_gpu/util/GaussianKernel.hpp
     shs_on_gpu/util/ImageHandler2D.hpp
