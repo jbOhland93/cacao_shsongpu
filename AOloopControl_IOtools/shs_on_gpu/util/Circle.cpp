@@ -52,5 +52,5 @@ void Circle::print()
 {
     printf("Circle center: ");
     mCenter.print();
-    printc("Circle radius: %.3f\n", mRadius);
+    printf("Circle radius: %.3f\n", mRadius);
 }

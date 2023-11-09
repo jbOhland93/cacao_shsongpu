@@ -19,6 +19,9 @@ set(SOURCEFILES
     shs_on_gpu/pupil_reshape.c
     shs_on_gpu/pupil_reshaper/SGE_Reshaper.cpp
     shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.cpp
+    shs_on_gpu/pupil_zern_generator/PupilZernikeGenerator_interface.cpp
+    shs_on_gpu/pupil_zern_generator/PupilZernikeGenerator.cpp
+    shs_on_gpu/pupil_zernike_gen.c
     shs_on_gpu/ref_recorder/SGR_Recorder.cu
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.cpp
     shs_on_gpu/shs_gpu.c
@@ -55,6 +58,9 @@ set(INCLUDEFILES
     shs_on_gpu/pupil_reshape.h
     shs_on_gpu/pupil_reshaper/SGE_Reshaper.hpp
     shs_on_gpu/pupil_reshaper/SGE_Reshaper_interface.h
+    shs_on_gpu/pupil_zernike_gen.h
+    shs_on_gpu/pupil_zern_generator/PupilZernikeGenerator_interface.h
+    shs_on_gpu/pupil_zern_generator/PupilZernikeGenerator.hpp
     shs_on_gpu/ref_recorder/SGR_Recorder.hpp
     shs_on_gpu/ref_recorder/SGR_Recorder_interface.h
     shs_on_gpu/shs_gpu.h

@@ -8,18 +8,18 @@
 extern "C" {
 #endif
 
-// A pointer to the recorder object to be used for function calls
+// A pointer to the reshaper object to be used for function calls
 typedef void * SGEReshapeHandle;
 // Constructor
 SGEReshapeHandle create_SGE_Reshaper(
     IMAGE* input,           // Stream with SHS reference positions
-    IMAGE* mask,            // Stream of the SHS camera
+    IMAGE* mask,            // Stream of the SHS pupil mask
     int64_t linesAsSlices); // Reshape lines into slices instead of stacked if > 0
     
 // Desctructor
 void free_SGE_Reshaper(SGEReshapeHandle);
 
-// Do reshaing on available data
+// Do reshaping on available data
 errno_t SGEE_reshape_do(SGEReshapeHandle);
 
 #ifdef __cplusplus

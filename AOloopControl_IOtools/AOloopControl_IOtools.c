@@ -39,6 +39,7 @@
 #include "shs_on_gpu/shs_gpu_ref.h"
 #include "shs_on_gpu/shs_gpu.h"
 #include "shs_on_gpu/pupil_reshape.h"
+#include "shs_on_gpu/pupil_zernike_gen.h"
 
 
 
@@ -67,6 +68,7 @@ static errno_t init_module_CLI()
     CLIADDCMD_AOloopControl_IOtools__recordShsRefGPU();
     CLIADDCMD_AOloopControl_IOtools__EvaluateShsGPU();
     CLIADDCMD_AOloopControl_IOtools__pupilReshape();
+    CLIADDCMD_AOloopControl_IOtools__PupilZernikeGen();
 
     // add atexit functions here
     // atexit((void*) myfunc);
