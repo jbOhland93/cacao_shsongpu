@@ -24,6 +24,8 @@ static int cmdindex;
 static char *coeffstream;
 // stream name of the mask stream
 static char *maskname;
+// stream name of expanded stream
+static char *outname;
 
 static int64_t *output2D;
 static long      fpi_output2D = -1;
@@ -47,6 +49,15 @@ static CLICMDARGDEF farg[] =
         "mask", // default
         CLIARG_VISIBLE_DEFAULT,
         (void **) &maskname,
+        NULL
+    },
+    {
+        CLIARG_STR,
+        ".output_name",
+        "name of the expanded stream",
+        "zernExp", // default
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &outname,
         NULL
     },
     {
@@ -178,7 +189,8 @@ static errno_t compute_function()
     // Construct the reshaper
     PupilZernGenHandle ZGenerator = create_PupilZernGenerator(
         coeffimg.im,
-        maskimg.im);
+        maskimg.im,
+        outname);
     printf("== Generator constructed. Ready for zernike expansion.\n");
     // ===
     

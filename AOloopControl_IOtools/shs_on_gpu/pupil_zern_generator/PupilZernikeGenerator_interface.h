@@ -13,7 +13,8 @@ typedef void * PupilZernGenHandle;
 // Constructor
 PupilZernGenHandle create_PupilZernGenerator(
     IMAGE* zerncoeff,       // Stream with zernike coefficients
-    IMAGE* mask);           // Stream of the SHS pupil mask
+    IMAGE* mask,            // Stream of the SHS pupil mask
+    char* outputName);      // Name of the destination stream
     
 // Desctructor
 void free_PupilZernGen(PupilZernGenHandle);

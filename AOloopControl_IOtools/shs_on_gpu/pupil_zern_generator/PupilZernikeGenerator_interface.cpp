@@ -5,11 +5,13 @@ extern "C"
 {
     PupilZernGenHandle create_PupilZernGenerator(
         IMAGE* zerncoeff,
-        IMAGE* mask)
+        IMAGE* mask,
+        char* outputName)
     {
         return new PupilZernikeGenerator(
             zerncoeff,
-            mask);
+            mask,
+            std::string(outputName));
     }
 
     void free_PupilZernGen(PupilZernGenHandle p)

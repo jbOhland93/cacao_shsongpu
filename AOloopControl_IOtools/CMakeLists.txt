@@ -108,6 +108,7 @@ set(LINKLIBS
 	CLIcore
     milkinfo
     milkCOREMODiofits
+    milkZernikePolyn
     cacaoAOloopControl
     -lcublas
 )
