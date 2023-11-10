@@ -33,25 +33,41 @@ SGE_Reshaper::SGE_Reshaper(
 
     // Set up output
     // Each line of the input is one frame
-    
-    std::string outputName = input->name;
-    outputName.append("_reshape");
+    size_t width = mp_pupil->getWidth();
+    size_t height = mp_pupil->getHeight();
+    size_t depth = numFrames;
     if (!linesAsSlices)
     {   // Order each reshaped pupil below the last one.
+        height *= depth;
+        depth = 1;
+    }
+    std::string outputName = input->name;
+    outputName.append("_reshape");
+
+    // Try adopting any existing image with the same name
+    try
+    {
+        mp_IHoutput = ImageHandler2D<float>::newHandler2DAdoptImage(outputName);
+
+        if (mp_IHoutput->mWidth != width ||
+            mp_IHoutput->mHeight != height ||
+            mp_IHoutput->mDepth != depth)
+        {
+            mp_IHoutput->setPersistent(false);
+            mp_IHoutput = nullptr;
+            throw(std::runtime_error("Output image exists, but has wrong size. Overwriting image."));
+        }
+    }
+    catch(const std::runtime_error& e)
+    {
+        printf("Error adopting image:\n%s\nCreating image.", e.what());
         mp_IHoutput = ImageHandler2D<float>::newImageHandler2D(
             outputName,
-            mp_pupil->getWidth(),
-            mp_pupil->getHeight()*numFrames);
+            width,
+            height,
+            depth);
+        mp_IHoutput->setPersistent(true);
     }
-    else
-    {   // Use each reshaped pupil as a slice
-        mp_IHoutput = ImageHandler2D<float>::newImageHandler2D(
-            outputName,
-            mp_pupil->getWidth(),
-            mp_pupil->getHeight(),
-            numFrames);
-    }
-    mp_IHoutput->setPersistent(true);
 }
 
 errno_t SGE_Reshaper::reshapeDo()
