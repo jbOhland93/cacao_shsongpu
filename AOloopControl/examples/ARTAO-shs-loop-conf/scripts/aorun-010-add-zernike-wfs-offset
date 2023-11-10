@@ -20,12 +20,6 @@ The output is 1D, but can optionally be reshaped to the pupil mask.
 source milk-script-std-config
 source cacao-check-cacaovars
 
-IM_MASK="aol${CACAO_LOOPNUMBER}_shsCam_RefMask"
-ZC_STREAM="aol${CACAO_LOOPNUMBER}_zernCoeff_WFS"
-ZE_1D="aol${CACAO_LOOPNUMBER}_zern_WFS"
-ZE_2D="${ZE_1D}_reshape"
-WFS_OFFSET="unknown"
-
 # prerequisites
 #
 RequiredCommands=( milk )
@@ -33,27 +27,55 @@ RequiredFiles=()
 RequiredPipes=()
 RequiredDirs=()
 
+# Image stream names
+IM_MASK="aol${CACAO_LOOPNUMBER}_shsCam_RefMask"
+ZC_STREAM="aol${CACAO_LOOPNUMBER}_zernCoeff_WFS"
+ZE_1D="aol${CACAO_LOOPNUMBER}_wfszpo" # Output is written to WFS ZPO
+ZE_2D="${ZE_1D}_reshape"
+
 # Zernike coefficient names
-TiltX="tiltX"
-TiltY="tiltY"
+TiltX="tiltx"
+TiltY="tilty"
 Defocus="defoc"
-Astig0="astig0"
-Astig45="astig45"
+Astigmatism45="astig45"
+Astigmatism0="astig0"
+ComaY="comay"
+ComaX="comax"
+Trefoil30="tref30"
+Trefoil0="tref0"
+Spherical="sph"
+Astigmatism2nd0="2ndastig0"
+Astigmatism2nd45="2ndastig45"
+Quadrafoil0="quad0"
+Quadrafoil225="quad225"
 
 # Zernike coefficient indicees
 declare -A coeffIndex
 coeffIndex["${TiltX}"]=1
 coeffIndex["${TiltY}"]=2
 coeffIndex["${Defocus}"]=3
-coeffIndex["${Astig0}"]=4
-coeffIndex["${Astig45}"]=5
+coeffIndex["${Astigmatism45}"]=4
+coeffIndex["${Astigmatism0}"]=5
+coeffIndex["${ComaY}"]=6
+coeffIndex["${ComaX}"]=7
+coeffIndex["${Trefoil30}"]=8
+coeffIndex["${Trefoil0}"]=9
+coeffIndex["${Spherical}"]=10
+coeffIndex["${Astigmatism2nd0}"]=11
+coeffIndex["${Astigmatism2nd45}"]=12
+coeffIndex["${Quadrafoil0}"]=13
+coeffIndex["${Quadrafoil225}"]=14
+# Number of Zernike coefficients = max. index+1
+NumZern=15
 
-# Number of Zernike coefficients
-NumZern=11
-
+# SCRIPT ARGUMENTS
 MSarg+=( "action:string:action (set/setneg/add/sub/check)" )
-MSarg+=( "term:string:term (${TiltX}/${TiltY}/${Defocus}/${Astig0}/${Astig45})" )
-MSarg+=( "coefficient:float:coefficient" )
+MSarg+=( "term:string:term (\
+${TiltX}/${TiltY}/${Defocus}/${Astigmatism0}/${Astigmatism45}/\
+${ComaY}/${ComaX}/${Trefoil30}/${Trefoil0}/${Spherical}/\
+${Astigmatism2nd0}/${Astigmatism2nd45}/${Quadrafoil0}/${Quadrafoil225}\
+)" )
+MSarg+=( "coefficient:float:coefficient value (Integral(Z^2)=Pi)" )
 
 # SCRIPT OPTIONS
 # syntax: "short:long:functioncall:args[types]:description"
@@ -153,11 +175,10 @@ readshmim ${ZC_STREAM}
 
 cacaoio.zernikeGen .2Doutput ${reshape}
 
-cacaoio.zernikeGen ${ZC_STREAM} ${IM_MASK}
+cacaoio.zernikeGen ${ZC_STREAM} ${IM_MASK} ${ZE_1D}
 
 exit
 EOF
 fi
-
 
 cacaomsglog "END"

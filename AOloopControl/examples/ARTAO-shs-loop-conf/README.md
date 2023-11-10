@@ -99,7 +99,7 @@ cacao-aorun-000-dm start
 ## 3. Measure SHS camera dark
 Block the beam towards the SHS camera, then record the average of the stream.
 ```bash
-# Average aolx_shsCam, store in aolx_shsCam_AVG and save/log as fits file.
+# Average aolX_shsCam, store in aolX_shsCam_AVG and save/log as fits file.
 ./scripts/aorun-001-take-shs-avg -n 2000
 ```
 Then, unblock the beam again.
@@ -121,7 +121,7 @@ With the reference recorded and in SHM, the evaluation process can now be launch
 The evaluation routine generates 1D data. For visual inspection, the data has to be reordered according to the reference mask.
 ```bash
 # Start reshaping process for the wavefront output
-# Reshapes aolx_shsEval_wfOut to aolx_shsEval_wfOut_reshape
+# Reshapes aolX_shsEval_wfOut to aolX_shsEval_wfOut_reshape
 ./scripts/aorun-004-reshape-to-wfs-pupil shsWf start
 ```
 Note: Other options besides ``shsWf`` include ``shsGrad`` for the gradient output and ``shsInt`` for the intensity output. However, these outputs are not served by the evaluation process by default as the process of copying data from the GPU into host memory takes time. Therefore, they have to be turned on in the FPS of the shs evaluation process manually (shsOnGPU-Eval-x.comp.cpyGradToCPU and shsOnGPU-Eval-x.comp.cpyIntToCPU). This is not done by the reshaping script as the reshaping is solely for monitoring purpose and shall not change the performance of the loop and the user should turn on these options conciously, if desired.
@@ -133,30 +133,33 @@ During operation, changing the zero point offset in WFS space can be useful, e.g
 cacao-aorun-025-acqWFS -w start
 ```
 
-This process can also be used to set the current WF as reference point. For this, a fixed number of WF samples is collected and then immediately set to be subtracted from each measured WF.
+### 6.1 Referencing
+This process can also be used to set the current WF as reference point. For this, a fixed number of WF samples is collected and then immediately prepared to be subtracted from each measured WF.
 ```bash
 # Acquire WFS reference
 cacao-aorun-026-takeref -n 2000
-# Reshape the result for visual inspection
+# Reshape the result for visual inspection (aolX_imWFS2_reshape)
 ./scripts/aorun-004-reshape-to-wfs-pupil acqWfC start
-# Reshape the temporal moving average for visual inspection
-# Observe the reshaped image as you switch on and off the WF averaging
+# Reshape the temporal moving average for visual inspection (aolX_imWFS3_reshape)
 ./scripts/aorun-004-reshape-to-wfs-pupil acqWfAVG start
+# NOTE: The reference is NOT subtracted automatically.
+# To observe the change, enter milk-fpsCTRL, select the
+# acqWFS-X process and enable the comp.WFSrefsub parameter.
 ```
 
-## 6. Measure DM to WFS latency
+## 7. Measure DM to WFS latency
 Note that the fps of the latency measurement, ``mlat-x``, has ``.option.slowDM`` enabled as the bimorph DM features a rise time of ~1 ms, which is longer than the frame duration of the acquisition process. This value is automatically set according to the `fpssetup.setval.conf` file.
 ```bash
 # Measure latency
 cacao-aorun-020-mlat -w
 ```
 
-## 7. Acquire Calibration
+## 8. Acquire Calibration
 In this section, the response matrix of the DM is recorded and converted into a control matrix. This process is devided into several steps:
 1. Generation of poke modes
 
 
-### 6.1. Prepare DM poke modes
+### 8.1. Prepare DM poke modes
 Instead of indexing through the actuators of the DM, cacao probes the DM using pre-defined mode sets. These *can* be single acutator pokes, but depending on the DM type, there may be more desirable modes. Especially for DMs with a localized actuator response, like MEMS DMs or bimorphs, the hadamard modes are a good choice as the signal for each poke is maximized.
 The modes are pre-generated into fits-files for better performance.
 
@@ -175,7 +178,7 @@ The following files are written to ./conf/RMmodesDM/
 | `Hpixindex.fits  `   | Hadamard pixel index                                |
 | `SmodesC.fits    `   | *Simple* (single actuator) pokes                    |
 
-### 6.2. Acquire WFS response
+### 8.2. Acquire WFS response
 In this example, we are going to use the Hadamard modes as the ARTAO system uses a bimorph DM and will therefore benefit from pokes that are distributed over the whole aperture.
 
 ```bash
@@ -186,7 +189,7 @@ cacao-aorun-030-acqlinResp -n 4 HpokeC
 This could take a while. Check status on milk-procCTRL.
 To inspect results, display file conf/RMmodesWFS/HpokeC.WFSresp.fits.
 
-### 6.3 Decode Hadamard matrix
+### 8.3 Decode Hadamard matrix
 For the calculation of the control matrix, the response matrix has to be written in DM space. As we used Hadamard pokes to record the response, the raw data has to be decoded, i.e. transformed to a zonal response matrix, using the `Hmat.fits` that has been generated previously.
 
 ```bash
@@ -199,7 +202,7 @@ This should take the decoded modes (conf/RMmodesWFS/zrespM-H.fits) as argument.
 To inspect results, display file conf/RMmodesWFS/zrespM-H.fits.
 This should visually look like a zonal response matrix.
 
-### 6.4. Compute control matrix (straight)
+### 8.4. Compute control matrix (straight)
 Compute control modes, in both WFS and DM spaces.
 Set GPU device (if GPU available).
 
@@ -219,9 +222,9 @@ Check results:
 - conf/CMmodesWFS/CMmodesWFS.fits
 
 
-## 8. Running the loop
+## 9. Running the loop
 
-### 8.1. Core processes
+### 9.1. Core processes
 
 Select GPUs for the modal decomposition (WFS->modes) and expansion (modes->DM) MVMs
 ```bash
@@ -244,7 +247,7 @@ cacao-aorun-070-cmval2dm start
 
 ```
 
-### 8.2 Closing the loop and setting loop parameters with mfilt:
+### 9.2 Closing the loop and setting loop parameters with mfilt:
 
 ```bash
 # Set loop gain
@@ -269,14 +272,18 @@ cacao-wfsref-setflat
 ```
 
 
-### 8.3. Zero Point Offsetting
-
+### 9.3 Zero Point Offsetting using Zernike Polynomials
+A common way to change the shape of the focal spot is to apply a known amount of Zernike aberrations to the beam. As the DM of the ARTAO system does not feature a regular grid of actuators, this is most easily done in WFS space. In this example, we are applying Zernike aberrations to the ZPO stream of the WFS acquisition process.
 ```bash
-cacao-aorun-071-zpo start
+# Check the available Zernike polynomials of the script
+./scripts/aorun-010-add-zernike-wfs-offset -h
+# Example: apply a bit of defocusing and some negative Coma Y
+# The -r flag will provide an additional 2D representation for visual inspection (aolX_wfszpo_reshape)
+./scripts/aorun-010-add-zernike-wfs-offset set defoc 0.3 -r
+./scripts/aorun-010-add-zernike-wfs-offset setneg comay 0.2 -r
+# Observe the change in the corrected WF (aolX_imWFS2_reshape)
+./scripts/aorun-004-reshape-to-wfs-pupil acqWfC start
 ```
-
-Select DM channels to be included in zpo.
-
 
 ## 9. Testing the loop
 

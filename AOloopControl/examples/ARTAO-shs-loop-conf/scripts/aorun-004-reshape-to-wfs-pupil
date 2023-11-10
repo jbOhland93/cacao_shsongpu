@@ -99,8 +99,8 @@ case "${STREAMOPT}" in
     FPSNAME="${FPS_WF_C}"
     ;;
   "${SOPTWFAVG}")
-  	checkstream ${IM_MASK}
-	IMNAME="${IM_MASK}"
+  	checkstream ${IM_WF_AVG}
+	IMNAME="${IM_WF_AVG}"
     checkFPSON CACAO_FPSPROC_RSHP_ACQWF_AVG ${CACAO_FPSPROC_RSHP_ACQWF_AVG}
     FPSNAME="${FPS_WF_AVG}"
     ;;
