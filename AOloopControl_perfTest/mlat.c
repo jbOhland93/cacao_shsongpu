@@ -59,9 +59,6 @@ long          fpi_latencyfr;
 static int64_t *saveraw;
 long            fpi_saveraw;
 
-static int64_t *slowDM;
-long            fpi_slowDM;
-
 
 static CLICMDARGDEF farg[] = {{
         CLIARG_STREAM,
@@ -179,15 +176,6 @@ static CLICMDARGDEF farg[] = {{
         CLIARG_HIDDEN_DEFAULT,
         (void **) &saveraw,
         &fpi_saveraw
-    },
-    {
-        CLIARG_ONOFF,
-        ".option.slowDm",
-        "DM rise-time slower than the frame duration",
-        "0",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &slowDM,
-        &fpi_slowDM
     },
 };
 
@@ -725,44 +713,6 @@ static errno_t compute_function()
                     }
                     valmin = valarray[kk] < valmin ? valarray[kk] : valmin;
                 } // GET FRAME-2-FRAME DIFFERENCES END
-
-                // Extra step for slow DMs
-                // A slow DM means that the rise time is greater than the frame duration of the
-                // recording camera. The frame-to-frame difference, depending on the time difference
-                // between the DM signal and the frames, will not form the typical triangular
-                // shape as known for fast DMs, which can change approx. in between camera frames.
-                // Instead, assuming a linear actuator rise, the pattern will be plateau-like with a
-                // ramp-up and ramp-down caused by the exposure time of the camera.
-                // In this case, the latency corresponds to the start of the ramp-down, which is
-                // equivalent to the peak of the triangle in the case of a fast DM.
-                //
-                // If slowDM is enabled, we assume that at least one frame difference lies is on top
-                // of the plateau. Thus, we expect valmax to roughly correspond to the plateau height.
-                // Therefore, we need to check for the time where the frame-to-frame difference drops
-                // below this value again, which we define as a ratio of rampDownMargin
-                if (*slowDM)
-                {
-                    double rampDownMargin = 0.8;
-                    double plateauThresh = valmin + (valmax-valmin) * rampDownMargin;
-
-                    int onPlateau = 0;
-                    for(long kk = 1; kk < NBwfsframe; kk++)
-                    {
-                        // Recognize when we enter the plateau
-                        if (onPlateau == 0 && valarray[kk] >= plateauThresh)
-                            onPlateau = 1;
-                        // If we leave the plateau, stop the loop.
-                        if (onPlateau == 1 && valarray[kk] < plateauThresh)
-                            break;
-
-                        // Update the latest dt which is on the plateau
-                        if (onPlateau)
-                        {
-                            valmaxdt = 0.5 * (dtarray[kk - 1] + dtarray[kk]);
-                            kkmax    = kk - kkoffset;
-                        }
-                    }
-                }
 
                 //
                 //
