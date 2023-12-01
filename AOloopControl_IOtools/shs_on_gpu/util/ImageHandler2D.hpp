@@ -41,17 +41,17 @@ public:
 
 // ========== IMAGE HANDLING ==========    
     // Copies the data from im and converts to own datatype
-    void cpy(IMAGE* im);
+    void cpy(IMAGE* im, bool triggerUpdate = true);
     // Calculates A-B and converts the result to own datatype
-    void cpy_subtract(IMAGE* A, IMAGE* B);
+    void cpy_subtract(IMAGE* A, IMAGE* B, bool triggerUpdate = true);
     // Makes a binary image from the data in im
     // by comparing the pix values with thresh
-    void cpy_thresh(IMAGE* im, double thresh);
+    void cpy_thresh(IMAGE* im, double thresh, bool triggerUpdate = true);
     // Convolves A with kernel K stores result.
     // A has to have the same size as this image.
     // Values outside of A are considered 0.
     // Note: This is direct convolution, not made for speed.
-    void cpy_convolve(IMAGE* A, IMAGE* K);
+    void cpy_convolve(IMAGE* A, IMAGE* K, bool triggerUpdate = true);
 
 // ========== READING/WRITING MEMBER DATA ==========
     // Returns the write buffer
@@ -234,7 +234,7 @@ inline spImHandler2D(T) ImageHandler2D<T>::newHandler2DAdoptImage(std::string im
 // ===== specifications for image handling =====
 
 template <typename T>
-inline void ImageHandler2D<T>::cpy(IMAGE* im)
+inline void ImageHandler2D<T>::cpy(IMAGE* im, bool update)
 {   
     // Check image dimension
     if (mDepth == 1 && im->md->naxis > 2)
@@ -256,11 +256,12 @@ inline void ImageHandler2D<T>::cpy(IMAGE* im)
     for (int i = 0; i < mNumPx; i++)
         mp_data[i] = cvtElmt(readBuffer, atype, i);
     
-    updateWrittenImage();
+    if (update)
+        updateWrittenImage();
 }
 
 template <typename T>
-inline void ImageHandler2D<T>::cpy_subtract(IMAGE* A, IMAGE* B)
+inline void ImageHandler2D<T>::cpy_subtract(IMAGE* A, IMAGE* B, bool update)
 {
     // Check image sizes
     std::vector<uint32_t> sVec = getSizeVector();
@@ -280,11 +281,12 @@ inline void ImageHandler2D<T>::cpy_subtract(IMAGE* A, IMAGE* B)
         mp_data[i] = cvtElmt(readBufferA, atypeA, i)
             - cvtElmt(readBufferB, atypeB, i);
 
-    updateWrittenImage();
+    if (update)
+        updateWrittenImage();
 }
 
 template <typename T>
-inline void ImageHandler2D<T>::cpy_thresh(IMAGE* im, double thresh)
+inline void ImageHandler2D<T>::cpy_thresh(IMAGE* im, double thresh, bool update)
 {
     // Check image sizes
     if (getSizeVector() != imSizeToVector(im))
@@ -299,11 +301,12 @@ inline void ImageHandler2D<T>::cpy_thresh(IMAGE* im, double thresh)
     for (int i = 0; i < mNumPx; i++)
         mp_data[i] = convertAtypeArrayElement<double>(readBuffer, atype, i) > thresh;
     
-    updateWrittenImage();
+    if (update)
+        updateWrittenImage();
 }
 
 template <typename T>
-inline void ImageHandler2D<T>::cpy_convolve(IMAGE* A, IMAGE* K)
+inline void ImageHandler2D<T>::cpy_convolve(IMAGE* A, IMAGE* K, bool update)
 {
     // Check image size
     if (getSizeVector() != imSizeToVector(A))
@@ -352,7 +355,8 @@ inline void ImageHandler2D<T>::cpy_convolve(IMAGE* A, IMAGE* K)
             }
     }
     
-    updateWrittenImage();
+    if (update)
+        updateWrittenImage();
 }
 
 

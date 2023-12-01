@@ -267,6 +267,41 @@ fi
 
 
 
+if [ ! -z "${CACAO_FPSPROC_MLAT_SLOWDM+x}" ]; then
+echo "CACAO_FPSPROC_MLAT_SLOWDM set to ${CACAO_FPSPROC_MLAT_SLOWDM}"
+if [ "${CACAO_FPSPROC_MLAT_SLOWDM}" = "ON" ]; then
+    echolog "ON  CACAO_FPSPROC_MLAT_SLOWDM"
+    # ==============================================================================
+    # ========== Measure Latency ===================================================
+    # ==============================================================================
+
+    # FPS name
+    fpsname="mlat-slowDM"
+    fpsarg0="${CACAO_LOOPNUMBER}"
+
+    # FPS full name
+    fpsfname="${fpsname}-${fpsarg0}"
+
+    if grep -q "${fpsname}" fpslist.txt
+    then
+        echolog "Process ${fpsname} already registered - skipping"
+    else
+        echolog "Adding process ${fpsname}"
+        echo "${fpsname}           cacaopt.mlatslowdm     ${fpsarg0}" >> fpslist.txt
+
+        addfpscmdheader
+        addfpscmd "setval ${fpsfname}.NBiter 20"
+        addfpscmd "setval ${fpsfname}.dmstream aol${CACAO_LOOPNUMBER}_dmRM"
+        addfpscmd "setval ${fpsfname}.wfsstream aol${CACAO_LOOPNUMBER}_wfsim"
+        #fpscmd "setval ${fpsfname}.out.dirname ${outdir}"
+    fi
+else
+    echolog "CACAO_FPSPROC_MLAT_SLOWDM = OFF"
+fi
+fi
+
+
+
 if [ ! -z "${CACAO_FPSPROC_MAPWFS+x}" ]; then
 echo "CACAO_FPSPROC_MAPWFS set to ${CACAO_FPSPROC_MAPWFS}"
 if [ "${CACAO_FPSPROC_MAPWFS}" = "ON" ]; then

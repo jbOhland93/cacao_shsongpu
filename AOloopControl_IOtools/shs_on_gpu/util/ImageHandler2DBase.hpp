@@ -9,8 +9,16 @@
 #include <stdexcept>
 #include <algorithm>
 #include <vector>
-#include "ImageStreamIO/ImageStreamIO.h"
 #include "../util/Rectangle.hpp"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include "../../../../../src/CommandLineInterface/CLIcore.h"
+#ifdef __cplusplus
+}
+#endif
 
 #define spIHBase std::shared_ptr<ImageHandler2DBase>
 class ImageHandler2DBase
@@ -31,6 +39,8 @@ public:
     IMAGE* getImage() { return mp_image; }
     // Returns the image array size in memory
     size_t getBufferSize() { return mp_image->md->imdatamemsize; }
+    // Returns the current image counter
+    uint64_t getCnt0() { return mp_image->md->cnt0; }
 
     // Makes the image stream stay after destruction
     void setPersistent(bool persistent) { mPersistent = persistent; }
@@ -57,6 +67,11 @@ public:
 
     // Updates the image
     void updateWrittenImage() { ImageStreamIO_UpdateIm(mp_image); }
+    // Waits for the next frame
+    bool waitForNextFrame(int timeout_us = 1e6);
+
+    // Saves the image to the data directory of the given fps
+    void saveToFPSdataDir(FUNCTION_PARAMETER_STRUCT* fps, std::string fname);
     
 protected:
     // The image, managed by this class
@@ -70,6 +85,8 @@ protected:
     uint64_t mCnt0deviceCopy = std::numeric_limits<uint64_t>::max();
     // The region of interest. May be used by processing routines.
     Rectangle<uint32_t> mROI = Rectangle<uint32_t>(0, 0, 0, 0);
+    // Index of the semaphore used by this image handler
+    uint_fast16_t m_semaphoreIndex = 0;
 
     // Ctor
     ImageHandler2DBase(uint32_t width, uint32_t height, uint32_t depth = 1);

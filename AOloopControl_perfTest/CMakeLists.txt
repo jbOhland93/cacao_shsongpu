@@ -5,11 +5,17 @@ set(SOURCEFILES
 	AOloopControl_perfTest_LinSim.c
 	compRMsensitivity.c
 	mlat.c
+	mlatSlowDM.c
+	mlatSlowRecorder/MLS_Recorder_interface.cpp
+	mlatSlowRecorder/MLS_Recorder.cpp
 )
 
 # list include files (.h) that should be installed on system
 set(INCLUDEFILES
 	mlat.h
+	mlatSlowDM.h
+	mlatSlowRecorder/MLS_Recorder_interface.h
+	mlatSlowRecorder/MLS_Recorder.hpp
 )
 
 # list scripts that should be installed on system

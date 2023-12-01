@@ -50,6 +50,32 @@ void ImageHandler2DBase::unsetROI()
     mROI = Rectangle<uint32_t>(0,0, mWidth, mHeight);
 }
 
+bool ImageHandler2DBase::waitForNextFrame(int timeout_us)
+{
+    timespec timeout;
+    clock_gettime(CLOCK_REALTIME, &timeout);
+    // Add timeout to timespec - and ansure tv_nsec is within its limits
+    timeout.tv_nsec += (__time_t) timeout_us*1000;
+    timeout.tv_sec += timeout.tv_nsec / (long) 1e9;
+    timeout.tv_nsec = timeout.tv_nsec % (long) 1e9;
+
+    uint64_t lastFrameIndex = mp_image->md->cnt0;
+    ImageStreamIO_semtimedwait(mp_image, m_semaphoreIndex, &timeout);
+    if (mp_image->md->cnt0 != lastFrameIndex)
+    {
+        ImageStreamIO_semflush(mp_image, m_semaphoreIndex);
+        return true;
+    }
+    else
+        return false;
+}
+
+void ImageHandler2DBase::saveToFPSdataDir(FUNCTION_PARAMETER_STRUCT* fps, std::string fname)
+{
+    read_sharedmem_image(mp_image->name);
+    fps_write_RUNoutput_image(fps, mp_image->name, fname.c_str());
+}
+
 ImageHandler2DBase::ImageHandler2DBase(
         uint32_t width,
         uint32_t height,
@@ -68,6 +94,8 @@ void ImageHandler2DBase::updateImMetadata()
 {
     mp_h_imData = ImageStreamIO_get_image_d_ptr(mp_image);
     m_dataSize = mp_image->md->imdatamemsize;
+    m_semaphoreIndex =
+            ImageStreamIO_getsemwaitindex(mp_image, m_semaphoreIndex);
 }
 
 void* ImageHandler2DBase::getDeviceCopy()
