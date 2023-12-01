@@ -237,7 +237,7 @@ static errno_t help_function()
 
     printf(
         "Convention\n"
-        "Latency is defined haere as the time offset between:\n"
+        "Latency is defined here as the time offset between:\n"
         "- Time at which input stream is perturbed\n"
         "- Average arrival time between the two output frames experiencing the maximum change\n"
         "\n"
@@ -325,7 +325,7 @@ static errno_t compute_function()
             }
         RMStot = sqrt(RMStot / dmxsize / dmysize);
 
-        printf("RMStot = %f", RMStot);
+        printf("RMStot = %f\n", RMStot);
 
         for(uint32_t ii = 0; ii < dmxsize; ii++)
             for(uint32_t jj = 0; jj < dmysize; jj++)
@@ -632,7 +632,7 @@ static errno_t compute_function()
                     //
                     char ffnameC[STRINGMAXLEN_FULLFILENAME];
                     WRITE_FULLFILENAME(ffnameC,
-                                       "mlat-testC-%04d.fits", iter);
+                                       "mlat-testC-%04d", iter);
                     fps_write_RUNoutput_image(data.fpsptr, "_testwfsc", ffnameC);
                 }
 
