@@ -65,6 +65,12 @@ long          fpi_latencyfr;
 static float *latencyus;
 long          fpi_latencyus;
 
+static float *latencyrawfr;
+long          fpi_latencyrawfr;
+
+static float *latencyrawus;
+long          fpi_latencyrawus;
+
 
 static CLICMDARGDEF farg[] = {{
         CLIARG_STREAM,
@@ -149,8 +155,26 @@ static CLICMDARGDEF farg[] = {{
     },
     {
         CLIARG_FLOAT32,
+        ".out.latencyRaw_fr",
+        "unsmoothed hardware latency [frame]",
+        "0",
+        CLIARG_OUTPUT_DEFAULT,
+        (void **) &latencyrawfr,
+        &fpi_latencyrawfr
+    },
+    {
+        CLIARG_FLOAT32,
+        ".out.latencyRaw_us",
+        "unsmoothed hardware latency [us]",
+        "0",
+        CLIARG_OUTPUT_DEFAULT,
+        (void **) &latencyrawus,
+        &fpi_latencyrawus
+    },
+    {
+        CLIARG_FLOAT32,
         ".out.latency_fr",
-        "hardware latency [frame]",
+        "smoothed hardware latency [frame]",
         "0",
         CLIARG_OUTPUT_DEFAULT,
         (void **) &latencyfr,
@@ -159,7 +183,7 @@ static CLICMDARGDEF farg[] = {{
     {
         CLIARG_FLOAT32,
         ".out.latency_us",
-        "hardware latency [us]",
+        "smoothed hardware latency [us]",
         "0",
         CLIARG_OUTPUT_DEFAULT,
         (void **) &latencyus,
@@ -294,6 +318,7 @@ static errno_t compute_function()
     
     // === SET UP LATENCY RECORDER HERE
     MLSRHandle recorder = create_MLS_Recorder(
+        data.fpsptr,
         imgdm.im,
         imgwfs.im,
         *fpsMeasTime,
@@ -301,12 +326,12 @@ static errno_t compute_function()
         *maxActStroke,
         *numPokes,
         *framesPerPoke,
-        data.fpsptr,
         *saveraw);
+
     // === RECORD LATENCY
     mlsRecordDo(recorder);
 
-    // === PUBLISH RESULTS
+/*    // === PUBLISH RESULTS
     printf("Results:\n");
     *framerateHz = getFPS_Hz(recorder);
     functionparameter_SaveParam2disk(data.fpsptr, ".out.framerateHz");
@@ -326,6 +351,7 @@ static errno_t compute_function()
     *risetimeus = getRiseTime0to90_us(recorder);
     functionparameter_SaveParam2disk(data.fpsptr, ".out.risetime_us");
     printf("\tRise time (10%% to [90%%|110%%]) = %.3f us (%.3f frames)\n", *risetimeus, *risetimefr);
+*/
    
     // === FREE RECORDER
     free_MLS_Recorder(recorder);

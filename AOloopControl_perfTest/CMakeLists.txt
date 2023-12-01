@@ -6,16 +6,23 @@ set(SOURCEFILES
 	compRMsensitivity.c
 	mlat.c
 	mlatSlowDM.c
+	mlatSlowRecorder/MLS_DMmanager.cpp
 	mlatSlowRecorder/MLS_Recorder_interface.cpp
 	mlatSlowRecorder/MLS_Recorder.cpp
+	mlatSlowRecorder/MLS_ResultManager.cpp
+	mlatSlowRecorder/MLS_SequenceManager.cpp
 )
 
 # list include files (.h) that should be installed on system
 set(INCLUDEFILES
 	mlat.h
 	mlatSlowDM.h
+	mlatSlowRecorder/MLS_PokePattern.hpp
+	mlatSlowRecorder/MLS_DMmanager.hpp
 	mlatSlowRecorder/MLS_Recorder_interface.h
 	mlatSlowRecorder/MLS_Recorder.hpp
+	mlatSlowRecorder/MLS_ResultManager.hpp
+	mlatSlowRecorder/MLS_SequenceManager.hpp
 )
 
 # list scripts that should be installed on system
