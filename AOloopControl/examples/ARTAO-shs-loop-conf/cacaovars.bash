@@ -145,7 +145,12 @@ export CACAO_FPSPROC_DMATMTURB="ON"
 #   wfsstream = WF
 #       default: aol8_wfsim.
 #       Links to actual WF output. No need to change.
-export CACAO_FPSPROC_MLAT="ON"
+# export CACAO_FPSPROC_MLAT="ON"
+# ===
+# Instead, use the equivalent for slow DMs
+# Measure hardware latency
+# fps name: mlat-slowDM-8
+export CACAO_FPSPROC_MLAT_SLOWDM="ON"
 
 
 # Acquire WFS stream
