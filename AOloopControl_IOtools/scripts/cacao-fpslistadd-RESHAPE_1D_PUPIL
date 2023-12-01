@@ -39,7 +39,7 @@ else
 
                         # Set input streams
                         addfpscmd "setval ${fpsfname}.input_name ${CACAO_RESHAPE_SRC}"
-                        addfpscmd "setval ${fpsfname}.mask_name aol${CACAO_LOOPNUMBER}_shsRef_${CACAO_SHSSTREAM}_Mask"
+                        addfpscmd "setval ${fpsfname}.mask_name ${CACAO_SHSSTREAM}_RefMask"
                     fi
 
                 else
