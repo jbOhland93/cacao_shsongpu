@@ -99,12 +99,15 @@ private:
     // The corresponding timestamps are stored in mp_IHpokeTimesRel
     spImHandler2D(float) mp_IHpokeAmps;
     
-    // Relative times in ns of the smoothed avg poke response amplitude
+    // Relative times in us of the smoothed avg poke response amplitude
     // The corresponding amplitudes are stored in mp_IHpokeAmpSmoothed
     spImHandler2D(double) mp_IHpokeTimeSmoothed;
     // Smoothed avg poke response amplitude
     // The corresponding relative times are stored in mp_IHpokeTimeSmoothed
     spImHandler2D(float) mp_IHpokeAmpSmoothed;
+    // Smoothed avg poke response standard deviation
+    // The corresponding relative times are stored in mp_IHpokeTimeSmoothed
+    spImHandler2D(float) mp_IHpokeStdDevSmoothed;
 
     // == Helper functions
 

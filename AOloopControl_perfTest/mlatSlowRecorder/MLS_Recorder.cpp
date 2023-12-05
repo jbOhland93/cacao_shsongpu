@@ -32,6 +32,13 @@ MLS_Recorder::MLS_Recorder(
     case PokePattern::HOMOGENEOUS: break;
     case PokePattern::SINE: break;
     case PokePattern::CHECKERBOARD: break;
+    case PokePattern::SQUARE: break;
+    case PokePattern::HALFSQUARE: break;
+    case PokePattern::DOUBLESQUARE: break;
+    case PokePattern::XRAMP: break;
+    case PokePattern::XHALF: break;
+    case PokePattern::YRAMP: break;
+    case PokePattern::YHALF: break;
     default:
         throw std::runtime_error("MLS_Recorder::MLS_Recorder: poke pattern not recognized.");
     }
@@ -224,6 +231,7 @@ void MLS_Recorder::execStateRecordLatencySequence()
     // Determine the interframe delay between the wfs frame and the poke
     double interframePokeDelay_frm = m_iteration / (double) m_numPokes;
     double interframePokeDelay_ns = mp_resultMngr->getWfsDt_us() * 1000 * interframePokeDelay_frm;
+    std::cout << "\tInterframe poke delay = " << interframePokeDelay_ns/1000 << " us\n";
     // Alternate between flat and poked DM
     mp_dmMngr->preloadDM(m_iteration % 2);
 

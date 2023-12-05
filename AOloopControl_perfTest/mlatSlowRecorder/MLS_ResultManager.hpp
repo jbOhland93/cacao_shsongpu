@@ -20,7 +20,7 @@ public:
     // Result setters
     void setFPS(double FPS_Hz);
     void logRawAmplitude(double* times, float* amplitudes);
-    void logSmoothedAmplitude(double time, float amplitude);
+    void logSmoothedAmplitude(double time, float amplitude, float stdDev);
     void setHWdelay(double hwDelay_us);
     void setRisetime(double risetime_us);
     void setHwLatencyRaw(double latency_us);

@@ -26,6 +26,8 @@ MLS_DMmanager::MLS_DMmanager(
         mp_IHdm->getImage());
     float* dptr1 = mp_IHdmPoke1->getWriteBuffer();
 
+    float h = mp_IHdm->mHeight;
+    float w = mp_IHdm->mWidth;
     for (int iy = 0; iy < mp_IHdm->mHeight; iy++)
         for (int ix = 0; ix < mp_IHdm->mWidth; ix++)
         {
@@ -37,12 +39,43 @@ MLS_DMmanager::MLS_DMmanager(
                 dptr1[i] = m_maxActStroke;
                 break;
             case PokePattern::CHECKERBOARD:
-                dptr1[i] = m_maxActStroke * (( ix + iy % 2 ) % 2);
+                dptr1[i] = m_maxActStroke * (2*(( ix + iy % 2 ) % 2)-1);
                 break;
             case PokePattern::SINE:
                 dptr1[i] = m_maxActStroke
-                            * cos(20 * ix/mp_IHdm->mWidth)
-                            * cos(20 * iy/mp_IHdm->mWidth);
+                            * cos(20 * ix/w)
+                            * cos(20 * iy/h);
+                break;
+            case PokePattern::SQUARE:
+                dptr1[i] = m_maxActStroke
+                            * (cos(20 * ix/w)
+                            * cos(20 * iy/h) > 0 ? 1 : -1);
+                break;
+            case PokePattern::HALFSQUARE:
+                dptr1[i] = m_maxActStroke
+                            * (cos(10 * ix/w)
+                            * cos(10 * iy/h) > 0 ? 1 : -1);
+                break;
+            case PokePattern::DOUBLESQUARE:
+                dptr1[i] = m_maxActStroke
+                            * (cos(40 * ix/w)
+                            * cos(40 * iy/h) > 0 ? 1 : -1);
+                break;
+            case PokePattern::XRAMP:
+                dptr1[i] = m_maxActStroke
+                            * (2*ix/w - 1);
+                break;
+            case PokePattern::XHALF:
+                dptr1[i] = m_maxActStroke
+                            * (ix+1 > w/2 ? -1 : 1);
+                break;
+            case PokePattern::YRAMP:
+                dptr1[i] = m_maxActStroke
+                            * (2*iy/h - 1);
+                break;
+            case PokePattern::YHALF:
+                dptr1[i] = m_maxActStroke
+                            * (iy+1 > h/2 ? -1 : 1);
                 break;
             default:
                 throw std::runtime_error("Unknown PokePattern.");

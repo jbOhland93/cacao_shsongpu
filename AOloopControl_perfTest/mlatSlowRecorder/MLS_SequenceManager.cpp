@@ -113,25 +113,42 @@ void MLS_SequenceManager::evalPokeResponse()
                 dst[pxIdx] += src[frmIdx*pxPerFrame + pxIdx];
         }
     
-    // Subtract mean
+    // subtract mean and normalize to single poke
     float mean = 0;
     for (int pxIdx = 0; pxIdx < pxPerFrame; pxIdx++)
         mean += dst[pxIdx];
     mean /= pxPerFrame;
+    for (int pxIdx = 0; pxIdx < pxPerFrame; pxIdx++)
+        dst[pxIdx] = (dst[pxIdx] - mean) / sequenceFrames/2;
+    mp_IHpokeResponse->updateWrittenImage();
+    // Save poke prior to RMS normalization
+    std::string pokeFilename = "PokeResponse";
+    mp_IHpokeResponse->saveToFPSdataDir(mp_fps, pokeFilename);
 
     // Normalize to RMS
     float rms = 0;
+    float peak = 0;
+    float valley = 0;
     for (int pxIdx = 0; pxIdx < pxPerFrame; pxIdx++)
     {
-        dst[pxIdx] -= mean;
+        peak = dst[pxIdx] > peak ? dst[pxIdx] : peak;
+        valley = dst[pxIdx] < valley ? dst[pxIdx] : valley;
         rms += dst[pxIdx]*dst[pxIdx];
     }
     rms = sqrt(rms/pxPerFrame);
     for (int pxIdx = 0; pxIdx < pxPerFrame; pxIdx++)
         dst[pxIdx] /= rms;        
-
-    // Done - update poke response image
     mp_IHpokeResponse->updateWrittenImage();
+
+    // Save statistics about poke
+    float PtV = peak - valley;
+    std::string pokeStatsOutputName = mp_fps->md->datadir;
+    pokeStatsOutputName += "/" + pokeFilename + ".fits.stats";
+    auto statsStream = std::ofstream(pokeStatsOutputName);
+    statsStream << "pokeFilename=" << pokeFilename << "\n";
+    statsStream << "PtV=" << PtV << "\n";
+    statsStream << "RMS=" << rms << std::endl;
+    statsStream.close();
 }
 
 
@@ -152,16 +169,12 @@ _V2::system_clock::time_point MLS_SequenceManager::recordLatencyPokeSequence(
             m_framesPriorToPoke, 0,
             timestampDst);
 
-        // == Determine the time when the DM should be poked
-        // Get the current time in nanoseconds since the epoch.
-        auto current_time = high_resolution_clock::now();
-        double current_time_ns =
-            (double) duration_cast<nanoseconds>(
-                current_time.time_since_epoch()).count();
-        // Calculate and return the desired poke time.
-        double prePokeFrameTimestamp_ns = timestampDst[m_framesPriorToPoke-1];
-        return current_time + nanoseconds((long)
-            (prePokeFrameTimestamp_ns - current_time_ns + interframePokeDelay_ns));
+        // Create the time point at which the poke shall happen,
+        // based on the aquisition time of the last frame.
+        double pokeTime_ns = timestampDst[m_framesPriorToPoke - 1]
+                             + interframePokeDelay_ns;
+        std::chrono::nanoseconds ns((long long) pokeTime_ns);
+        return std::chrono::system_clock::time_point(ns);
     }
     else
     {   // Record the post-poke part of the sequence
@@ -182,9 +195,12 @@ _V2::system_clock::time_point MLS_SequenceManager::recordLatencyPokeSequence(
         }
 
         // Subtract the poke time from the timestamps
-        double prePokeFrameTimestamp_ns = timestampDst[m_framesPriorToPoke-1];
+        double prePokeFrameTimestamp_ns = timestampDst[m_framesPriorToPoke - 1];
         for (int i = 0; i < m_framesPerPoke; i++)
-            timestampDst[i] -= prePokeFrameTimestamp_ns + interframePokeDelay_ns;
+        {
+            timestampDst[i] -= prePokeFrameTimestamp_ns;
+            timestampDst[i] -=  interframePokeDelay_ns;
+        }
         mp_IHpokeTimesRel->updateWrittenImage();
 
         return std::chrono::high_resolution_clock::now();
@@ -199,6 +215,8 @@ std::pair<double*, float*> MLS_SequenceManager::decomposeLastPokeSequence(
     float* sequence = mp_IHLatencySequence->getWriteBuffer();
     float* amplitudeDst = mp_IHpokeAmps->getWriteBuffer();
     amplitudeDst += mp_IHpokeAmps->mWidth * iteration;
+    double* timeDst = mp_IHpokeTimesRel->getWriteBuffer();
+    timeDst += mp_IHpokeTimesRel->mWidth * iteration;
 
     // == Calculate baseline
     int pxPerFrame = mp_IHLatencySequence->mWidth;
@@ -245,7 +263,7 @@ std::pair<double*, float*> MLS_SequenceManager::decomposeLastPokeSequence(
     // == Cleanup
     delete[] baseline;
 
-    return {mp_IHpokeTimesRel->getWriteBuffer(), amplitudeDst};
+    return {timeDst, amplitudeDst};
 }
 
 
@@ -282,24 +300,24 @@ void MLS_SequenceManager::smoothLatencyDecomposition(
     double maxTime_ns = samples[samples.size() - 1].first;
     int numSamples = ceil((maxTime_ns - minTime_ns) / timeResolution_ns);
 
-// == Init smoothed images - takes size as argument
-    // Initialize smoothed poke amplitude image
+    // Initialize smoothed time amplitude image
     std::string smoothedTimeName = m_streamPrefix;
     smoothedTimeName += "smoothedPokeTimes";
     mp_IHpokeTimeSmoothed = ImageHandler2D<double>::newImageHandler2D(
         smoothedTimeName, numSamples, 1);
-    // Initialize smoothed time amplitude image
+    // Initialize smoothed poke amplitude image
     std::string smoothedAmpName = m_streamPrefix;
     smoothedAmpName += "smoothedPokeAmps";
     mp_IHpokeAmpSmoothed = ImageHandler2D<float>::newImageHandler2D(
         smoothedAmpName, numSamples, 1);
-    
-    double* dstTime = mp_IHpokeTimeSmoothed->getWriteBuffer();
-    float* dstAmp = mp_IHpokeAmpSmoothed->getWriteBuffer();
+    // Initialize smoothed poke stddev image
+    std::string smoothedStddevName = m_streamPrefix;
+    smoothedStddevName += "smoothedPokeStdDev";
+    mp_IHpokeStdDevSmoothed = ImageHandler2D<float>::newImageHandler2D(
+        smoothedStddevName, numSamples, 1);
     
     // == Convolve sequence with gaussian kernel
     double kernelStdDev_ns = p_resultMngr->getWfsDt_us() * 1000 / 4;
-    double kernelHalfSize_ns = kernelStdDev_ns * 3;
     double kernelDenominator = -2*kernelStdDev_ns*kernelStdDev_ns;
 
     p_resultMngr->setSmoothingProperties(
@@ -308,8 +326,6 @@ void MLS_SequenceManager::smoothLatencyDecomposition(
     for (int i = 0; i < numSamples; i++)
     {
         double kernelCenterTime_ns = minTime_ns + i * timeResolution_ns;
-        double windowStart_ns = kernelCenterTime_ns - kernelHalfSize_ns;
-        double windowEnd_ns = kernelCenterTime_ns + kernelHalfSize_ns;
 
         double kernelSum = 0;
         double integral = 0;
@@ -322,13 +338,50 @@ void MLS_SequenceManager::smoothLatencyDecomposition(
             integral += sample.second * kernelValue;
         }
         // Write output to images
-        dstTime[i] = kernelCenterTime_ns;
-        dstAmp[i] = (float) integral / kernelSum;
-        // Write output to file
-        p_resultMngr->logSmoothedAmplitude(dstTime[i], dstAmp[i]);
+        mp_IHpokeTimeSmoothed->write(kernelCenterTime_ns / 1000., i, 0);
+        mp_IHpokeAmpSmoothed->write(integral / kernelSum, i, 0);
     }
     mp_IHpokeTimeSmoothed->updateWrittenImage();
     mp_IHpokeAmpSmoothed->updateWrittenImage();
+
+    // Calculate the smoothed standard deviation    
+    for (int i = 0; i < numSamples; i++)
+    {
+        double kernelCenterTime_ns = mp_IHpokeTimeSmoothed->read(i, 0) * 1000;
+
+        double kernelSum = 0;
+        double integral = 0;
+        
+        for (int k = 0; k < samples.size(); k++)
+        {
+            std::pair<double, float> sample = samples.at(k);
+            double delT = sample.first - kernelCenterTime_ns;
+            double kernelValue = exp(delT*delT/kernelDenominator);
+
+            // Interpolate smoothed value to sample time
+            double kFloat = (sample.first - minTime_ns) / timeResolution_ns;
+            int kLower = floor(kFloat);
+            if (kLower < 0) kLower = 0;
+            if (kLower >= numSamples - 1) kLower = numSamples - 2;
+            kFloat -= kLower;
+            float valLower = mp_IHpokeAmpSmoothed->read(kLower, 0);
+            float valUpper = mp_IHpokeAmpSmoothed->read(kLower + 1, 0);
+            double valCenter = valLower * (1-kFloat) + valUpper * kFloat;
+            double deviation = sample.second - valCenter;
+
+            kernelSum += kernelValue;
+            integral += deviation*deviation * kernelValue;
+        }
+        // Write output to image
+        double stdDev = sqrt(integral / kernelSum);
+        mp_IHpokeStdDevSmoothed->write(stdDev, i, 0);
+        // Write output to file
+        p_resultMngr->logSmoothedAmplitude(
+            mp_IHpokeTimeSmoothed->read(i, 0),
+            mp_IHpokeAmpSmoothed->read(i, 0),
+            stdDev);
+    }
+    mp_IHpokeStdDevSmoothed->updateWrittenImage();
 }
 
 double MLS_SequenceManager::calcHWdelay()
@@ -345,7 +398,7 @@ double MLS_SequenceManager::calcHWdelay()
             t_70 = time;
     }
     // Assuming a linear rise time calculate beginning of movement
-    return (t_10 - (t_70 - t_10) / 6) / 1000;
+    return (t_10 - (t_70 - t_10) / 6);
 }
 
 
@@ -364,7 +417,7 @@ double MLS_SequenceManager::calcRiseime()
             t_90_110 = time;
     }
     // Calc 10-90% rise time, including setteling between 90%-110%
-    return (t_90_110 - t_10) / 1000;
+    return (t_90_110 - t_10);
 }
 
 
@@ -380,7 +433,7 @@ double MLS_SequenceManager::calcHWlatency()
             t_90_110 = time;
     }
     // Calc hw latency
-    return t_90_110 / 1000;
+    return t_90_110;
 }
 
 

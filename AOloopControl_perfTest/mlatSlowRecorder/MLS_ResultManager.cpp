@@ -70,27 +70,27 @@ void MLS_ResultManager::setFPS(double FPS_Hz)
         << "(" << m_FPS_Hz << "Hz)\n";
 }
 
-void MLS_ResultManager::logRawAmplitude(double* times, float* amplitudes)
+void MLS_ResultManager::logRawAmplitude(double* times_ns, float* amplitudes)
 {
     long i_90 = 0;
-    float t_90 = 0;
+    double t_90 = 0;
     for (int frame = 0; frame < m_framesPerPoke; frame++)
     {
         m_pokeAmpOutput << frame - (int)m_framesPriorToPoke << "\t";
-        m_pokeAmpOutput << times[frame] << "\t";
+        m_pokeAmpOutput << times_ns[frame]/1000. << "\t";
         m_pokeAmpOutput << amplitudes[frame] << "\n";
         if (amplitudes[frame] < 0.9)
         {
             i_90 = frame;
-            t_90 = times[frame];
+            t_90 = times_ns[frame]/1000.;
         }
     }
     m_pokeAmpOutput << "#\t" << i_90 << "\t" << t_90/1e6 << "\n";
 }
 
-void MLS_ResultManager::logSmoothedAmplitude(double time, float amplitude)
+void MLS_ResultManager::logSmoothedAmplitude(double time, float amplitude, float stdDev)
 {
-    m_smoothedAmpOutput << time << "\t" << amplitude << "\n";
+    m_smoothedAmpOutput << time << "\t" << amplitude << "\t" << stdDev << "\n";
 }
 
 void MLS_ResultManager::setHWdelay(double hwDelay_us)
@@ -106,8 +106,8 @@ void MLS_ResultManager::setRisetime(double risetime_us)
 
 void MLS_ResultManager::setHwLatencyRaw(double latency_us)
 {
-    m_hwLatency_us = latency_us;
-    m_hwLatency_frames = latency_us / m_wfsdt_us;
+    m_hwLatencyRaw_us = latency_us;
+    m_hwLatencyRaw_frames = latency_us / m_wfsdt_us;
 
     std::cout   << "\t Raw settling time = " << m_hwLatencyRaw_us
                 << "us (" << m_hwLatencyRaw_frames
@@ -116,8 +116,8 @@ void MLS_ResultManager::setHwLatencyRaw(double latency_us)
 
 void MLS_ResultManager::setHwLatencySmoothed(double latency_us)
 {
-    m_hwLatencyRaw_us = m_hwLatency_us;
-    m_hwLatencyRaw_frames = latency_us / m_wfsdt_us;
+    m_hwLatency_us = latency_us;
+    m_hwLatency_frames = latency_us / m_wfsdt_us;
 }
 
 void MLS_ResultManager::setSmoothingProperties(
@@ -136,8 +136,9 @@ void MLS_ResultManager::setSmoothingProperties(
                         << stdDev_us
                         << "us (1/4 frame spacing)\n";
     m_smoothedAmpOutput << "# \n";
-    m_smoothedAmpOutput << "# 1: Time relative to poke command in ns\n";
+    m_smoothedAmpOutput << "# 1: Time relative to poke command in us\n";
     m_smoothedAmpOutput << "# 2: Normalized response\n";
+    m_smoothedAmpOutput << "# 3: Standard deviation of normalized response\n";
     m_smoothedAmpOutput << "# \n";
 }
 
