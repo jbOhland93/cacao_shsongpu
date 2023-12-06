@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Measure hardware latency for slow DMs"
+
+
+MSextdescr="Measures hardware latency between a slowly responding input stream and output streams
+
+Pokes input stream, listens to ouput stream
+Requires acquWFS process to run
+
+The term 'hardware latency' in this scenario defines the delay
+between the issued command and the time where the output is settled
+between 90 and 110 percent of the final response.
+There are two measures for this: the latency of the average response,
+which averages out sequences prior to this measurement and thus cancles
+out noise, and the 'raw' latency, which measures the latency of each
+sequence and averages afterwards. The latter is a more conservative
+estimation.
+
+Writes output to following env variables:
+	CACAO_WFSFRATE - WFS framerate in Hz
+	CACAO_LATENCYHARDWFR - hardware latency of average in frames
+	CACAO_LATENCYHARDWUS - hardware latency of average in microseconds
+	CACAO_LATENCYHARDWRAWFR - average hardware latency in frames
+	CACAO_LATENCYHARDWRAWUS - average hardware latency in microseconds
+	CACAO_DELAYHARDWFR - Delay between poke and first detected movement in frames
+	CACAO_DELAYHARDWUS - Delay between poke and first detected movement in microseconds
+	CACAO_DMRISETIMEFR - Rise time = hw latency minus delay in frames
+	CACAO_DMRISETIMEUS - Rise time = hw latency minus delay in us
+These are written in file <looprundir>/fps.mlat-<loopnumber>.datadir/cacaovars.bash,
+which is sourced by subsequent scripts.
+"
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+
+WaitForCompletion=0
+MSopt+=( "w:waitfcomp:set_WaitForCompletion::wait for process to complete to exist script" )
+function set_WaitForCompletion() {
+	WaitForCompletion=1
+}
+
+
+source milk-argparse
+
+
+errexit=0
+
+# Checking FPS
+FPScheckOK="OK"
+checkFPSON CACAO_FPSPROC_MLAT_SLOWDM ${CACAO_FPSPROC_MLAT_SLOWDM}
+
+if [ ${FPScheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] FPS check failed"
+	cacaomsglog "ERROR FPScheck"
+	errexit=1
+	exit 1
+fi
+
+
+# Checking stream
+streamcheckOK="OK"
+checkstream aol${CACAO_LOOPNUMBER}_wfsim
+
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	cacaomsglog "ERROR streamcheck"
+	errexit=1
+	exit 1
+fi
+
+
+if [ $errexit = 1 ]; then
+	exit 1
+fi
+
+
+
+cacaomsglog "START"
+
+
+
+sendFPScmd "setval mlat-slowDM-${CACAO_LOOPNUMBER}.wfsstream aol${CACAO_LOOPNUMBER}_imWFS2"
+sendFPScmd "confwupdate mlat-slowDM-${CACAO_LOOPNUMBER}"
+sendFPScmd "runstart mlat-slowDM-${CACAO_LOOPNUMBER}"
+
+if [ $WaitForCompletion == "1" ]; then
+	echo "Waiting for completion ..."
+	pOK=1
+	while [ $pOK -gt 0 ]; do
+		sleep 0.2
+		pOK=$(ps -alx| grep mlat-slowDM-${CACAO_LOOPNUMBER} | grep RUNSTART | wc -l) || :
+	done
+fi
+
+cacaomsglog "END"
