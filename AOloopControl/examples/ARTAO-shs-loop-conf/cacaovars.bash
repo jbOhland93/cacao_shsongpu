@@ -117,7 +117,7 @@ export CACAO_FPSPROC_LOG_SHSONGPU_INT="OFF"
 #   aol8_dmturb     ->dm01disp10
 #   aol8_dmZP7      ->dm01disp11
 export CACAO_FPSPROC_DMCH2DISP="ON"
-export CACAO_FPSPROC_DMCH2DISPSIM="ON"
+#export CACAO_FPSPROC_DMCH2DISPSIM="ON"
 
 # DM turbulence simulator
 # Outputs:
@@ -137,19 +137,14 @@ export CACAO_FPSPROC_DMATMTURB="ON"
 #export CACAO_FPSPROC_SIMMVMGPU="ON"
 
 
-
+# Instead, use the equivalent for slow DMs
 # Measure hardware latency
-# fps name: mlat-8
+# fps name: mlat-slowDM-8
 #   dmstream = DM channels
 #       default: aol8_dmRM. Created when running DMch2disp.
 #   wfsstream = WF
 #       default: aol8_wfsim.
 #       Links to actual WF output. No need to change.
-# export CACAO_FPSPROC_MLAT="ON"
-# ===
-# Instead, use the equivalent for slow DMs
-# Measure hardware latency
-# fps name: mlat-slowDM-8
 export CACAO_FPSPROC_MLAT_SLOWDM="ON"
 
 
@@ -197,6 +192,8 @@ export CACAO_FPSPROC_MLAT_SLOWDM="ON"
 #               removes these residuals from the measured WF.
 #               The pace for the backfeeing is given by WFSrefcgain.
 export CACAO_FPSPROC_ACQUWFS="ON"
+# Keep parameters from fpssetup.setval.conf
+export CACAO_ACQWFS_KEEP_PARAMS="ON"
 
 
 # Acquire linear RM
@@ -211,6 +208,8 @@ export CACAO_FPSPROC_ACQUWFS="ON"
 #       Default fitsfile will be set by aorun script.
 #   Determine the hardwarelatency
 export CACAO_FPSPROC_MEASURELINRESP="ON"
+# Use conservative timing for response measurement
+export CACAO_LINRESP_RAW_SETTLING_TIME="ON"
 
 
 
@@ -244,7 +243,7 @@ export CACAO_FPSPROC_COMPSTRCM="ON"
 # Outputs:
 #   outcoeff = extracted mode coefficients
 #       default: aol8_modevalWFS
-##export CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL="ON"
+export CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL="ON"
 
 # Modal control filtering
 # Also features "on/off", toggling the loop.
@@ -256,7 +255,7 @@ export CACAO_FPSPROC_COMPSTRCM="ON"
 # Outputs:
 #   outmval = output mode coefficient values
 #       default: aol8_modevalDM
-##export CACAO_FPSPROC_MODALFILTERING="ON"
+export CACAO_FPSPROC_MODALFILTERING="ON"
 
 # Compute DM command from control mode values
 # fps name: mvalC2dm-8
@@ -270,7 +269,7 @@ export CACAO_FPSPROC_COMPSTRCM="ON"
 #   outcoeff = extracted mode coefficients
 #       default: aol8_dmC 
 #       Links to ch03 of dm combination, no need to change.
-##export CACAO_FPSPROC_MVMGPU_CMODEVAL2DM="ON"
+export CACAO_FPSPROC_MVMGPU_CMODEVAL2DM="ON"
 
 
 # Zero point offsetting

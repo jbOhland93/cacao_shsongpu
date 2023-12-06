@@ -98,6 +98,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-003-wfsmapping
 	scripts/aorun/cacao-aorun-005-takedark
 	scripts/aorun/cacao-aorun-020-mlat
+	scripts/aorun/cacao-aorun-021-mlat-slowDM
 	scripts/aorun/cacao-aorun-025-acqWFS
 	scripts/aorun/cacao-aorun-026-takeref
 	scripts/aorun/cacao-aorun-030-acqlinResp

@@ -86,19 +86,23 @@ ACTIONOK=1
 
 cacaomsglog "START"
 
-if [ "$CACAO_WFSSTREAM_PROCESSED" = "ON" ]; then
-	echo "Processed WFS stream -> no scaling"
-	cacaomsglog "INFO CACAO_WFSSTREAM_PROCESSED ON"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSnormalize OFF"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefsub OFF"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSsigav ON"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefc ON"
+if [[ -n "${CACAO_ACQWFS_KEEP_PARAMS+x}" ]] && [[ "${CACAO_ACQWFS_KEEP_PARAMS}" == "ON" ]]; then
+	cacaomsglog "INFO CACAO_ACQWFS_KEEP_PARAMS ON - Not changing parameters"
 else
-	cacaomsglog "INFO CACAO_WFSSTREAM_PROCESSED OFF"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSnormalize ON"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefsub ON"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSsigav ON"
-	sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefc ON"
+	if [ "$CACAO_WFSSTREAM_PROCESSED" = "ON" ]; then
+		echo "Processed WFS stream -> no scaling"
+		cacaomsglog "INFO CACAO_WFSSTREAM_PROCESSED ON"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSnormalize OFF"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefsub OFF"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSsigav ON"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefc ON"
+	else
+		cacaomsglog "INFO CACAO_WFSSTREAM_PROCESSED OFF"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSnormalize ON"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefsub ON"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSsigav ON"
+		sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.comp.WFSrefc ON"
+	fi
 fi
 
 cacaomsglog "confwupdate"

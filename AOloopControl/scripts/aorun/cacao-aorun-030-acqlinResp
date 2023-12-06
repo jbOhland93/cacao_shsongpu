@@ -89,10 +89,28 @@ sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.procinfo.loopcntMax ${NBloop}
 echo "########### CACAO_WFSRATE = ${CACAO_WFSFRATE}"
 echo "########### CACAO_LATENCYHARDWFR = ${CACAO_LATENCYHARDWFR}"
 
-
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.WFSfrequ ${CACAO_WFSFRATE}"
-sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.hardwlatfr ${CACAO_LATENCYHARDWFR}"
+if [[ -n "${CACAO_LINRESP_RAW_SETTLING_TIME+x}" ]]; then
+	if [[ "${CACAO_LINRESP_RAW_SETTLING_TIME}" == "ON" ]]; then
+		if [[ -z "${CACAO_LATENCYHARDWRAWFR+x}" ]]; then
+			cacaomsglog "CACAO_LINRESP_RAW_SETTLING_TIME = ON, but no raw settling time available."
+			cacaomsglog "Falling back to regular latency."
+			LATENCY=$CACAO_LATENCYHARDWFR
+		else
+			echo "########### CACAO_LATENCYHARDWRAWFR = ${CACAO_LATENCYHARDWRAWFR}"
+			cacaomsglog "CACAO_LINRESP_RAW_SETTLING_TIME = ON, using raw hw latency."
+			LATENCY=$CACAO_LATENCYHARDWRAWFR
+		fi
+	else
+		cacaomsglog "CACAO_LINRESP_RAW_SETTLING_TIME unset or OFF, using regular hw latency."
+		LATENCY=$CACAO_LATENCYHARDWFR
+	fi
+else
+	cacaomsglog "CACAO_LINRESP_RAW_SETTLING_TIME unset or OFF, using regular hw latency."
+	LATENCY=$CACAO_LATENCYHARDWFR
+fi
 
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.hardwlatfr ${LATENCY}"
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.streamin aol${CACAO_LOOPNUMBER}_dmRM"
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.streamout aol${CACAO_LOOPNUMBER}_imWFS2"
 

@@ -188,21 +188,20 @@ cacao-aorun-026-takeref -n 2000
 Note that the fps of the latency measurement, ``mlat-x``, has ``.option.slowDM`` enabled as the bimorph DM features a rise time of ~1 ms, which is longer than the frame duration of the acquisition process. This value is automatically set according to the `fpssetup.setval.conf` file.
 ```bash
 # Measure latency
-cacao-aorun-020-mlat -w
+cacao-aorun-021-mlat-slowDM -w
 ```
 
 ## 8. Acquire Calibration
-In this section, the response matrix of the DM is recorded and converted into a control matrix. This process is devided into several steps:
-1. Generation of poke modes
+In this section, the response matrix of the DM is recorded and converted into a control matrix. This process is devided into several steps.
 
 
 ### 8.1. Prepare DM poke modes
-Instead of indexing through the actuators of the DM, cacao probes the DM using pre-defined mode sets. These *can* be single acutator pokes, but depending on the DM type, there may be more desirable modes. Especially for DMs with a localized actuator response, like MEMS DMs or bimorphs, the hadamard modes are a good choice as the signal for each poke is maximized.
+Instead of indexing through the actuators of the DM by default, cacao probes the DM using pre-defined mode sets. These *can* be single acutator pokes, but depending on the DM type, there may be more desirable modes. Especially for DMs with a localized actuator response, like MEMS DMs, the hadamard modes are a good choice as the signal for each poke is maximized.
 The modes are pre-generated into fits-files for better performance.
 
 ```bash
 # Create DM poke mode cubes
-cacao-mkDMpokemodes -z 5 -c 25
+cacao-mkDMpokemodes
 ```
 The following files are written to ./conf/RMmodesDM/
 | File                 | Contents                                            |
@@ -216,31 +215,29 @@ The following files are written to ./conf/RMmodesDM/
 | `SmodesC.fits    `   | *Simple* (single actuator) pokes                    |
 
 ### 8.2. Acquire WFS response
-In this example, we are going to use the Hadamard modes as the ARTAO system uses a bimorph DM and will therefore benefit from pokes that are distributed over the whole aperture.
+In this example, we are going to use single actuator pokes instead of the more advanced Hadamard pokes as used by the SCExAO examples. This is because of two reasons related to the bimorph DM of ARTAO:
+1. The response functions of the bimorph DM actuators are not localized like the ones of MEMS DMs but distributed over the whole aperture. This means that the SNR is inherently better for single actuator pokes than for in the case of a MEMS DM. Therefore, ARTAO does not profit from Hadamard poking.
+2. The hysteresis of the piezos contributes to the response matrix in a deterministic manner when using single actuator pokes, while this is uncertain for Hadamard modes due to the irregular control sequence for each actuator.
 
 ```bash
-# Acquire response matrix - Hadamard modes
-# 4 cycles - default is 10.
-cacao-aorun-030-acqlinResp -n 4 HpokeC
+# Acquire response matrix - Single actuator modes
+# 10 cycles
+cacao-aorun-030-acqlinResp -n 10 SmodesC
 ```
-This could take a while. Check status on milk-procCTRL.
-To inspect results, display file conf/RMmodesWFS/HpokeC.WFSresp.fits.
-
-### 8.3 Decode Hadamard matrix
-For the calculation of the control matrix, the response matrix has to be written in DM space. As we used Hadamard pokes to record the response, the raw data has to be decoded, i.e. transformed to a zonal response matrix, using the `Hmat.fits` that has been generated previously.
-
+This could take a while. Check status on milk-procCTRL and/or watch the wavefront evolution. To inspect results, reshape the file conf/RMmodesWFS/HpokeC.WFSresp.fits:
 ```bash
-cacao-aorun-031-RMHdecode
+# Reshape the original fits file to the pupil
+./scripts/aorun-005-reshape-fits-to-wfs-pupil conf/RMmodesWFS/SmodesC.WFSresp.fits
+# Inspect the output file conf/RMmodesWFS/SmodesC.WFSresp_rshp.fits
 ```
 
-TODO: Write a script to reshape the WFS response modes into the pupil in order to verify the result
-This should take the decoded modes (conf/RMmodesWFS/zrespM-H.fits) as argument.
+### 8.3. Compute control matrix (straight)
+The computation for the control matrix expects mask fits files, which were not generated to that point. Due to the fact that WFS masking technically happens during referencing and all actuators of the DM are being used, these masks can be simple fits files with 1 for all values, matching the sizes of the WF stream and the DM stream. The files can be generated with the follwoing script:
+```bash
+./scripts/aorun-006-make-masks
+```
 
-To inspect results, display file conf/RMmodesWFS/zrespM-H.fits.
-This should visually look like a zonal response matrix.
-
-### 8.4. Compute control matrix (straight)
-Compute control modes, in both WFS and DM spaces.
+Now, compute the control modes, in both WFS and DM spaces.
 Set GPU device (if GPU available).
 
 ```bash
@@ -251,12 +248,14 @@ Then run the compstrCM process to compute CM and load it to shared memory :
 ```bash
 cacao-aorun-039-compstrCM
 ```
-
-TODO: Use the fits reshaping tool, written before, to reshape WFS control modes (conf/CMmodesWFS/CMmodesWFS.fits) as argument.
-
-Check results:
+The results are written to:
 - conf/CMmodesDM/CMmodesDM.fits
 - conf/CMmodesWFS/CMmodesWFS.fits
+```bash
+# Reshape the WF modes to visualize the result:
+./scripts/aorun-005-reshape-fits-to-wfs-pupil conf/CMmodesWFS/CMmodesWFS.fits
+# Inspect the output file conf/CMmodesWFS/CMmodesWFS_rshp.fits
+```
 
 
 ## 9. Running the loop
@@ -268,8 +267,6 @@ Select GPUs for the modal decomposition (WFS->modes) and expansion (modes->DM) M
 cacao-fpsctrl setval wfs2cmodeval GPUindex 0
 cacao-fpsctrl setval mvalC2dm GPUindex 0
 ```
-
-
 Start the 3 control loop processes :
 
 ```bash

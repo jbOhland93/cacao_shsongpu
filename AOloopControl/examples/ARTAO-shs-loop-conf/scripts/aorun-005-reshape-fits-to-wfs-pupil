@@ -32,6 +32,7 @@ fi
 # Split the file path into folder path and file name
 FITS_FOLDER=$(dirname "$FITS_PATH")
 FITS_NAME=$(basename "$FITS_PATH")
+echo "Reshaping $FITS_NAME in folder $FITS_FOLDER."
 
 streamcheckOK="OK"
 IMMASK=aol${CACAO_LOOPNUMBER}_shsCam_RefMask
