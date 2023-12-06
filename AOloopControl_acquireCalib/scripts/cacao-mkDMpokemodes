@@ -83,7 +83,7 @@ EOF
 
 cacao << EOF
 loadfits "${DMMODEDIR}/DMmask.fits" DMmask
-cacaoct.aolmksimplezpM ${CACAO_DMxsize} ${CACAO_DMysize} Spoke
+cacaoac.aolmksimplezpM ${CACAO_DMxsize} ${CACAO_DMysize} Spoke
 saveFITS Spoke "${DMMODEDIR}/SmodesC.fits"
 exitCLI
 EOF

@@ -35,6 +35,7 @@
 
 #include "acquireWFSlincalib.h"
 #include "measure_linear_resp.h"
+#include "makeSimpleZonalPokeModes.h"
 
 
 
@@ -53,6 +54,7 @@ static errno_t init_module_CLI()
 
 
     CLIADDCMD_milk_AOloopControl_acquireCalib__acquireWFSlincalib();
+    CLIADDCMD_milk_AOloopControl_acquireCalib__mkSimpleZonalPokeModes();
     CLIADDCMD_AOloopControl__measure_linear_resp();
 
     // add atexit functions here

@@ -11,12 +11,14 @@ set(SOURCEFILES
 	${SRCNAME}.c
     ${SRCNAME}.h
     acquireWFSlincalib.c
+    makeSimpleZonalPokeModes.c
     measure_linear_resp.c
 )
 
 set(INCLUDEFILES
 	${SRCNAME}.h
     acquireWFSlincalib.h
+    makeSimpleZonalPokeModes.h
     measure_linear_resp.h
 )
 
