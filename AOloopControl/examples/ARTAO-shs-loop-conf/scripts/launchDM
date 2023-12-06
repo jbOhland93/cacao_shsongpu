@@ -14,11 +14,11 @@ fi
 source cacaovars.*.bash
 
 DM_ADDRESS="192.168.0.1"
-INPUT_STREAM="dm${CACAO_DMINDEX}disp"
+#INPUT_STREAM="dm${CACAO_DMINDEX}disp"
+INPUT_STREAM="aol${CACAO_LOOPNUMBER}_dmdisp"
 
 export SESSION_NAME="DO_DM-${CACAO_LOOPNUMBER}"
 CACAO_DMSETTINGS_FILE="${PWD}/dmsettings"
-COMMANDPATH="/home/artao-user/c++Projects/milk-2-dynamic-optics-dm/build"
 COMMAND="./milk-2-dynamic-optics-dm -d"
 
 CPU_SET_NAME="dmdrv"
@@ -42,7 +42,7 @@ if [ -n "$PID" ]; then
 else
   echo "Creating dm settings file"
   # Copy the dummy file into the rootdir - just in case new fields are set.
-  cp "${COMMANDPATH}/../dm-settings-default" ${CACAO_DMSETTINGS_FILE}
+  cp "${MILK_TO_DO_DM_PATH}/../dm-settings-default" ${CACAO_DMSETTINGS_FILE}
   # Append actual values
   echo "" >> ${CACAO_DMSETTINGS_FILE} # make sure we start in new line
   echo "DM-IPAddress=${DM_ADDRESS}" >> ${CACAO_DMSETTINGS_FILE}
@@ -50,7 +50,7 @@ else
   echo "DMcombStream=${INPUT_STREAM}" >> ${CACAO_DMSETTINGS_FILE}
 
   echo "Launching real-time process."
-  tmux send-keys -t "$SESSION_NAME" "cd $COMMANDPATH" C-m
+  tmux send-keys -t "$SESSION_NAME" "cd $MILK_TO_DO_DM_PATH" C-m
   tmux send-keys -t "$SESSION_NAME" "$COMMAND $CACAO_DMSETTINGS_FILE&" C-m
   tmux send-keys -t "$SESSION_NAME" "fg" C-m
   sleep 2

@@ -15,7 +15,6 @@ fi
 source cacaovars.*.bash
 
 export SESSION_NAME="shsCam-${CACAO_LOOPNUMBER}"
-COMMANDPATH="/home/artao-user/c++Projects/ximea-xib-64-2-milk/build/"
 COMMAND="./xiB-64-2-milk"
 CPU_SET_NAME="xicam"
 REAL_TIME_PRIORITY="49"
@@ -41,7 +40,7 @@ if [ -n "$PID" ]; then
   echo "Real-time process is already running with PID $PID. Skipping launch."
 else
   echo "Launching real-time process."
-  tmux send-keys -t "$SESSION_NAME" "cd $COMMANDPATH" C-m
+  tmux send-keys -t "$SESSION_NAME" "cd $XIMEA_TO_MILK_PATH" C-m
   tmux send-keys -t "$SESSION_NAME" "$COMMAND &" C-m
   tmux send-keys -t "$SESSION_NAME" "fg" C-m
   sleep 2

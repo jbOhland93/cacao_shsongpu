@@ -61,19 +61,38 @@ cacao-fpsctrl-TUI
 ```
 Alternatively, feel free to run ``milk-fpsCTRL`` anywhere you like.
 
-## 2. Start image acquisition and DM
-Select hardware mode
+## 2. Start the image acquisition and DM
+The cacao-internal parts of the ARTAO loop assumes that
+- the SHS camera image will be availabe in a stream named ``aolx-shsCam``.
+- the DM is controlled by the ``aolx_dmdisp`` stream.
 
+The ``aolx-shsCam`` stream needs to be created by the user.
+
+The ``aolx_dmdisp`` stream is created by the dmdisp milk process, which can be launched using a premade cacao script:
 ```bash
+# Start dm comb process
+cacao-aorun-000-dm start
+```
+
+
+### 2.1 Start hardware controllers
+The hardware controllers of the original ARTAO setup are launched with a user script:
+```bash
+# Start hardware controllers.
+# If other hardware shall be used, this is the script to change.
 ./scripts/aorun-setmode-hardw
 ```
+
+Right now, ARTAO uses a XIMEA PCIe camera as the SHS cam, which will be fed into ImageStreamIO using a [camera control process](https://github.com/jbOhland93/ximea-xib-64-2-milk).
+Furthermore, ARTAO uses a Dynamic Optics DM, which will be fed the output via a corresponding [DM control process](https://github.com/jbOhland93/milk-2-dynamic-optics-dm).
+If the same hardware is used, these have to be downloaded and built prior to the execution of the ``aorun-setmode-hardw`` script.
+
 Note: A simulation mode is not implemented as this state, but may be added in the future.
 
-The [camera control process](https://github.com/jbOhland93/ximea-xib-64-2-milk) has already started, but the image acquisiton needs to be launched:
-
+### 2.2 Start image acquisition
 ```bash
 # Attach to the camera control terminal
-tmux a -t shsCam-8
+tmux a -t shsCam-X
 ```
 
 ```bash
@@ -89,10 +108,28 @@ setFPS 3000
 
 # Keep this tmux session open for camera control or detach using ctrl+b, d.
 ```
-The [DM control process](https://github.com/jbOhland93/milk-2-dynamic-optics-dm) will automatically forward updates of the ``aol8_dmdisp`` image stream. This stream is created by the dmdisp milk process, which can be launched using a premade cacao script:
+
+### 2.3 Relax DM (optional)
 ```bash
-# Start dm comb process
-cacao-aorun-000-dm start
+# Attach to the DM control terminal
+tmux a -t DO_DM-X
+```
+
+```bash
+# DM CONTROLL APPLICATION
+# Display control options
+help
+
+# Disarm the DM (stop listening to ISIO output)
+disarm
+
+# Run the relax routine
+relax
+
+# Arm the DM (listen to ISIO output again)
+arm
+
+# Keep this tmux session open for camera control or detach using ctrl+b, d.
 ```
 
 
