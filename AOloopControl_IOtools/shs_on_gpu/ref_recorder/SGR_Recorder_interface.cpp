@@ -4,6 +4,7 @@
 extern "C"
 {
     SGRRHandle create_SGR_Recorder(
+        FUNCTION_PARAMETER_STRUCT* fps,
         IMAGE* in,
         IMAGE* dark,
         float pxSize,
@@ -14,6 +15,7 @@ extern "C"
         int64_t visualize)
     {
         return new SGR_Recorder(
+            fps,
             in,
             dark,
             pxSize,

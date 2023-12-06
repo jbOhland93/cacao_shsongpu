@@ -1,7 +1,7 @@
 #ifndef SGR_RECORDER_INTERFACE_H
 #define SGR_RECORDER_INTERFACE_H
 
-#include "ImageStreamIO/ImageStruct.h"
+#include "../../../../../src/CommandLineInterface/CLIcore.h"
 #include <errno.h>
 
 #ifdef __cplusplus
@@ -12,6 +12,7 @@ extern "C" {
 typedef void * SGRRHandle;
 // Constructor
 SGRRHandle create_SGR_Recorder(
+    FUNCTION_PARAMETER_STRUCT* fps, // process relatef fps
     IMAGE* in,                  // Raw camera stream
     IMAGE* dark,                // Stream holding a dark for subtraction
     float pxSize,               // Size of the camera pixels

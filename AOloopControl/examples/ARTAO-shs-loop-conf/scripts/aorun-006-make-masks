@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Generates fully valid mask fits files for WFS and DM."
+
+
+# Extended description
+MSextdescr="Mask file generation to satisfy straight CM computation
+
+Checks if mask fits files for WFS and DM exist. If not, all pixels are
+assumed to be valid and corresponding files are generated.
+Output:
+conf/dmmask.fits
+conf/wfsmask.fits
+"
+
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+MSarg+=( )
+
+source milk-argparse
+
+# Checking FPS & Image Streams
+# Checking stream
+streamcheckOK="OK"
+checkstream $CACAO_WFSSTREAM
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	cacaomsglog "ERROR streamcheck"
+	exit 1
+fi
+
+DMMASK="conf/dmmask.fits"
+WFSMASK="conf/wfsmask.fits"
+
+if [ ! -f $DMMASK ]; then
+echo "Generating ${CACAO_DMxsize}x${CACAO_DMysize} dm mask ..."
+MILK_QUIET=1 milk-all << EOF
+# Read dm disp
+imgen.mkrect dmMask ${CACAO_DMxsize} ${CACAO_DMysize} 0 0 ${CACAO_DMxsize} ${CACAO_DMysize}
+saveFITS dmMask dmmask.fits
+exitCLI
+EOF
+mv dmmask.fits $DMMASK
+fi
+
+if [ ! -f $WFSMASK ]; then
+echo "Generating ${CACAO_WFSxsize}x${CACAO_WFSysize} wfs mask ..."
+MILK_QUIET=1 milk-all << EOF
+# Read dm disp
+imgen.mkrect wfsMask ${CACAO_WFSxsize} ${CACAO_WFSysize} 0 0 ${CACAO_WFSxsize} ${CACAO_WFSysize}
+saveFITS wfsMask wfsmask.fits
+exitCLI
+EOF
+mv wfsmask.fits $WFSMASK
+fi

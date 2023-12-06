@@ -11,6 +11,7 @@ extern "C" {
 #include <iostream>
 #include <ctime>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -20,6 +21,7 @@ extern "C"
 {
 
 SGR_Recorder::SGR_Recorder(
+    FUNCTION_PARAMETER_STRUCT* fps,
     IMAGE* in,
     IMAGE* dark,
     float pxSize_um,
@@ -29,6 +31,7 @@ SGR_Recorder::SGR_Recorder(
     const char* savingLocation,
     bool visualize)
     :
+    mp_fps(fps),
     mpInput(in),
     mpDark(dark),
     mPxSize_um(pxSize_um),
@@ -365,6 +368,21 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         saveImage(IHspotMask);
         saveImage(IHcpuRef);
         saveImage(IHavgI);
+        // Save data to cacaovars
+        std::string cacaovarsName = mp_fps->md->datadir;
+        cacaovarsName += "/cacaovars.bash";
+        auto cacaovarsOut = std::ofstream(cacaovarsName);
+        cacaovarsOut    << "export CACAO_WFSxsize="
+                        << numOfValidSpots <<"\n";
+        cacaovarsOut    << "export CACAO_WFSysize="
+                        << 1 <<"\n";
+        cacaovarsOut    << "export CACAO_SHSREF="
+                        << IHcpuRef->getImage()->name <<"\n";
+        cacaovarsOut    << "export CACAO_SHSREF_MASK="
+                        << IHspotMask->getImage()->name <<"\n";
+        cacaovarsOut    << "export CACAO_SHSREF_INT="
+                        << IHavgI->getImage()->name <<"\n";
+        cacaovarsOut.close();
 
         mState = RECSTATE::FINISH;
         printf("\n\n=== SGR_Recorder: Evaluation done! ===\n\n");
@@ -652,14 +670,15 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
     }
 }
 
-void SGR_Recorder::saveImage(spIHBase imageHandler)
+std::string SGR_Recorder::saveImage(spIHBase imageHandler)
 {
     const char* imageName = imageHandler->getImage()->name;
+    std::string fitsName;
     // First resolve the image ID
     long id = read_sharedmem_image(imageName);
     if (id >= 0)
     {   // Then, save the file.
-        std::string fitsName = generateFitsName(imageName);
+        fitsName = generateFitsName(imageName);
         errno_t err = save_fits(imageName, fitsName.c_str());
         if (err == RETURN_SUCCESS)
             printf("\t=> Written to %s\n", fitsName.c_str());
@@ -676,6 +695,7 @@ void SGR_Recorder::saveImage(spIHBase imageHandler)
         mErrDescr.append("Could not resolve image id before saving fits.");
         mState = RECSTATE::ERROR;
     }
+    return fitsName;
 }
 
 std::string SGR_Recorder::generateFitsName(std::string prefix) {

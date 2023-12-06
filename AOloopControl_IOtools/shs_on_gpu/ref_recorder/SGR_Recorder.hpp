@@ -16,6 +16,7 @@ class SGR_Recorder
 public:
     // Ctor, doing the initialization
     SGR_Recorder(
+        FUNCTION_PARAMETER_STRUCT* fps, // process related fps
         IMAGE* in,           // Raw camera stream
         IMAGE* dark,         // Stream holding a dark for subtraction
         float pxSize_um,     // Size of the camera pixels in um
@@ -37,6 +38,7 @@ public:
     const char* getStateDescription();
 
 private:
+    FUNCTION_PARAMETER_STRUCT* mp_fps;
     // GPU ID
     int mDevice = -1;
     // Internal status
@@ -114,7 +116,7 @@ private:
     // Spans a regular grid, matching the given unsorted spots
     void spanCoarseGrid(std::vector<Point<double>> fitSpots);
     // Saves an image
-    void saveImage(spIHBase imageHandler);
+    std::string saveImage(spIHBase imageHandler);
     // Creates the filename for saving the reference
     std::string generateFitsName(std::string prefix);
 };

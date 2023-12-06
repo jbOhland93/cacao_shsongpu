@@ -261,6 +261,7 @@ static errno_t compute_function()
     
     // === SET UP REF RECORDER HERE
     SGRRHandle recorder = create_SGR_Recorder(
+        data.fpsptr,
         inimg.im,
         darkimg.im,
         *campxsize,
