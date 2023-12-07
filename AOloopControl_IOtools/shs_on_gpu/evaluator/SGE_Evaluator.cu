@@ -123,10 +123,10 @@ errno_t SGE_Evaluator::evaluateDo(
     }
 
     // Copy the results into host memory
-    if (cpyGradToCPU)
-        mp_IHgradient->updateFromGPU();
     if (calcWF && cpyWfToCPU)
         mp_IHwf->updateFromGPU();
+    if (cpyGradToCPU)
+        mp_IHgradient->updateFromGPU();
     if (cpyIntToCPU)
         mp_IHintensity->updateFromGPU();
 
