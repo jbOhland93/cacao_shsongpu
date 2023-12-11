@@ -1,6 +1,7 @@
 #ifndef SGE_EVALUATOR_INTERFACE_H
 #define SGE_EVALUATOR_INTERFACE_H
 
+#include "../../../../../src/CommandLineInterface/CLIcore.h"
 #include "ImageStreamIO/ImageStruct.h"
 #include <errno.h>
 
@@ -12,6 +13,7 @@ extern "C" {
 typedef void * SGEEHandle;
 // Constructor
 SGEEHandle create_SGE_Evaluator(
+    FUNCTION_PARAMETER_STRUCT* fps, // process relatef fps
     IMAGE* ref,                 // Stream with SHS reference positions
     IMAGE* shscam,              // Stream of the SHS camera
     IMAGE* shsdark,             // Stream containing the darkframe for the SHS camera
@@ -27,7 +29,8 @@ errno_t SGEE_eval_do(
     int64_t calcWF,        // Calculate the WF from the gradient field
     int64_t cpyGradToCPU,  // Copy the evaluated gradient to the CPU
     int64_t cpyWfToCPU,    // Copy the WF to the CPU, if reconstructed
-    int64_t cpyIntToCPU);  // Copy the intensity to the CPU
+    int64_t cpyIntToCPU,   // Copy the intensity to the CPU
+    int64_t logWFstats);   // Log WF PtV and RMS to file
 
 #ifdef __cplusplus
 }

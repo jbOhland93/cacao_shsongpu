@@ -40,12 +40,13 @@
 
 
 SGE_Evaluator::SGE_Evaluator(
+        FUNCTION_PARAMETER_STRUCT* fps,
         IMAGE* ref,                 // Stream holding the reference data
         IMAGE* cam,                 // Stream holding the current SHS frame
         IMAGE* dark,                // Stream holding the dark frame of the SHS
         const char* streamPrefix,   // Prefix for the ISIO streams
         int deviceID)               // ID of the GPU device
-    : m_streamPrefix(streamPrefix)
+    : mp_fps(fps), m_streamPrefix(streamPrefix)
 {
     // Set up the evaluator
     setupCudaEnvironment(deviceID);
@@ -61,6 +62,9 @@ SGE_Evaluator::SGE_Evaluator(
 
 SGE_Evaluator::~SGE_Evaluator()
 {
+    if (m_wfStatsLog.is_open())
+            m_wfStatsLog.close();
+
     // Clean up debugging fields
 #ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
     cudaEventDestroy(m_cuEvtStart);
@@ -79,7 +83,8 @@ errno_t SGE_Evaluator::evaluateDo(
     bool calcWF,
     bool cpyGradToCPU,
     bool cpyWfToCPU,
-    bool cpyIntToCPU)
+    bool cpyIntToCPU,
+    bool logWFstats)
 {
     // Measure the evaluation time
     // (if ENABLE_EVALUATION_TIME_MEASUREMENT is defined)
@@ -129,6 +134,8 @@ errno_t SGE_Evaluator::evaluateDo(
         mp_IHgradient->updateFromGPU();
     if (cpyIntToCPU)
         mp_IHintensity->updateFromGPU();
+
+    logWFstatsToFile(logWFstats && calcWF && cpyWfToCPU);
 
     // If any debug flags are defined, collect data from
     // devide memory and make them accessible / print them
@@ -226,6 +233,56 @@ void SGE_Evaluator::setupWFreconstruction()
     mp_wfReconstructor =  wfRecBuilder.getReconstructor();
 }
 
+void SGE_Evaluator::logWFstatsToFile(bool doLog)
+{
+    if (doLog)
+    {
+        if (!m_wfStatsLog.is_open())
+        {
+            std::string fname = genereateLogFileName("wfStats");
+            m_wfStatsLog.open(fname);
+            if (m_wfStatsLog.is_open())
+                m_wfStatsLog    << "# 1: cnt0 of wf stream\n"
+                                << "# 2: PtV of wf in um\n"
+                                << "# 3: RMS of wf in um\n";
+        }
+        if (!m_wfStatsLog.is_open())
+            std::cout << "SGE_Evaluator: error opening log file.";
+        else
+        {
+            // Calculate statistics
+            float mean = 0;
+            float min = 0;
+            float max = 0;
+            float RMS = 0;
+            float PtV;
+            for (int i = 0; i < mp_IHwf->mWidth; i++)
+            {
+                float val = mp_IHwf->read(i, 0);
+                mean += val;
+                min = min < val ? min : val;
+                max = max > val ? max : val;
+            }
+            mean /= mp_IHwf->mWidth;
+            for (int i = 0; i < mp_IHwf->mWidth; i++)
+            {
+                float val = mp_IHwf->read(i, 0);
+                val -= mean;
+                RMS += val*val;
+            }
+            RMS = sqrt(RMS / mp_IHwf->mWidth);
+            PtV = max-min;
+            // Log statistics
+            m_wfStatsLog    << mp_IHwf->getCnt0() << "\t"
+                            << PtV << "\t"
+                            << RMS << "\n";
+        }
+    }
+    else
+        if (m_wfStatsLog.is_open())
+            m_wfStatsLog.close();
+}
+
 void SGE_Evaluator::initDebugFields()
 {
 #ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
@@ -237,7 +294,7 @@ void SGE_Evaluator::initDebugFields()
 
     if (EVALTIME_PRINT_LOG == 1)
     {
-        std::string fileName = genereateTimeLogFileName();
+        std::string fileName = genereateLogFileName("timing");
         m_timeLog.open(fileName.c_str(), std::ios::app);
 
         if (!m_timeLog.is_open())
@@ -329,12 +386,14 @@ void SGE_Evaluator::provideDebugOutputAfterEval()
 #endif
 }
 
-std::string SGE_Evaluator::genereateTimeLogFileName() {
+std::string SGE_Evaluator::genereateLogFileName(std::string suffix) {
     std::ostringstream oss;
 
     std::time_t t = std::time(nullptr);
     std::tm* tm = std::localtime(&t);
 
-    oss << m_streamPrefix << "" << std::put_time(tm, "%Y-%m-%d_%H-%M-%S") << "_timing.log";
+    oss << mp_fps->md->datadir << "/" << m_streamPrefix
+        << std::put_time(tm, "%Y-%m-%d_%H-%M-%S")
+        << "_" << suffix << ".log";
     return oss.str();
 }

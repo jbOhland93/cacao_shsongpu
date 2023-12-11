@@ -15,6 +15,7 @@ class SGE_Evaluator
 public:
     // Ctor, doing the initialization
     SGE_Evaluator(
+        FUNCTION_PARAMETER_STRUCT* fps, // process related fps
         IMAGE* ref,                 // Stream holding the reference data
         IMAGE* cam,                 // Camera stream
         IMAGE* dark,                // Dark stream
@@ -29,8 +30,11 @@ public:
         bool calcWF,        // Calculate the WF from the gradient field
         bool cpyGradToCPU,  // Copy the evaluated gradient to the CPU
         bool cpyWfToCPU,    // Copy the WF to the CPU, if reconstructed
-        bool cpyIntToCPU);  // Copy the intensity to the CPU
+        bool cpyIntToCPU,   // Copy the intensity to the CPU
+        bool logWFstats);   // Log wf PtV and RMS to file
 private:
+    FUNCTION_PARAMETER_STRUCT* mp_fps;
+
     std::string m_streamPrefix;
 
     spImHandler2D(uint16_t) mp_IHcam;
@@ -55,6 +59,10 @@ private:
     void createOutputImages();
     void setupWFreconstruction();
 
+    // Misc
+    void logWFstatsToFile(bool doLog);
+    std::ofstream m_wfStatsLog;
+
     // Members for debugging
     cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing
     spImHandler2D(float) mp_IHdebug = nullptr; // Debug image in host memory
@@ -68,7 +76,7 @@ private:
     void startRecordingTime();
     float* prepareDebugImageDevicePtr();
     void provideDebugOutputAfterEval();
-    std::string genereateTimeLogFileName();
+    std::string genereateLogFileName(std::string suffix);
 };
 
 #endif // SGE_EVALUATOR_HPP

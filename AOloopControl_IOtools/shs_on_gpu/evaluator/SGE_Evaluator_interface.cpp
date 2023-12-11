@@ -4,12 +4,14 @@
 extern "C"
 {
     SGEEHandle create_SGE_Evaluator(
+        FUNCTION_PARAMETER_STRUCT* fps,
         IMAGE* ref,
         IMAGE* shscam,
         IMAGE* shsdark,
         const char* streamPrefix)
     {
         return new SGE_Evaluator(
+            fps,
             ref,
             shscam,
             shsdark,
@@ -27,13 +29,15 @@ extern "C"
         int64_t calcWF,
         int64_t cpyGradToCPU,
         int64_t cpyWfToCPU,
-        int64_t cpyIntToCPU)
+        int64_t cpyIntToCPU,
+        int64_t logWFstats)
     {
         return ((SGE_Evaluator*) p)->evaluateDo(
             useAbsRef != 0,
             calcWF != 0,
             cpyGradToCPU != 0,
             cpyWfToCPU != 0,
-            cpyIntToCPU != 0);
+            cpyIntToCPU != 0,
+            logWFstats != 0);
     }
 }

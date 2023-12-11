@@ -51,6 +51,10 @@ static long     fpi_cpyWfToCPU = -1;
 static int64_t *cpyIntToCPU;
 static long     fpi_cpyIntToCPU = -1;
 
+// Toggle: log wf PvT and RMS
+static int64_t *logWfStats;
+static long     fpi_logWfStats = -1;
+
 static uint32_t *loopnumber;
 static long      fpi_loopnumber = -1;
 
@@ -141,6 +145,15 @@ static CLICMDARGDEF farg[] =
         &fpi_cpyIntToCPU
     },
     {
+        CLIARG_ONOFF,
+        ".comp.logWfStats",
+        "log PtV and RMS of WF to file",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &logWfStats,
+        &fpi_logWfStats
+    },
+    {
         CLIARG_UINT32,
         ".loopnumber",
         "The number of the AO loop, used for stream naming",
@@ -179,6 +192,7 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_cpyGradToCPU].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_cpyWfToCPU].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_cpyIntToCPU].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_logWfStats].fpflag |= FPFLAG_WRITERUN;
     }
 
     // increment counter at every configuration check
@@ -262,7 +276,8 @@ static errno_t streamprocess(SGEEHandle evaluator)
         *calcWF,
         *cpyGradToCPU,
         *cpyWfToCPU,
-        *cpyIntToCPU);
+        *cpyIntToCPU,
+        *logWfStats);
 
     DEBUG_TRACE_FEXIT();
     return retVal;
@@ -312,6 +327,7 @@ static errno_t compute_function()
         funPrefix);
     // Construct the evaluator
     SGEEHandle evaluator = create_SGE_Evaluator(
+        data.fpsptr,
         refimg.im,
         camimg.im,
         darkimg.im,
