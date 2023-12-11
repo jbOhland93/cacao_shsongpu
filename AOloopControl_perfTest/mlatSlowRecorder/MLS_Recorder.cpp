@@ -268,7 +268,10 @@ void MLS_Recorder::execStateDecomposeLatencySequence()
     if (m_iteration < m_numPokes)
         switchState(RECSTATE::RECORD_LATENCY_SEQUENCE);
     else
+    {   // Reset the DM, then switch state
+        pokeAndSettle(false);
         switchState(RECSTATE::EVAL_LATENCY);
+    }
 }
 
 
