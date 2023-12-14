@@ -232,13 +232,9 @@ This could take a while. Check status on milk-procCTRL and/or watch the wavefron
 ```
 
 ### 8.3. Compute control matrix (straight)
-The computation for the control matrix expects mask fits files, which were not generated to that point. Due to the fact that WFS masking technically happens during referencing and all actuators of the DM are being used, these masks can be simple fits files with 1 for all values, matching the sizes of the WF stream and the DM stream. The files can be generated with the follwoing script:
+The computation for the control matrix expects mask fits files, which were not generated to that point. The WFS masking technically happens during referencing, but the file is still required for the calculation. The following script can be used to generate the masks:
 ```bash
-# Cacaos own one - try it!
-#cacao-aorun-032-RMmkmask
 cacao-aorun-032-RMmkmask -f conf/RMmodesWFS/RMmodesWFS.fits
-
-./scripts/aorun-006-make-masks
 ```
 
 Now, compute the control modes, in both WFS and DM spaces.
