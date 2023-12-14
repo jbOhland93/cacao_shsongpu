@@ -234,6 +234,10 @@ This could take a while. Check status on milk-procCTRL and/or watch the wavefron
 ### 8.3. Compute control matrix (straight)
 The computation for the control matrix expects mask fits files, which were not generated to that point. Due to the fact that WFS masking technically happens during referencing and all actuators of the DM are being used, these masks can be simple fits files with 1 for all values, matching the sizes of the WF stream and the DM stream. The files can be generated with the follwoing script:
 ```bash
+# Cacaos own one - try it!
+#cacao-aorun-032-RMmkmask
+cacao-aorun-032-RMmkmask -f conf/RMmodesWFS/RMmodesWFS.fits
+
 ./scripts/aorun-006-make-masks
 ```
 
@@ -241,7 +245,7 @@ Now, compute the control modes, in both WFS and DM spaces.
 Set GPU device (if GPU available).
 
 ```bash
-cacao-fpsctrl setval compstrCM svdlim 0.002
+cacao-fpsctrl setval compstrCM svdlim 0.005
 cacao-fpsctrl setval compstrCM GPUdevice 0
 ```
 Then run the compstrCM process to compute CM and load it to shared memory :
@@ -285,15 +289,14 @@ cacao-aorun-070-cmval2dm start
 
 ```bash
 # Set loop gain
-cacao-fpsctrl setval mfilt loopgain 0.1
+cacao-fpsctrl setval mfilt loopgain 0.081
+# Set loop mult
+cacao-fpsctrl setval mfilt loopmult 0.999
 
 # set modal gains, mults and limits
-cacao-aorun-061-setmgains 0.8 -f 0.05 -t 1.2
+cacao-aorun-061-setmgains 0.3 -f 0.7 -t 1.4
 cacao-aorun-062-setmmults 0.05 -f 0.9 -t 1.0
 cacao-aorun-063-setmlimits 0.8 -f 0.05 -t 1.0
-
-# Set loop mult
-cacao-fpsctrl setval mfilt loopmult 0.98
 
 # close loop
 cacao-fpsctrl setval mfilt loopON ON
@@ -327,13 +330,13 @@ A common way to change the shape of the focal spot is to apply a known amount of
 # Set max number of modes above nbmodes to measure all modes
 
 cacao-fpsctrl runstop mfilt 0 0
-cacao-fpsctrl setval mfilt selfRM.zsize 20
-cacao-fpsctrl setval mfilt selfRM.NBmode 2000
+cacao-fpsctrl setval mfilt selfRM.zsize 100
+cacao-fpsctrl setval mfilt selfRM.NBmode 100
 cacao-fpsctrl runstart mfilt 0 0
 cacao-fpsctrl setval mfilt selfRM.enable ON
 ```
 
-Check result: vispyr2-rundir/selfRM.fits
+Check result: artao-loop-rundir/selfRM.fits
 
 ### 9.2. Turbulence
 

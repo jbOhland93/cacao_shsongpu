@@ -21,7 +21,8 @@ export SESSION_NAME="DO_DM-${CACAO_LOOPNUMBER}"
 CACAO_DMSETTINGS_FILE="${PWD}/dmsettings"
 COMMAND="./milk-2-dynamic-optics-dm -d"
 
-CPU_SET_NAME="dmdrv"
+CPU_SET_NAME="dmDrv"
+CPU=$(cat /sys/fs/cgroup/cpuset/${CPU_SET_NAME}/cpuset.cpus)
 REAL_TIME_PRIORITY="49"
 
 # Check if the tmux session already exists
@@ -48,6 +49,7 @@ else
   echo "DM-IPAddress=${DM_ADDRESS}" >> ${CACAO_DMSETTINGS_FILE}
   echo "actuatorCount=${CACAO_DMxsize}" >> ${CACAO_DMSETTINGS_FILE}
   echo "DMcombStream=${INPUT_STREAM}" >> ${CACAO_DMSETTINGS_FILE}
+  echo "CPUcore=${CPU}" >> ${CACAO_DMSETTINGS_FILE}
 
   echo "Launching real-time process."
   tmux send-keys -t "$SESSION_NAME" "cd $MILK_TO_DO_DM_PATH" C-m

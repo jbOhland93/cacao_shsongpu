@@ -16,7 +16,7 @@ source cacaovars.*.bash
 
 export SESSION_NAME="shsCam-${CACAO_LOOPNUMBER}"
 COMMAND="./xiB-64-2-milk"
-CPU_SET_NAME="xicam"
+CPU_SET_NAME="xiCam"
 REAL_TIME_PRIORITY="49"
 CAMSTREAM="${MILK_SHM_DIR}/ximeaCam.im.shm"
 LINKSTREAM="${MILK_SHM_DIR}/aol${CACAO_LOOPNUMBER}_shsCam.im.shm"

@@ -85,7 +85,7 @@ export CACAO_FPSPROC_RSHP_ACQWF_AVG="ON"
 export CACAO_FPSPROC_LOG_SHSONGPU_SHS="OFF"
 # Log extracted gradient field (1D, two lines)
 # fps name: log-Gradient-8
-export CACAO_FPSPROC_LOG_SHSONGPU_GRAD="OFF"
+export CACAO_FPSPROC_LOG_SHSONGPU_GRAD="ON"
 # Log reconstructed wavefront (1D)
 # fps name: log-Wavefront-8
 export CACAO_FPSPROC_LOG_SHSONGPU_WF="ON"
