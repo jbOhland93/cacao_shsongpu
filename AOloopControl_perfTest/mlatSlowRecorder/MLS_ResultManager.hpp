@@ -17,6 +17,10 @@ public:
         uint32_t framesPerPoke);// number of frames per iteration
     ~MLS_ResultManager();
 
+    // Reads the framerate from the FPS and adapts the value
+    // Returns the retrieved value
+    double setFrameratefromFPS();
+
     // Result setters
     void setFPS(double FPS_Hz);
     void logRawAmplitude(double* times, float* amplitudes);

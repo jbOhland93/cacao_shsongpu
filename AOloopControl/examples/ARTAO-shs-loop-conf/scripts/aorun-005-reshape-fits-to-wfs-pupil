@@ -48,7 +48,7 @@ wait_for_shmim() {
 
   # Loop until the file exists
   while [ ! -f "$MILK_SHM_DIR/$shmim" ]; do
-    sleep 0.1 # Wait for 5 seconds before checking again
+    sleep 0.1 # Wait before checking again
   done
 }
 

@@ -5,22 +5,28 @@ extern "C"
 {
 
     MLSRHandle create_MLS_Recorder(
-        FUNCTION_PARAMETER_STRUCT* fps, // process related fps
-        IMAGE* dmstream,        // Stream of the DM input
-        IMAGE* wfsstream,       // Stream of the WFS output
-        float fpsMeasTime,      // Timeframe for wfs framerate estimation
-        uint32_t pokePattern,   // Poke pattern:
-        float maxActStroke,     // Maximum actuator stroke in pattern
-        uint32_t numPokes,      // number of iterations
-        uint32_t framesPerPoke, // number of frames per iteration
-        int64_t saveRaw)        // If true, each iterations frames is saved to fits
+        FUNCTION_PARAMETER_STRUCT* fps, // process relatef fps
+        IMAGE* dmstream,            // Stream of the DM input
+        IMAGE* wfsstream,           // Stream of the WFS output
+        int64_t skipMFramerate,     // If true, the FPS measurement prior to the latency is skipped
+        float fpsMeasTime,          // Timeframe for wfs framerate estimation
+        int32_t pokePattern,        // Poke pattern
+        const char* shmPatternName, // Name of pattern stream in shm
+        uint32_t shmImPatternIdx,   // Index of the shm pattern slice to be poked
+        float maxActStroke,         // Maximum actuator stroke in pattern
+        uint32_t numPokes,          // number of iterations
+        uint32_t framesPerPoke,     // number of frames per iteration
+        int64_t saveRaw)            // If true, each iterations frames is saved to fits
     {
         return new MLS_Recorder(
             fps,
             dmstream,
             wfsstream,
+            skipMFramerate > 0,
             fpsMeasTime,
             pokePattern,
+            shmPatternName,
+            shmImPatternIdx,
             maxActStroke,
             numPokes,
             framesPerPoke,

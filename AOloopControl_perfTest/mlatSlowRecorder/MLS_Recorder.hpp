@@ -18,15 +18,18 @@ class MLS_Recorder
 {
 public:
     MLS_Recorder(
-        FUNCTION_PARAMETER_STRUCT* fps, // process related fps
-        IMAGE* dmstream,        // Stream of the DM input
-        IMAGE* wfsstream,       // Stream of the WFS output
-        float fpsMeasTime,      // Timeframe for wfs framerate estimation
-        uint32_t pokePattern,   // Poke pattern:
-        float maxActStroke,     // Maximum actuator stroke in pattern
-        uint32_t numPokes,      // number of iterations
-        uint32_t framesPerPoke, // number of frames per iteration
-        bool saveRaw);          // If true, each iterations frames is saved to fits
+        FUNCTION_PARAMETER_STRUCT* fps, // process relatef fps
+        IMAGE* dmstream,            // Stream of the DM input
+        IMAGE* wfsstream,           // Stream of the WFS output
+        bool skipMFramerate,        // If true, the FPS measurement prior to the latency is skipped
+        float fpsMeasTime,          // Timeframe for wfs framerate estimation
+        int32_t pokePattern,        // Poke pattern
+        std::string patternstream,  // Image name where each slice holds a potential poke pattern
+        uint32_t shmImPatternIdx,   // Index of the shm pattern slice to be poked
+        float maxActStroke,         // Maximum actuator stroke in pattern
+        uint32_t numPokes,          // number of iterations
+        uint32_t framesPerPoke,     // number of frames per iteration
+        bool saveRaw);              // If true, each iterations frames is saved to fits
 
     // Launches the recording sequence
     void recordDo();
@@ -35,9 +38,12 @@ private:
     // Parameters
     IMAGE* mp_dmImage;
     IMAGE* mp_wfsImage;
+    std::string m_patternImageName;
     FUNCTION_PARAMETER_STRUCT* mp_fps;
+    bool m_measureFramerate;
     float m_fpsMeasurementTime;
     PokePattern m_pokePattern;
+    uint32_t m_shmPokePatternIndex;
     float m_maxStroke;
     uint32_t m_numPokes;
     uint32_t m_framesPerPoke;

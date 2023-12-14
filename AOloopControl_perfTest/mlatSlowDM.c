@@ -25,11 +25,20 @@ long         fpi_dmstream;
 static char *wfsstream;
 long         fpi_wfsstream;
 
+static int64_t *skipMFramerate;
+long            fpi_skipMFramerate;
+
 static float *fpsMeasTime;
 long          fpi_fpsMeasTime;
 
-static uint32_t *pokePattern;
+static int32_t *pokePattern;
 long             fpi_pokePattern;
+
+static char *patternStream;
+long         fpi_patternStream;
+
+static uint32_t *shmImPatterIdx;
+long             fpi_shmImPatterIdx;
 
 static float *maxActStroke;
 long          fpi_maxActStroke;
@@ -91,6 +100,15 @@ static CLICMDARGDEF farg[] = {{
         &fpi_wfsstream
     },
     {
+        CLIARG_ONOFF,
+        ".skipFramerateMeas",
+        "Skip the framerate measurement prior to latency",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &skipMFramerate,
+        &fpi_skipMFramerate
+    },
+    {
         CLIARG_FLOAT32,
         ".framerateMeasTime",
         "Timeframe to measure WFS framerate",
@@ -100,13 +118,31 @@ static CLICMDARGDEF farg[] = {{
         &fpi_fpsMeasTime
     },
     {
-        CLIARG_UINT32,
+        CLIARG_INT32,
         ".pokePattern",
-        "0=homogene,1=sine,2=checkerboard",
+        "-1=shm,0=homogene,1=sine,2=checkerboard",
         "1",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &pokePattern,
         &fpi_pokePattern
+    },
+    {
+        CLIARG_STR,
+        ".patternStream",
+        "Stream where slices are pokable DM channel values",
+        "null",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &patternStream,
+        &fpi_patternStream
+    },
+    {
+        CLIARG_UINT32 ,
+        ".shmImPatterIdx",
+        "slice index of the pattern stream to poke",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &shmImPatterIdx,
+        &fpi_shmImPatterIdx
     },
     {
         CLIARG_FLOAT32,
@@ -303,6 +339,35 @@ static errno_t compute_function()
     resolveIMGID(&imgwfs, ERRMODE_ABORT);
     printf("WFS size : %u %u\n", imgwfs.md->size[0], imgwfs.md->size[1]);
 
+    // connect to pattern stream if required, and check dimensions
+    IMGID imgpattern;
+    if (*pokePattern == -1)
+    {
+        printf("READ RESULT: %d\n", read_sharedmem_image(patternStream));
+        imgpattern = mkIMGID_from_name(patternStream);
+        resolveIMGID(&imgpattern, ERRMODE_ABORT);
+        if (imgpattern.md->naxis != imgdm.md->naxis + 1)
+        {
+            printf("Pattern stream has wrong dimensinality. Has to be DM stream dim +1.\n");
+            return RETURN_FAILURE;
+        }
+        for (int i = 0; i < imgdm.md->naxis; i++)
+            if (imgpattern.md->size[i] != imgdm.md->size[i])
+            {
+                printf("Pattern stream has wrong pattern size. Must match DM stream size.\n");
+                return RETURN_FAILURE;
+            }
+        if (imgpattern.md->size[imgpattern.md->naxis-1] <= *shmImPatterIdx)
+        {
+            printf("shmImPatternIdx is out of range for given pattern image.\n");
+            return RETURN_FAILURE;
+        }
+        printf("Pattern stream size :");
+        for (int i = 0; i < imgpattern.md->naxis; i++)
+            printf(" %d", imgpattern.md->size[i]);
+        printf("\n");
+    }
+
     printf(" COMPUTE Flags = %ld\n", CLIcmddata.cmdsettings->flags);
     INSERT_STD_PROCINFO_COMPUTEFUNC_INIT
 
@@ -315,14 +380,16 @@ static errno_t compute_function()
         loopcnt = CLIcmddata.cmdsettings->procinfo_loopcntMax;
     }
     
-    
     // === SET UP LATENCY RECORDER HERE
     MLSRHandle recorder = create_MLS_Recorder(
         data.fpsptr,
         imgdm.im,
         imgwfs.im,
+        *skipMFramerate,
         *fpsMeasTime,
         *pokePattern,
+        patternStream,
+        *shmImPatterIdx,
         *maxActStroke,
         *numPokes,
         *framesPerPoke,
@@ -330,28 +397,6 @@ static errno_t compute_function()
 
     // === RECORD LATENCY
     mlsRecordDo(recorder);
-
-/*    // === PUBLISH RESULTS
-    printf("Results:\n");
-    *framerateHz = getFPS_Hz(recorder);
-    functionparameter_SaveParam2disk(data.fpsptr, ".out.framerateHz");
-    printf("\tFramerate = %.3f Hz\n", *framerateHz);
-    *latencyfr = getHWlatency_frames(recorder);
-    functionparameter_SaveParam2disk(data.fpsptr, ".out.latency_fr");
-    *latencyus = getHWlatency_us(recorder);
-    functionparameter_SaveParam2disk(data.fpsptr, ".out.latency_us");
-    printf("\tHardware latency = %.3f us (%.3f frames)\n", *latencyus, *latencyfr);
-    *delayfr = getHWdelay_frames(recorder);
-    functionparameter_SaveParam2disk(data.fpsptr, ".out.delay_fr");
-    *delayus = getHWdelay_us(recorder);
-    functionparameter_SaveParam2disk(data.fpsptr, ".out.delay_us");
-    printf("\tLatency to first motion = %.3f us (%.3f frames)\n", *delayus, *delayfr);
-    *risetimefr = getRiseTime0to90_frames(recorder);
-    functionparameter_SaveParam2disk(data.fpsptr, ".out.risetime_fr");
-    *risetimeus = getRiseTime0to90_us(recorder);
-    functionparameter_SaveParam2disk(data.fpsptr, ".out.risetime_us");
-    printf("\tRise time (10%% to [90%%|110%%]) = %.3f us (%.3f frames)\n", *risetimeus, *risetimefr);
-*/
    
     // === FREE RECORDER
     free_MLS_Recorder(recorder);

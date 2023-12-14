@@ -9,26 +9,35 @@ using namespace std::chrono;
 #define ERRSTREAM std::cerr << "MLS_Recorder error: "
 
 MLS_Recorder::MLS_Recorder(
-        FUNCTION_PARAMETER_STRUCT* fps, // process related fps
-        IMAGE* dmstream,        // Stream of the DM input
-        IMAGE* wfsstream,       // Stream of the WFS output
-        float fpsMeasTime,      // Timeframe for wfs framerate estimation
-        uint32_t pokePattern,   // Poke pattern:
-        float maxActStroke,     // Maximum actuator stroke in pattern
-        uint32_t numPokes,      // number of iterations
-        uint32_t framesPerPoke, // number of frames per iteration
-        bool saveRaw)           // If true, each iterations frames is saved to fits
+        FUNCTION_PARAMETER_STRUCT* fps, // process relatef fps
+        IMAGE* dmstream,            // Stream of the DM input
+        IMAGE* wfsstream,           // Stream of the WFS output
+        bool skipMFramerate,        // If true, the FPS measurement prior to the latency is skipped
+        float fpsMeasTime,          // Timeframe for wfs framerate estimation
+        int32_t pokePattern,        // Poke pattern
+        std::string patternstream,  // Image name where each slice holds a potential poke pattern
+        uint32_t shmImPatternIdx,   // Index of the shm pattern slice to be poked
+        float maxActStroke,         // Maximum actuator stroke in pattern
+        uint32_t numPokes,          // number of iterations
+        uint32_t framesPerPoke,     // number of frames per iteration
+        bool saveRaw)              // If true, each iterations frames is saved to fits
         :   mp_dmImage(dmstream),
             mp_wfsImage(wfsstream),
+            m_measureFramerate(!skipMFramerate),
+            m_patternImageName(patternstream),
             mp_fps(fps),
+            m_shmPokePatternIndex(shmImPatternIdx),
             m_maxStroke(maxActStroke),
             m_numPokes(numPokes),
             m_framesPerPoke(framesPerPoke),
             m_saveRaw(saveRaw)
 {
+    LOGSTREAM << "Constrution started...\n";
+
     // verify poke pattern option
     switch ((PokePattern) pokePattern)
     {
+    case PokePattern::SHMIM: break;
     case PokePattern::HOMOGENEOUS: break;
     case PokePattern::SINE: break;
     case PokePattern::CHECKERBOARD: break;
@@ -153,6 +162,8 @@ void MLS_Recorder::execStateInitializing()
         mp_dmMngr = std::make_shared<MLS_DMmanager>(
                                             mp_dmImage,
                                             m_pokePattern,
+                                            m_patternImageName,
+                                            m_shmPokePatternIndex,
                                             m_maxStroke);
         mp_seqMngr = std::make_shared<MLS_SequenceManager>(
                                             mp_fps,
@@ -182,18 +193,27 @@ void MLS_Recorder::execStateReady()
 
 void MLS_Recorder::execStateMeasureFPS()
 {
-    LOGSTREAM << "Measuring frame rate over "
-              << m_fpsMeasurementTime << " sec.\n";
+    if (m_measureFramerate)
+    {
+        LOGSTREAM << "Measuring frame rate over "
+                << m_fpsMeasurementTime << " sec.\n";
 
-    try
-    {
-        double FPS = mp_seqMngr->measureFPS(m_fpsMeasurementTime);
-        mp_resultMngr->setFPS(FPS);
-        switchState(RECSTATE::RECORD_POKE_RESPONSE);
+        try
+        {
+            double FPS = mp_seqMngr->measureFPS(m_fpsMeasurementTime);
+            mp_resultMngr->setFPS(FPS);
+            switchState(RECSTATE::RECORD_POKE_RESPONSE);
+        }
+        catch(const std::exception& e)
+        {
+            throwError(e.what());
+        }
     }
-    catch(const std::exception& e)
+    else
     {
-        throwError(e.what());
+        LOGSTREAM   << "Retrieved frame rate from fps: ";
+        mp_resultMngr->setFrameratefromFPS();
+        switchState(RECSTATE::RECORD_POKE_RESPONSE);
     }
 }
 

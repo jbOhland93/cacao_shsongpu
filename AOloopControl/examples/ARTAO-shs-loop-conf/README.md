@@ -104,7 +104,7 @@ help
 start
 
 # Set the FPS of the acquisition
-setFPS 3000
+setFPS 3900
 
 # Keep this tmux session open for camera control or detach using ctrl+b, d.
 ```

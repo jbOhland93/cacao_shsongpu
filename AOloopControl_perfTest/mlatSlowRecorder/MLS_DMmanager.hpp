@@ -10,9 +10,11 @@ class MLS_DMmanager
 {
 public:
     MLS_DMmanager(
-        IMAGE* dmstream,        // Stream of the DM input
-        PokePattern pokePattern,// Poke pattern
-        float maxActStroke);    // Maximum actuator stroke in pattern
+        IMAGE* dmstream,            // Stream of the DM input
+        PokePattern pokePattern,    // Poke pattern
+        std::string patternImage,   // Patter image name
+        uint32_t shmPatternIdx,     // Index of shmIm pattern slice
+        float maxActStroke);        // Maximum actuator stroke in pattern
 
     // Copies the channel values corresponding to the
     // selected poke to the DM without triggering an update.
@@ -31,6 +33,8 @@ private:
 
     // DM input stream
     spImHandler2D(float) mp_IHdm;
+    // ShmIm poke patterns
+    spImHandler2D(float) mp_IHpatterns;
     // Poke streams
     spImHandler2D(float) mp_IHdmPoke0;
     spImHandler2D(float) mp_IHdmPoke1;

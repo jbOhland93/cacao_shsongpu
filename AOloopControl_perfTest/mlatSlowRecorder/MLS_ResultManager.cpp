@@ -55,6 +55,13 @@ MLS_ResultManager::~MLS_ResultManager()
     m_smoothedAmpOutput.close();
 }
 
+double MLS_ResultManager::setFrameratefromFPS()
+{
+    float FPS = functionparameter_GetParamValue_FLOAT32(mp_fps, ".out.framerateHz");
+    setFPS(FPS);
+    return FPS;
+}
+
 void MLS_ResultManager::setFPS(double FPS_Hz)
 {
     m_FPS_Hz = FPS_Hz;

@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Measures hardware latencies for all DM modes in a stream."
+
+
+# Extended description
+MSextdescr="Uses mlat-slowDM and collects hardware latencies for all modes in a stream.
+
+The given stream has to be of the same size as the DM, extending into the third dimension.
+Each slice is one poke pattern. As an example, the DM control modes could be used.
+The latancies are stored in the logging directory under /aol-<loopname>/patternLatencies.dat
+"
+
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+MSarg+=( "pokePatternStream:string:pokePatternStream" )
+
+NBpatterns="-1"
+MSopt+=( "n:nbpatterns:set_NBpatterns:nbpatterns[long]:set number of patterns to poke (-1=all)" )
+function set_NBpatterns() {
+	NBpatterns="$1"
+}
+
+source milk-argparse
+
+PATTERN_STREAM="${inputMSargARRAY[0]}"
+
+streamcheckOK="OK"
+checkstream $PATTERN_STREAM
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	exit 1
+fi
+
+set +e
+echo "${CACAO_LOOPNUMBER}"
+
+SRCDIR="artao-loop-rundir/fps.mlat-slowDM-${CACAO_LOOPNUMBER}.datadir"
+DSTDIR="logdir/aol_${CACAO_LOOPNAME}/patternLatency"
+mkdir $DSTDIR
+OUTPUT_FILE="${DSTDIR}/patternLatencies.dat"
+
+# backup cacaovars
+cp $SRCDIR/cacaovars.bash $SRCDIR/cacaovars.bash_backup
+
+# Get the number of available patterns in the given image
+PATTERN_STREAM_INFO=$(MILK_QUIET=1 milk-all << EOF
+# Read pattern stream
+readshmim ${PATTERN_STREAM}
+listim
+exitCLI
+EOF
+)
+NUM_AVAILABLE_PATTERNS=$(echo "$PATTERN_STREAM_INFO" | grep "$PATTERN_STREAM" | sed -n 's/.*\[\s*\([0-9]\+\)\s*x\s*\([0-9]\+\)\s*x\s*\([0-9]\+\)\s*\].*/\3/p')
+echo "Number of patterns in pattern image: $NUM_AVAILABLE_PATTERNS"
+
+# Determine the number of iterations from the output
+if [[ $NBpatterns -lt 0 ]] || [[ $NBpatterns -ge $NUM_AVAILABLE_PATTERNS ]]; then
+    NUM_ITERATIONS=$NUM_AVAILABLE_PATTERNS
+else
+    NUM_ITERATIONS=$NBpatterns
+fi
+
+sendFPScmd "setval mlat-slowDM-${CACAO_LOOPNUMBER}.skipFramerateMeas ON"
+sendFPScmd "setval mlat-slowDM-${CACAO_LOOPNUMBER}.pokePattern -1"
+sendFPScmd "setval mlat-slowDM-${CACAO_LOOPNUMBER}.patternStream ${PATTERN_STREAM}"
+
+echo $OUTPUT_FILE
+echo \
+"# 1: Pattern index
+# 2: CACAO_LATENCYHARDWFR
+# 3: CACAO_LATENCYHARDWUS
+# 4: CACAO_LATENCYHARDWRAWFR
+# 5: CACAO_LATENCYHARDWRAWUS
+# 6: CACAO_DELAYHARDWFR
+# 7: CACAO_DELAYHARDWUS
+# 8: CACAO_DMRISETIMEFR
+# 9: CACAO_DMRISETIMEUS" > "$OUTPUT_FILE"
+
+
+# For each pattern ...
+for (( Pidx=0; Pidx<NUM_ITERATIONS; Pidx++ )); do
+    echo "Measuring latency for pattern number $Pidx ..."
+    sendFPScmd "setval mlat-slowDM-${CACAO_LOOPNUMBER}.shmImPatterIdx ${Pidx}"
+    cacao-aorun-021-mlat-slowDM -w
+    source $SRCDIR/cacaovars.bash
+    echo -e \
+    "${Pidx}\t\
+    ${CACAO_LATENCYHARDWFR}\t\
+    ${CACAO_LATENCYHARDWUS}\t\
+    ${CACAO_LATENCYHARDWRAWFR}\t\
+    ${CACAO_LATENCYHARDWRAWUS}\t\
+    ${CACAO_DELAYHARDWFR}\t\
+    ${CACAO_DELAYHARDWUS}\t\
+    ${CACAO_DMRISETIMEFR}\t\
+    ${CACAO_DMRISETIMEUS}" >> "$OUTPUT_FILE"
+    cp "$SRCDIR/pokeAmpOutput.dat" "${DSTDIR}/${Pidx}_pokeAmpOutput.dat"
+    cp "$SRCDIR/smoothedPokeAmps.dat" "${DSTDIR}/${Pidx}_smoothedPokeAmps.dat"
+    cp "$SRCDIR/PokeResponse.fits" "${DSTDIR}/${Pidx}_PokeResponse.fits"
+    cp "$SRCDIR/PokeResponse.fits.stats" "${DSTDIR}/${Pidx}_PokeResponse.fits.stats"
+    # Reshape if the script exists
+    RESHAPE_SCRIPT="scripts/aorun-005-reshape-fits-to-wfs-pupil"
+    if [[ -f "$RESHAPE_SCRIPT" && -x "$RESHAPE_SCRIPT" ]]; then
+        # Execute the script
+        eval "./${RESHAPE_SCRIPT} ${SRCDIR}/PokeResponse.fits"
+        cp "$SRCDIR/PokeResponse_rshp.fits" "${DSTDIR}/${Pidx}_PokeResponse_rshp.fits"
+    fi
+done
+
+# restore backup
+mv $SRCDIR/cacaovars.bash_backup $SRCDIR/cacaovars.bash

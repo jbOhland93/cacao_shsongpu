@@ -113,6 +113,24 @@ public:
             }
         return max;
     }
+    // Gets the minimum pixel value in the current ROI of the current slice
+    T getMinInROI(uint32_t* minposX = nullptr, uint32_t* minposY= nullptr)
+    {
+        T min = std::numeric_limits<T>::max();
+        T cur;
+        for (uint32_t ix = 0; ix < mROI.w(); ix++)
+            for (uint32_t iy = 0; iy < mROI.h(); iy++)
+            {
+                cur = read(ix, iy);
+                if (cur < min)
+                {
+                    min = cur;
+                    if (minposX != nullptr) *minposX = ix;
+                    if (minposY != nullptr) *minposY = iy;
+                }
+            }
+        return min;
+    }
     // Erodes the image inside the ROI at the current slice
     // Returns the number of remaining valid pixels in the current slice
     // neighboursToSurvive: selfexplanatory

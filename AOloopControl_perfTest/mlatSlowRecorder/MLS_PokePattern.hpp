@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 enum class PokePattern : int32_t {
+    SHMIM = -1,
     HOMOGENEOUS = 0,
     SINE = 1,
     CHECKERBOARD = 2,

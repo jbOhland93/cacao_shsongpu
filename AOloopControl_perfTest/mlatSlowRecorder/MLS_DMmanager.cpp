@@ -1,13 +1,27 @@
 #include "MLS_DMmanager.hpp"
 
 MLS_DMmanager::MLS_DMmanager(
-        IMAGE* dmstream,        // Stream of the DM input
-        PokePattern pokePattern,// Poke pattern
+        IMAGE* dmstream,            // Stream of the DM input
+        PokePattern pokePattern,    // Poke pattern
+        std::string patternImage,   // Stream of DM patterns
+        uint32_t shmPatternIdx,     // Index of shmIm pattern slice
         float maxActStroke)     // Maximum actuator stroke in pattern
         :   m_pokePattern(pokePattern),
             m_maxActStroke(maxActStroke)
 {
     mp_IHdm = ImageHandler2D<float>::newHandler2DAdoptImage(dmstream->name);
+    float shmImPatternNorm = 0;
+    if (pokePattern == PokePattern::SHMIM)
+    {
+        printf("===== SHMIM FTW ====\n");
+        mp_IHpatterns = ImageHandler2D<float>::newHandler2DAdoptImage(patternImage);
+        mp_IHpatterns->setSlice(shmPatternIdx);
+        float max = mp_IHpatterns->getMaxInROI();
+        float min = mp_IHpatterns->getMinInROI();
+        shmImPatternNorm = max > -min? max : -min;
+        shmImPatternNorm = m_maxActStroke / shmImPatternNorm;
+        printf("===== SHMIM NORM = %.9f ====\n", shmImPatternNorm);
+    }
 
     // Make DM patterns
     std::string dmStreamName = mp_IHdm->getImage()->name;
@@ -35,6 +49,9 @@ MLS_DMmanager::MLS_DMmanager(
             dptr0[i] = 0;
             switch (m_pokePattern)
             {
+            case PokePattern::SHMIM:
+                dptr1[i] = mp_IHpatterns->read(ix, iy) * shmImPatternNorm;
+                break;
             case PokePattern::HOMOGENEOUS:
                 dptr1[i] = m_maxActStroke;
                 break;
