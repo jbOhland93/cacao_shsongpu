@@ -137,6 +137,12 @@ public:
     // inPlace: if true, one eroded pixel will affect the survival of the next one
     // d: the coordinates to dissolved particles are appended to this vector
     uint32_t erode(uint8_t neighboursToSurvive, bool inPlace, std::vector<Point<uint32_t>>* d = nullptr);
+
+    // Grows the image inside the ROI at the current slice
+    // Returns the number of grown pixels
+    // neighboursToRevive: A pixel is grown if the number of neighbours is equal or greater
+    // inPlace: if true, one revived pixel will affect the revival of the next one
+    uint32_t grow(uint8_t neighboursToRevive, bool inPlace);
     
 private:
     T* mp_data = nullptr;
@@ -503,6 +509,72 @@ uint32_t ImageHandler2D<T>::erode(uint8_t neighboursToSurvive, bool inPlace, std
     
     updateWrittenImage();
     return remainingPixels;
+}
+
+template <typename T>
+uint32_t ImageHandler2D<T>::grow(uint8_t neighboursToRevive, bool inPlace)
+{
+    uint32_t revivedPixels = 0;
+    int x;
+    int y;
+    int neighbourIndex;
+    int neighbours;
+    // Precalculate the x/y offsets of the surrounding pixels
+    int nOffX[8];
+    int nOffY[8];
+    for (int j = 0; j < 8; j++)
+    {
+        nOffX[j] = round(cos(j*M_PI/4.));
+        nOffY[j] = round(sin(j*M_PI/4.));
+    }
+
+    T* readBuffer;
+    if (inPlace)
+    {   // Read buffer equals write buffer.
+        // Eroded pixels affect next pixel.
+        readBuffer = mp_data;
+    }
+    else
+    {   // Make a copy of the pixel data to read unchanged data
+        readBuffer = new T[mNumPx];
+        for (int i = 0; i < mNumPx; i++)
+            readBuffer[i] = mp_data[i];
+    }
+
+    // Grow the ROI
+    for (uint32_t ix = 0; ix < mROI.w(); ix++)
+        for (uint32_t iy = 0; iy < mROI.h(); iy++)
+        {   
+            x = fromROIxToImX(ix);
+            y = fromROIyToImY(iy);
+            // Only consider pixel if it is less than 1
+            if (mp_data[m_currentSlice*mWidth*mHeight + y*mWidth + x] < 1)
+            {   // Count the neighbours
+                neighbours = 0;
+                for (int j = 0; j < 8; j++)
+                {
+                    if (x+nOffX[j] >= 0 && x+nOffX[j] < mWidth &&
+                        y+nOffY[j] >= 0 && y+nOffY[j] < mHeight)
+                    {
+                        neighbourIndex =
+                            m_currentSlice*mWidth*mHeight + (y+nOffY[j])*mWidth + x + nOffX[j];
+                        if (readBuffer[neighbourIndex] > 0)
+                            neighbours++;
+                    }
+                }
+                if (neighbours >= neighboursToRevive)
+                {   // Edgepixel - set to zero.
+                    mp_data[m_currentSlice*mWidth*mHeight + y*mWidth + x] = 1;
+                    revivedPixels++;
+                }
+            }
+        }
+    
+    if (!inPlace)
+        delete[] readBuffer;
+    
+    updateWrittenImage();
+    return revivedPixels;
 }
 
 #endif // IMAGEHANDLER_HPP

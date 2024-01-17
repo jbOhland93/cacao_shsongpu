@@ -283,6 +283,8 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         //  - corners
         //  - pixels sticking out alone from straight edges
         int numOfValidSpots = IHspotMask->erode(4, false);
+        // Fill holes in the mask
+        numOfValidSpots += IHspotMask->grow(7, false);
 
         // Update images
         IHavgI->updateWrittenImage();
