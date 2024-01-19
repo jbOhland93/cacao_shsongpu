@@ -93,6 +93,8 @@ void MLS_SequenceManager::recordPokeResponse(bool postPoke)
         recordSequence(mp_IHpokeResponseSequence, m_framesPerPoke, m_framesPerPoke);
 }
 
+
+
 void MLS_SequenceManager::evalPokeResponse()
 {
     float* src = mp_IHpokeResponseSequence->getWriteBuffer();
@@ -121,31 +123,63 @@ void MLS_SequenceManager::evalPokeResponse()
     for (int pxIdx = 0; pxIdx < pxPerFrame; pxIdx++)
         dst[pxIdx] = (dst[pxIdx] - mean) / sequenceFrames/2;
     mp_IHpokeResponse->updateWrittenImage();
-    // Save poke prior to RMS normalization
-    std::string pokeFilename = "PokeResponse";
-    mp_IHpokeResponse->saveToFPSdataDir(mp_fps, pokeFilename);
 
-    // Normalize to RMS
+    processRawResponse();
+}
+
+
+
+void MLS_SequenceManager::setPokeResponse(std::string respImName, uint32_t sliceIdx)
+{
+    // Set up source image handler
+    spImHandler2D(float) respIm = ImageHandler2D<float>::newHandler2DAdoptImage(respImName);
+    respIm->setSlice(sliceIdx);
+
+    // Verify source size
+    if (respIm->mWidth != mp_IHpokeResponse->mWidth ||
+        respIm->mHeight != mp_IHpokeResponse->mHeight)
+        throw std::runtime_error(
+            "MLS_SequenceManager::setPokeResponse: response size is incompatible with wfs size.");
+
+    // Copy response from source
+    for (int y = 0; y < respIm->mHeight; y++)
+        for (int x = 0; x < respIm->mWidth; x++)
+            mp_IHpokeResponse->write(respIm->read(x,y), x, y);
+    mp_IHpokeResponse->updateWrittenImage();
+
+    processRawResponse();
+}
+
+void MLS_SequenceManager::processRawResponse()
+{
+    // Save poke prior to RMS normalization
+    mp_IHpokeResponse->saveToFPSdataDir(mp_fps, m_responseFilename);
+
+    // Get stats
+    int pxPerFrame = mp_IHpokeResponse->mNumPx;
+    float* buffer = mp_IHpokeResponse->getWriteBuffer();
     float rms = 0;
     float peak = 0;
     float valley = 0;
     for (int pxIdx = 0; pxIdx < pxPerFrame; pxIdx++)
     {
-        peak = dst[pxIdx] > peak ? dst[pxIdx] : peak;
-        valley = dst[pxIdx] < valley ? dst[pxIdx] : valley;
-        rms += dst[pxIdx]*dst[pxIdx];
+        peak = buffer[pxIdx] > peak ? buffer[pxIdx] : peak;
+        valley = buffer[pxIdx] < valley ? buffer[pxIdx] : valley;
+        rms += buffer[pxIdx]*buffer[pxIdx];
     }
     rms = sqrt(rms/pxPerFrame);
+
+    // Normalize to RMS
     for (int pxIdx = 0; pxIdx < pxPerFrame; pxIdx++)
-        dst[pxIdx] /= rms;        
+        buffer[pxIdx] /= rms;        
     mp_IHpokeResponse->updateWrittenImage();
 
     // Save statistics about poke
     float PtV = peak - valley;
     std::string pokeStatsOutputName = mp_fps->md->datadir;
-    pokeStatsOutputName += "/" + pokeFilename + ".fits.stats";
+    pokeStatsOutputName += "/" + m_responseFilename + ".fits.stats";
     auto statsStream = std::ofstream(pokeStatsOutputName);
-    statsStream << "pokeFilename=" << pokeFilename << "\n";
+    statsStream << "pokeFilename=" << m_responseFilename << "\n";
     statsStream << "PtV=" << PtV << "\n";
     statsStream << "RMS=" << rms << std::endl;
     statsStream.close();

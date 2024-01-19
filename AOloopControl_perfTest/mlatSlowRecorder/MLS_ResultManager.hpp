@@ -11,10 +11,10 @@ class MLS_ResultManager
 public:
     MLS_ResultManager(
         FUNCTION_PARAMETER_STRUCT* fps, // process related fps
-        PokePattern pokePattern,// Poke pattern
-        float maxActStroke,     // Maximum actuator stroke in pattern
-        uint32_t numPokes,      // number of iterations
-        uint32_t framesPerPoke);// number of frames per iteration
+        PokePattern pokePattern,        // Poke pattern
+        float patternToStrokeMul,       // Pattern-to-stroke factor
+        uint32_t numPokes,              // number of iterations
+        uint32_t framesPerPoke);        // number of frames per iteration
     ~MLS_ResultManager();
 
     // Reads the framerate from the FPS and adapts the value
@@ -47,7 +47,7 @@ private:
     FUNCTION_PARAMETER_STRUCT* mp_fps;
     float m_fpsMeasurementTime;
     PokePattern m_pokePattern;
-    float m_maxStroke;
+    float m_patternToStrokeMul;
     uint32_t m_numPokes;
     uint32_t m_framesPerPoke;
     uint32_t m_framesPriorToPoke;

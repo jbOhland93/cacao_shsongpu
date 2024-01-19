@@ -31,18 +31,6 @@ long            fpi_skipMFramerate;
 static float *fpsMeasTime;
 long          fpi_fpsMeasTime;
 
-static int32_t *pokePattern;
-long             fpi_pokePattern;
-
-static char *patternStream;
-long         fpi_patternStream;
-
-static uint32_t *shmImPatterIdx;
-long             fpi_shmImPatterIdx;
-
-static float *maxActStroke;
-long          fpi_maxActStroke;
-
 static uint32_t *numPokes;
 long             fpi_numPokes;
 
@@ -51,6 +39,28 @@ long             fpi_framesPerPoke;
 
 static int64_t *saveraw;
 long            fpi_saveraw;
+
+// Poke pattern settings
+static int32_t *pokePatternType;
+long             fpi_pokePatternType;
+
+static char *customPatternStream;
+long         fpi_customPatternStream;
+
+static uint32_t *customPatternSliceIdx;
+long             fpi_customPatternSliceIdx;
+
+static float *patternToStrokeMul;
+long          fpi_patternToStrokeMul;
+
+static int64_t *useCustomResponseStream;
+long            fpi_useCustomResponseStream;
+
+static char *customResponseStream;
+long         fpi_customResponseStream;
+
+static uint32_t *customResponseSliceIdx;
+long             fpi_customResponseSliceIdx;
 
 // Outputs
 static float *framerateHz;
@@ -118,42 +128,6 @@ static CLICMDARGDEF farg[] = {{
         &fpi_fpsMeasTime
     },
     {
-        CLIARG_INT32,
-        ".pokePattern",
-        "-1=shm,0=homogene,1=sine,2=checkerboard",
-        "1",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &pokePattern,
-        &fpi_pokePattern
-    },
-    {
-        CLIARG_STR,
-        ".patternStream",
-        "Stream where slices are pokable DM channel values",
-        "null",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &patternStream,
-        &fpi_patternStream
-    },
-    {
-        CLIARG_UINT32 ,
-        ".shmImPatterIdx",
-        "slice index of the pattern stream to poke",
-        "0",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &shmImPatterIdx,
-        &fpi_shmImPatterIdx
-    },
-    {
-        CLIARG_FLOAT32,
-        ".maxActStroke",
-        "Maximum actuator stroke in pattern",
-        "0.1",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &maxActStroke,
-        &fpi_maxActStroke
-    },
-    {
         CLIARG_UINT32,
         ".numPokes",
         "Number of iterations",
@@ -170,6 +144,69 @@ static CLICMDARGDEF farg[] = {{
         CLIARG_HIDDEN_DEFAULT,
         (void **) &framesPerPoke,
         &fpi_framesPerPoke
+    },
+    {
+        CLIARG_INT32,
+        ".pattern.type",
+        "-1=custom,0=homogene,1=sine,... - see help",
+        "1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &pokePatternType,
+        &fpi_pokePatternType
+    },
+    {
+        CLIARG_STR,
+        ".pattern.customPokeStream",
+        "Stream where slices are pokable DM channel values",
+        "null",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &customPatternStream,
+        &fpi_customPatternStream
+    },
+    {
+        CLIARG_UINT32 ,
+        ".pattern.customPatternIdx",
+        "slice index of the pattern stream to poke",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &customPatternSliceIdx,
+        &fpi_customPatternSliceIdx
+    },
+    {
+        CLIARG_FLOAT32,
+        ".pattern.pokeAmpMul",
+        "pattern-to-stroke factor",
+        "0.1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &patternToStrokeMul,
+        &fpi_patternToStrokeMul
+    },
+    {
+        CLIARG_ONOFF,
+        ".pattern.useCustomResponse",
+        "if ON: don't record the response but use the custom one",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &useCustomResponseStream,
+        &fpi_useCustomResponseStream
+    },
+    {
+        CLIARG_STR,
+        ".pattern.customResponseStream",
+        "Stream where slices are WFS modes",
+        "null",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &customResponseStream,
+        &fpi_customResponseStream
+    },
+    {
+        CLIARG_UINT32 ,
+        ".pattern.customResponseIdx",
+        "slice index of the response stream",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &customResponseSliceIdx,
+        &fpi_customResponseSliceIdx
     },
     {
         CLIARG_ONOFF,
@@ -321,7 +358,20 @@ static errno_t help_function()
         "the scenario here is vastly different: unstead of a\n"
         "delayed but quasi instantaneous response of the DM,\n"
         "the DM is expected to feature a resolved rising slope.\n"
-        ""
+        "\n"
+        "The pattern which will be used on the DM can be set via\n"
+        "the .pattern.type parameter. Currently, there are:\n"
+        "-> -1=custom - SHM via .pattern.customPokeStream & .pattern.customPatternIdx\n"
+        "->  0=homogeneous - all actuators to 1\n"
+        "->  1=sine - sine grid with ~6 oscillations over the aperture\n"
+        "->  2=checkerboard - neighbouring actuators alternate to +/- 1\n"
+        "->  3=square - like sine, but 1 if positive and -1 if negative\n"
+        "->  4=large square - double the size as square\n"
+        "->  5=small square - half the size as square\n"
+        "->  6=x-ramp - tilt in x-direction from -1 to 1\n"
+        "->  7=x-half - left half is -1, right half is 1\n"
+        "->  8=y-ramp - tilt in y-direction from -1 to 1\n"
+        "->  9=y-half - upper half is -1, lower half is 1\n"
     );
 }
 
@@ -340,31 +390,59 @@ static errno_t compute_function()
     printf("WFS size : %u %u\n", imgwfs.md->size[0], imgwfs.md->size[1]);
 
     // connect to pattern stream if required, and check dimensions
-    IMGID imgpattern;
-    if (*pokePattern == -1)
+    IMGID imPattern;
+    if (*pokePatternType == -1)
     {
-        printf("READ RESULT: %d\n", read_sharedmem_image(patternStream));
-        imgpattern = mkIMGID_from_name(patternStream);
-        resolveIMGID(&imgpattern, ERRMODE_ABORT);
-        if (imgpattern.md->naxis != imgdm.md->naxis + 1)
+        printf("READ RESULT: %ld\n", read_sharedmem_image(customPatternStream));
+        imPattern = mkIMGID_from_name(customPatternStream);
+        resolveIMGID(&imPattern, ERRMODE_ABORT);
+        if (imPattern.md->naxis != imgdm.md->naxis + 1)
         {
             printf("Pattern stream has wrong dimensinality. Has to be DM stream dim +1.\n");
             return RETURN_FAILURE;
         }
         for (int i = 0; i < imgdm.md->naxis; i++)
-            if (imgpattern.md->size[i] != imgdm.md->size[i])
+            if (imPattern.md->size[i] != imgdm.md->size[i])
             {
                 printf("Pattern stream has wrong pattern size. Must match DM stream size.\n");
                 return RETURN_FAILURE;
             }
-        if (imgpattern.md->size[imgpattern.md->naxis-1] <= *shmImPatterIdx)
+        if (imPattern.md->size[imPattern.md->naxis-1] <= *customPatternSliceIdx)
         {
-            printf("shmImPatternIdx is out of range for given pattern image.\n");
+            printf("customPatternSliceIdx is out of range for given pattern image.\n");
             return RETURN_FAILURE;
         }
         printf("Pattern stream size :");
-        for (int i = 0; i < imgpattern.md->naxis; i++)
-            printf(" %d", imgpattern.md->size[i]);
+        for (int i = 0; i < imPattern.md->naxis; i++)
+            printf(" %d", imPattern.md->size[i]);
+        printf("\n");
+    }
+    // connect to response stream if required, and check dimensions
+    IMGID imResponse;
+    if (*useCustomResponseStream == 1)
+    {
+        printf("READ RESULT: %ld\n", read_sharedmem_image(customResponseStream));
+        imResponse = mkIMGID_from_name(customResponseStream);
+        resolveIMGID(&imResponse, ERRMODE_ABORT);
+        if (imResponse.md->naxis != imgwfs.md->naxis + 1)
+        {
+            printf("Response stream has wrong dimensinality. Has to be WFS stream dim +1.\n");
+            return RETURN_FAILURE;
+        }
+        for (int i = 0; i < imgwfs.md->naxis; i++)
+            if (imResponse.md->size[i] != imgwfs.md->size[i])
+            {
+                printf("Response stream has wrong response size. Must match WF stream size.\n");
+                return RETURN_FAILURE;
+            }
+        if (imResponse.md->size[imResponse.md->naxis-1] <= *customResponseSliceIdx)
+        {
+            printf("customResponseSliceIdx is out of range for given pattern image.\n");
+            return RETURN_FAILURE;
+        }
+        printf("Response stream size :");
+        for (int i = 0; i < imResponse.md->naxis; i++)
+            printf(" %d", imResponse.md->size[i]);
         printf("\n");
     }
 
@@ -387,13 +465,16 @@ static errno_t compute_function()
         imgwfs.im,
         *skipMFramerate,
         *fpsMeasTime,
-        *pokePattern,
-        patternStream,
-        *shmImPatterIdx,
-        *maxActStroke,
         *numPokes,
         *framesPerPoke,
-        *saveraw);
+        *saveraw,
+        *pokePatternType,
+        customPatternStream,
+        *customPatternSliceIdx,
+        *patternToStrokeMul,
+        *useCustomResponseStream,
+        customResponseStream,
+        *customResponseSliceIdx);
 
     // === RECORD LATENCY
     mlsRecordDo(recorder);

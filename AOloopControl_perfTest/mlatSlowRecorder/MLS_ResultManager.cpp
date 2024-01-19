@@ -3,13 +3,13 @@
 
 MLS_ResultManager::MLS_ResultManager(
         FUNCTION_PARAMETER_STRUCT* fps, // process related fps
-        PokePattern pokePattern,// Poke pattern:
-        float maxActStroke,     // Maximum actuator stroke in pattern
-        uint32_t numPokes,      // number of iterations
-        uint32_t framesPerPoke) // number of frames per iteration
+        PokePattern pokePattern,        // Poke pattern:
+        float patternToStrokeMul,       // Pattern-to-stroke factor
+        uint32_t numPokes,              // number of iterations
+        uint32_t framesPerPoke)         // number of frames per iteration
         :   mp_fps(fps),
             m_pokePattern(pokePattern),
-            m_maxStroke(maxActStroke),
+            m_patternToStrokeMul(patternToStrokeMul),
             m_numPokes(numPokes),
             m_framesPerPoke(framesPerPoke),
             m_framesPriorToPoke((uint32_t) (framesPerPoke * 0.1))
@@ -35,7 +35,7 @@ MLS_ResultManager::MLS_ResultManager(
                     << " about the frame that marks the last one not being conained in the\n"
                     << " [.9|1.1] inverval:\n";
     m_pokeAmpOutput << "# \t #\tFrameIndexOf0.9Response\tTimeOf0.9ResponseInSeconds\n";
-    m_pokeAmpOutput << "# Max actuator stroke = " << m_maxStroke << "\n";
+    m_pokeAmpOutput << "# Pattern to stroke factor = " << m_patternToStrokeMul << "\n";
     m_pokeAmpOutput << "# Poke pattern = " << (int32_t) m_pokePattern << "\n";
 
     std::string smoothedAmpOutputName = mp_fps->md->datadir;
@@ -44,7 +44,7 @@ MLS_ResultManager::MLS_ResultManager(
     if (!m_smoothedAmpOutput.is_open())
         throw std::runtime_error(smoothedAmpOutputName + "could not be opened.");
     m_smoothedAmpOutput << "# Temporal averaging of all respones\n";
-    m_smoothedAmpOutput << "# Max actuator stroke = " << m_maxStroke << "\n";
+    m_pokeAmpOutput << "# Pattern to stroke factor = " << m_patternToStrokeMul << "\n";
     m_smoothedAmpOutput << "# Poke pattern = " << (int32_t) m_pokePattern << "\n";
 }
 

@@ -14,7 +14,7 @@ public:
         PokePattern pokePattern,    // Poke pattern
         std::string patternImage,   // Patter image name
         uint32_t shmPatternIdx,     // Index of shmIm pattern slice
-        float maxActStroke);        // Maximum actuator stroke in pattern
+        float patternToStrokeMul);  // Pattern to stroke factor
 
     // Copies the channel values corresponding to the
     // selected poke to the DM without triggering an update.
@@ -28,7 +28,7 @@ public:
     void pokeDM(bool poke) { preloadDM(poke); triggerDM(); }
     
 private:
-    float m_maxActStroke;
+    float m_strokeMul;
     PokePattern m_pokePattern;
 
     // DM input stream

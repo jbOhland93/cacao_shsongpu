@@ -30,6 +30,9 @@ public:
     // evaluates the difference and stores a normalized response mode.
     void evalPokeResponse();
 
+    // Set the response pattern instead of recording it
+    void setPokeResponse(std::string respImName, uint32_t sliceIdx);
+
     // Record a sequence with a live DM poke.
     // If postPoke=false, the recording will stop after a frame
     // and return the exact time when the DM poke shall be issued.
@@ -80,6 +83,8 @@ private:
     uint32_t m_framesPriorToPoke;
     bool m_saveRaw;
 
+    std::string m_responseFilename = "PokeResponse";
+
     // == IMAGE HANDLERS ==
     // Adopted WFS output stream
     spImHandler2D(float) mp_IHwfs;
@@ -110,6 +115,12 @@ private:
     spImHandler2D(float) mp_IHpokeStdDevSmoothed;
 
     // == Helper functions
+
+    // Does processing on the recorded or set response.
+    // - Saves the raw response
+    // - Measures the PtV and the RMS of the response
+    // - Saves the fits filename and stats of the response to a text file
+    void processRawResponse();
 
     // Records a sequence from the WFS.
     // IHdst is the destination image

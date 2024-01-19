@@ -5,22 +5,15 @@ MLS_DMmanager::MLS_DMmanager(
         PokePattern pokePattern,    // Poke pattern
         std::string patternImage,   // Stream of DM patterns
         uint32_t shmPatternIdx,     // Index of shmIm pattern slice
-        float maxActStroke)     // Maximum actuator stroke in pattern
+        float patternToStrokeMul)   // pattern to stroke multiplier
         :   m_pokePattern(pokePattern),
-            m_maxActStroke(maxActStroke)
+            m_strokeMul(patternToStrokeMul)
 {
     mp_IHdm = ImageHandler2D<float>::newHandler2DAdoptImage(dmstream->name);
-    float shmImPatternNorm = 0;
     if (pokePattern == PokePattern::SHMIM)
     {
-        printf("===== SHMIM FTW ====\n");
         mp_IHpatterns = ImageHandler2D<float>::newHandler2DAdoptImage(patternImage);
         mp_IHpatterns->setSlice(shmPatternIdx);
-        float max = mp_IHpatterns->getMaxInROI();
-        float min = mp_IHpatterns->getMinInROI();
-        shmImPatternNorm = max > -min? max : -min;
-        shmImPatternNorm = m_maxActStroke / shmImPatternNorm;
-        printf("===== SHMIM NORM = %.9f ====\n", shmImPatternNorm);
     }
 
     // Make DM patterns
@@ -50,48 +43,48 @@ MLS_DMmanager::MLS_DMmanager(
             switch (m_pokePattern)
             {
             case PokePattern::SHMIM:
-                dptr1[i] = mp_IHpatterns->read(ix, iy) * shmImPatternNorm;
+                dptr1[i] = m_strokeMul * mp_IHpatterns->read(ix, iy);
                 break;
             case PokePattern::HOMOGENEOUS:
-                dptr1[i] = m_maxActStroke;
+                dptr1[i] = m_strokeMul;
                 break;
             case PokePattern::CHECKERBOARD:
-                dptr1[i] = m_maxActStroke * (2*(( ix + iy % 2 ) % 2)-1);
+                dptr1[i] = m_strokeMul * (2*(( ix + iy % 2 ) % 2)-1);
                 break;
             case PokePattern::SINE:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * cos(20 * ix/w)
                             * cos(20 * iy/h);
                 break;
             case PokePattern::SQUARE:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * (cos(20 * ix/w)
                             * cos(20 * iy/h) > 0 ? 1 : -1);
                 break;
             case PokePattern::HALFSQUARE:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * (cos(10 * ix/w)
                             * cos(10 * iy/h) > 0 ? 1 : -1);
                 break;
             case PokePattern::DOUBLESQUARE:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * (cos(40 * ix/w)
                             * cos(40 * iy/h) > 0 ? 1 : -1);
                 break;
             case PokePattern::XRAMP:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * (2*ix/w - 1);
                 break;
             case PokePattern::XHALF:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * (ix+1 > w/2 ? -1 : 1);
                 break;
             case PokePattern::YRAMP:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * (2*iy/h - 1);
                 break;
             case PokePattern::YHALF:
-                dptr1[i] = m_maxActStroke
+                dptr1[i] = m_strokeMul
                             * (iy+1 > h/2 ? -1 : 1);
                 break;
             default:

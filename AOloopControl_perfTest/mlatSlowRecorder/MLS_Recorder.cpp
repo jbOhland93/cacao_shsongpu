@@ -9,33 +9,39 @@ using namespace std::chrono;
 #define ERRSTREAM std::cerr << "MLS_Recorder error: "
 
 MLS_Recorder::MLS_Recorder(
-        FUNCTION_PARAMETER_STRUCT* fps, // process relatef fps
-        IMAGE* dmstream,            // Stream of the DM input
-        IMAGE* wfsstream,           // Stream of the WFS output
-        bool skipMFramerate,        // If true, the FPS measurement prior to the latency is skipped
-        float fpsMeasTime,          // Timeframe for wfs framerate estimation
-        int32_t pokePattern,        // Poke pattern
-        std::string patternstream,  // Image name where each slice holds a potential poke pattern
-        uint32_t shmImPatternIdx,   // Index of the shm pattern slice to be poked
-        float maxActStroke,         // Maximum actuator stroke in pattern
-        uint32_t numPokes,          // number of iterations
-        uint32_t framesPerPoke,     // number of frames per iteration
-        bool saveRaw)              // If true, each iterations frames is saved to fits
+        FUNCTION_PARAMETER_STRUCT* fps,     // process relatef fps
+        IMAGE* dmstream,                    // Stream of the DM input
+        IMAGE* wfsstream,                   // Stream of the WFS output
+        int64_t skipMFramerate,             // If true, the FPS measurement prior to the latency is skipped
+        float fpsMeasTime,                  // Timeframe for wfs framerate estimation
+        uint32_t numPokes,                  // number of iterations
+        uint32_t framesPerPoke,             // number of frames per iteration
+        bool saveRaw,                       // If true, each iterations frames is saved to fits
+        int32_t pokePatternType,            // Poke pattern type
+        const char* customPatternStream,    // Name of pattern stream in shm
+        uint32_t customPatternSliceIdx,     // Index of the shm pattern slice to be poked
+        float patternToStrokeMul,           // Pattern-to-poke factor
+        bool useCustomResponseStream,       // Don't record the response but use custom one
+        const char*customResponseStream,    // Name of response stream in shm
+        uint32_t customResponseSliceIdx)    // Index of the shm response slice to be poked
         :   mp_dmImage(dmstream),
             mp_wfsImage(wfsstream),
-            m_measureFramerate(!skipMFramerate),
-            m_patternImageName(patternstream),
             mp_fps(fps),
-            m_shmPokePatternIndex(shmImPatternIdx),
-            m_maxStroke(maxActStroke),
             m_numPokes(numPokes),
             m_framesPerPoke(framesPerPoke),
+            m_measureFramerate(!skipMFramerate),
+            m_customPatternImageName(customPatternStream),
+            m_customPokePatternIndex(customPatternSliceIdx),
+            m_strokeMul(patternToStrokeMul),
+            m_useCustomResponse(useCustomResponseStream),
+            m_customResponseImageName(customResponseStream),
+            m_customResponseIndex(customResponseSliceIdx),
             m_saveRaw(saveRaw)
 {
     LOGSTREAM << "Constrution started...\n";
 
     // verify poke pattern option
-    switch ((PokePattern) pokePattern)
+    switch ((PokePattern) pokePatternType)
     {
     case PokePattern::SHMIM: break;
     case PokePattern::HOMOGENEOUS: break;
@@ -49,9 +55,9 @@ MLS_Recorder::MLS_Recorder(
     case PokePattern::YRAMP: break;
     case PokePattern::YHALF: break;
     default:
-        throw std::runtime_error("MLS_Recorder::MLS_Recorder: poke pattern not recognized.");
+        throw std::runtime_error("MLS_Recorder::MLS_Recorder: poke pattern type not recognized.");
     }
-    m_pokePattern = (PokePattern) pokePattern;
+    m_pokePattern = (PokePattern) pokePatternType;
 
     // Verify fps measurement time
     if (fpsMeasTime < 1)
@@ -156,15 +162,15 @@ void MLS_Recorder::execStateInitializing()
         mp_resultMngr = std::make_shared<MLS_ResultManager>(
                                             mp_fps,
                                             m_pokePattern,
-                                            m_maxStroke,
+                                            m_strokeMul,
                                             m_numPokes,
                                             m_framesPerPoke);
         mp_dmMngr = std::make_shared<MLS_DMmanager>(
                                             mp_dmImage,
                                             m_pokePattern,
-                                            m_patternImageName,
-                                            m_shmPokePatternIndex,
-                                            m_maxStroke);
+                                            m_customPatternImageName,
+                                            m_customPokePatternIndex,
+                                            m_strokeMul);
         mp_seqMngr = std::make_shared<MLS_SequenceManager>(
                                             mp_fps,
                                             mp_wfsImage,
@@ -213,6 +219,7 @@ void MLS_Recorder::execStateMeasureFPS()
     {
         LOGSTREAM   << "Retrieved frame rate from fps: ";
         mp_resultMngr->setFrameratefromFPS();
+
         switchState(RECSTATE::RECORD_POKE_RESPONSE);
     }
 }
@@ -221,17 +228,21 @@ void MLS_Recorder::execStateMeasureFPS()
 
 void MLS_Recorder::execStateRecordPokeResponse()
 {   
-    // Un-Poke DM and record surface
-    pokeAndSettle(false);
-    mp_seqMngr->recordPokeResponse(false);
-    
-    // Un-Poke DM and record surface
-    pokeAndSettle(true);
-    mp_seqMngr->recordPokeResponse(true);
+    if (!m_useCustomResponse)
+    {   // Record the response of the given pattern
+        // Un-Poke DM and record surface
+        pokeAndSettle(false);
+        mp_seqMngr->recordPokeResponse(false);
+        
+        // Un-Poke DM and record surface
+        pokeAndSettle(true);
+        mp_seqMngr->recordPokeResponse(true);
 
-    // Evaluate poke response
-    mp_seqMngr->evalPokeResponse();
-
+        // Evaluate poke response
+        mp_seqMngr->evalPokeResponse();    
+    }
+    else // Do not record the response - use a predefined one instead
+        mp_seqMngr->setPokeResponse(m_customResponseImageName, m_customResponseIndex);
     // On to the next tate
     switchState(RECSTATE::RECORD_LATENCY_SEQUENCE);
 }
