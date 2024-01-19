@@ -47,7 +47,7 @@ Deploy logging processes and terminals. Upon these commandsm, four terminals wil
 - ``fpsCTRLlog-artao-loop``: display logging output of fpsCTRL commands
 - ``Operatorlog-artao-loop-output``: display log entries done by cacao scripts or the operators
 - ``Operatorlog-artao-loop-input``: custom log entries can be made here for later reference - e.g. actions like switching reference or noreworthy events during operation.
-- ``Weatherlog-artao-loop-input``: a remnant of astronomy AO. Feel free to write about the weather outside of the lab or close it using CTRL+C in the terminal.
+- ``Weatherlog-artao-loop-input``: a remnant from astronomy AO. Feel free to write about the weather outside of the lab or close it using CTRL+C in the terminal.
 - 
 ```bash
 cacao-msglogCTRL start
@@ -104,7 +104,7 @@ help
 start
 
 # Set the FPS of the acquisition
-setFPS 3900
+setFPS 3600
 
 # Keep this tmux session open for camera control or detach using ctrl+b, d.
 ```
@@ -216,7 +216,7 @@ The following files are written to ./conf/RMmodesDM/
 
 ### 8.2. Acquire WFS response
 In this example, we are going to use single actuator pokes instead of the more advanced Hadamard pokes as used by the SCExAO examples. This is because of two reasons related to the bimorph DM of ARTAO:
-1. The response functions of the bimorph DM actuators are not localized like the ones of MEMS DMs but distributed over the whole aperture. This means that the SNR is inherently better for single actuator pokes than for in the case of a MEMS DM. Therefore, ARTAO does not profit from Hadamard poking.
+1. The response functions of the bimorph DM actuators are not localized like the ones of MEMS DMs but distributed over the whole aperture. This means that the SNR is inherently better for single actuator pokes than for in the case of a MEMS DM. Therefore, ARTAO does not profit from Hadamard poking to the same amount.
 2. The hysteresis of the piezos contributes to the response matrix in a deterministic manner when using single actuator pokes, while this is uncertain for Hadamard modes due to the irregular control sequence for each actuator.
 
 ```bash
@@ -232,7 +232,7 @@ This could take a while. Check status on milk-procCTRL and/or watch the wavefron
 ```
 
 ### 8.3. Compute control matrix (straight)
-The computation for the control matrix expects mask fits files, which were not generated to that point. The WFS masking technically happens during referencing, but the file is still required for the calculation. The following script can be used to generate the masks:
+The computation for the control matrix expects mask fits files, which were not generated to that point. The WFS masking technically happens during SHS referencing, but the file is still required for the calculation. The following script can be used to generate the masks:
 ```bash
 cacao-aorun-032-RMmkmask -f conf/RMmodesWFS/RMmodesWFS.fits
 ```
@@ -241,7 +241,7 @@ Now, compute the control modes, in both WFS and DM spaces.
 Set GPU device (if GPU available).
 
 ```bash
-cacao-fpsctrl setval compstrCM svdlim 0.005
+cacao-fpsctrl setval compstrCM svdlim 0.01
 cacao-fpsctrl setval compstrCM GPUdevice 0
 ```
 Then run the compstrCM process to compute CM and load it to shared memory :
@@ -251,12 +251,31 @@ cacao-aorun-039-compstrCM
 The results are written to:
 - conf/CMmodesDM/CMmodesDM.fits
 - conf/CMmodesWFS/CMmodesWFS.fits
+Furthermore, the images are saved into the logging directory automatically.
+
 ```bash
 # Reshape the WF modes to visualize the result:
 ./scripts/aorun-005-reshape-fits-to-wfs-pupil conf/CMmodesWFS/CMmodesWFS.fits
 # Inspect the output file conf/CMmodesWFS/CMmodesWFS_rshp.fits
 ```
 
+### 8.4. Loading the last recorded control matrix
+If the loop has been re-deployed, e.g. due to a reboot of the system, the last CM can be reloaded to SHM. This is much faster than the recording of the response:
+```bash
+# Load the latest logged CM into SHM
+./scripts/aorun-006-load-latest-logged-CM
+```
+
+### 8.5. Recording the mode settling behavior
+The latency measurement can be repeated for each of the mirror modes that have been calculated. From this, one can verify if all modes settle within the same time or if higher or lower modes feature some particular ringing.
+```bash
+# The first parameters is the DM modes in SHM.
+# The second parameter is the WFS modes in SHM.
+# These can be arbitrary as long as they match
+# the actual DM and WFS size.
+# The number of modes to probe can be limited via -n.
+./scripts/aorun-008-measure-dm-mode-latencies aol8_DMmodes aol8_modesWFS
+```
 
 ## 9. Running the loop
 
