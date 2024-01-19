@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Parses the logging directory and loads the latest logged CM to SHM"
+
+
+# Extended description
+MSextdescr="Searches for the WFS CM and DM CM fits files with the latest timestamp.
+These files are copied to the matching conf directory and symlinked accordingly.
+Afterwards, the files are loaded into SHM."
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+source milk-argparse
+
+
+cacaomsglog "Loading logged CM ... "
+
+# Define the directories and filenames
+CMWFS_LOGDIR="logdir/aol_artao-loop/CMmodesWFS"
+CMDM_LOGDIR="logdir/aol_artao-loop/CMmodesDM"
+RMWFS_LOGDIR="logdir/aol_artao-loop/RMmeas_modesWFS"
+RMDM_LOGDIR="logdir/aol_artao-loop/RMmeas_modesDM"
+
+RMWFS_CONFDIR="conf/RMmodesWFS"
+RMDM_CONFDIR="conf/RMmodesDM"
+CMWFS_CONFDIR="conf/CMmodesWFS"
+CMDM_CONFDIR="conf/CMmodesDM"
+
+RMWFSfname0="${RMWFS_CONFDIR}/RMmodesWFS.fits"
+RMDMfname0="${RMDM_CONFDIR}/RMmodesDM.fits"
+CMWFSfname0="${CMWFS_CONFDIR}/CMmodesWFS.fits"
+CMDMfname0="${CMDM_CONFDIR}/CMmodesDM.fits"
+
+# === WFS RM
+mkdir -p "$RMWFS_CONFDIR"
+# Find the latest file
+RMWFS_SRC=$(find "$RMWFS_LOGDIR" -type f -name '*.fits' | sort | tail -n 1)
+RMWFS_SRC=$(basename "$RMWFS_SRC")
+# Check if a file was found
+LOAD_OK=1
+if [[ -n $RMWFS_SRC ]]; then
+    cp "$RMWFS_LOGDIR/$RMWFS_SRC" "$RMWFS_CONFDIR"
+	ln -sf ${RMWFS_SRC} ${RMWFSfname0}
+    echo "WFS RM file $RMWFS_SRC copied successfully."
+else
+    echo "No files found in $RMWFS_LOGDIR."
+	LOAD_OK=0
+fi
+
+# === WFS CM
+mkdir -p "$CMWFS_CONFDIR"
+# Find the latest file
+CMWFS_SRC=$(find "$CMWFS_LOGDIR" -type f -name '*.fits' | sort | tail -n 1)
+CMWFS_SRC=$(basename "$CMWFS_SRC")
+# Check if a file was found
+LOAD_OK=1
+if [[ -n $CMWFS_SRC ]]; then
+    cp "$CMWFS_LOGDIR/$CMWFS_SRC" "$CMWFS_CONFDIR"
+	ln -sf ${CMWFS_SRC} ${CMWFSfname0}
+    echo "WFS CM file $CMWFS_SRC copied successfully."
+else
+    echo "No files found in $CMWFS_LOGDIR."
+	LOAD_OK=0
+fi
+
+# === DM RM
+mkdir -p "$RMDM_CONFDIR"
+# Find the latest file
+RMDM_SRC=$(find "$RMDM_LOGDIR" -type f -name '*.fits' | sort | tail -n 1)
+RMDM_SRC=$(basename "$RMDM_SRC")
+# Check if a file was found
+if [[ -n $RMDM_SRC ]]; then
+    cp "$RMDM_LOGDIR/$RMDM_SRC" "$RMDM_CONFDIR"
+	ln -sf ${RMDM_SRC} ${RMDMfname0}
+    echo "DM RM file $RMDM_SRC copied successfully."
+else
+    echo "No files found in $RMDM_LOGDIR."
+	LOAD_OK=0
+fi
+
+# === DM CM
+mkdir -p "$CMDM_CONFDIR"
+# Find the latest file
+CMDM_SRC=$(find "$CMDM_LOGDIR" -type f -name '*.fits' | sort | tail -n 1)
+CMDM_SRC=$(basename "$CMDM_SRC")
+# Check if a file was found
+if [[ -n $CMDM_SRC ]]; then
+    cp "$CMDM_LOGDIR/$CMDM_SRC" "$CMDM_CONFDIR"
+	ln -sf ${CMDM_SRC} ${CMDMfname0}
+    echo "DM CM file $CMDM_SRC copied successfully."
+else
+    echo "No files found in $CMDM_LOGDIR."
+	LOAD_OK=0
+fi
+
+# === Load do SHM
+if [ "$LOAD_OK" -eq 1 ]; then
+    echo "Files successfully copied to conf directory."
+	echo "Load files to SHM ...\n"
+	cacao-aorun-041-loadCM
+else
+    echo "Copying files failed."
+fi
+
+cacaomsglog "END"
