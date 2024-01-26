@@ -28,10 +28,10 @@ source milk-argparse
 
 # Checking stream
 streamcheckOK="OK"
-checkstream aol${CACAO_LOOPNUMBER}_shsCam
-checkstream aol${CACAO_LOOPNUMBER}_shsCam_AVG
+checkstream ${CACAO_SHSSTREAM}
+checkstream ${CACAO_SHSSTREAM}_AVG
 
-if [ ${streamcheckOK} == "FAIL" ]; then
+if [[ ${streamcheckOK} == "FAIL" ]]; then
 	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
 	cacaomsglog "ERROR streamcheck"
 	exit 1
@@ -39,28 +39,107 @@ fi
 
 cacaomsglog "NBframe ${NBframe}"
 
-mkdir -p conf
-datestring="$(date -u +'%Y-%m-%dT%H:%M:%S.%NZ')"
-
-
 # Checking FPS
 FPScheckOK="OK"
 checkFPSON CACAO_FPSPROC_SHSONGPU_REF ${CACAO_FPSPROC_SHSONGPU_REF}
 echo "FPScheckOK = ${FPScheckOK}"
 
-if [ ${FPScheckOK} == "FAIL" ]; then
+if [[ ${FPScheckOK} == "FAIL" ]]; then
 	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] FPS check failed"
 	exit 1
 fi
 
 set +e
 
+# == Record reference
 cacaomsglog "START"
 
 sendFPScmd "setval shsOnGPU-Ref-${CACAO_LOOPNUMBER}.procinfo.loopcntMax ${NBframe}"
 sendFPScmd "confwupdate shsOnGPU-Ref-${CACAO_LOOPNUMBER}"
 sendFPScmd "runstart shsOnGPU-Ref-${CACAO_LOOPNUMBER}"
 
+echo "Waiting for completion ..."
+pOK=1
+while [ $pOK -gt 0 ]; do
+	sleep 0.2
+	pOK=$(ps -alx| grep shsOnGPU-Ref-${CACAO_LOOPNUMBER} | grep RUNSTART | wc -l) || :
+done
 
+##### Result management
+# == Save reference to conf dir
+cacaomsglog "Save reference files"
+CONFDIR="./conf/SHSRef" 
+mkdir -p ${CONFDIR}
+
+# Define streamnames
+REF_POS_SHM=${CACAO_SHSSTREAM}_SHSRef_Positions
+REF_MASK_SHM=${CACAO_SHSSTREAM}_SHSRef_Mask
+REF_INT_SHM=${CACAO_SHSSTREAM}_SHSRef_Intensity
+# Define filenames
+REF_POS_FITS="SHSRef_Positions.fits"
+REF_MASK_FITS="SHSRef_Mask.fits"
+REF_INT_FITS="SHSRef_Intensity.fits"
+
+# Save via milk
+MILK_QUIET=1 milk << EOF
+readshmim ${REF_POS_SHM}
+readshmim ${REF_MASK_SHM}
+readshmim ${REF_INT_SHM}
+saveFITS ${REF_POS_SHM} ${REF_POS_FITS}
+saveFITS ${REF_MASK_SHM} ${REF_MASK_FITS}
+saveFITS ${REF_INT_SHM} ${REF_INT_FITS}
+exitCLI
+EOF
+
+# Move files into confdir
+mv ${REF_POS_FITS} "${CONFDIR}/${REF_POS_FITS}"
+mv ${REF_MASK_FITS} "${CONFDIR}/${REF_MASK_FITS}"
+mv ${REF_INT_FITS} "${CONFDIR}/${REF_INT_FITS}"
+
+# == Load reference to freshly named SHM
+# Define loop streams
+CACAO_SHSREF_POS=aol${CACAO_LOOPNUMBER}_shsRef_POS
+CACAO_SHSREF_MASK=aol${CACAO_LOOPNUMBER}_shsRef_MASK
+CACAO_SHSREF_INT=aol${CACAO_LOOPNUMBER}_shsRef_INT
+
+# Function to load a file into shared memory
+load_file_to_shm() {
+    local file="$1"
+    local shm_name="$2"
+
+    echo "Loading file ${file}"
+    if [ -f "${file}" ]; then
+        milk-FITS2shm "${file}" ${shm_name}
+    else
+        echo "Failed to find ${file}."
+        return 1
+    fi
+}
+
+# Load fits files
+rm /milk/shm/*${CACAO_SHSREF_POS}*
+rm /milk/shm/*${CACAO_SHSREF_MASK}*
+rm /milk/shm/*${CACAO_SHSREF_INT}*
+load_file_to_shm "${CONFDIR}/${REF_POS_FITS}" ${CACAO_SHSREF_POS} || exit 1
+load_file_to_shm "${CONFDIR}/${REF_MASK_FITS}" ${CACAO_SHSREF_MASK} || exit 1
+load_file_to_shm "${CONFDIR}/${REF_INT_FITS}" ${CACAO_SHSREF_INT} || exit 1
+
+# == Make reference streamnames accessible in cacao
+CVAR_DIR=${CACAO_LOOPNAME}-rundir/fps.shsOnGPU-Ref-${CACAO_LOOPNUMBER}.datadir
+echo "Exporting cacao variables..."
+echo "export CACAO_SHSREF_POS=${REF_POS_SHM}" > ${CVAR_DIR}/cacaovars.bash
+echo "export CACAO_SHSREF_MASK=${REF_MASK_SHM}" >> ${CVAR_DIR}/cacaovars.bash
+echo "export CACAO_SHSREF_INT=${REF_INT_SHM}" >> ${CVAR_DIR}/cacaovars.bash
+
+# == Log reference
+# Use the stream that includes the cam name for clearness
+
+# The cacaofuncs-log does produce errors (file not found ...)
+# Just copy the conf directory for now.
+cp -r $CONFDIR ./logdir/aol_artao-loop
+#source cacaofuncs-log
+#cacao-calib-logFITSfile ${REF_POS_SHM}
+#cacao-calib-logFITSfile ${REF_MASK_SHM}
+#cacao-calib-logFITSfile ${REF_INT_SHM}
 
 cacaomsglog "END"

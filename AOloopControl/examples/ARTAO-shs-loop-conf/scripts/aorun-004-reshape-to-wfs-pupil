@@ -18,8 +18,6 @@ These are defined according to the wfs pupil mask.
 source milk-script-std-config
 source cacao-check-cacaovars
 
-IM_MASK="aol${CACAO_LOOPNUMBER}_shsCam_RefMask"
-
 # prerequisites
 #
 RequiredCommands=( milk )
@@ -70,7 +68,13 @@ fi
 # Checking FPS & Image Streams
 # Checking stream
 streamcheckOK="OK"
-checkstream ${IM_MASK}
+
+if [ -z "${CACAO_SHSREF_MASK}" ]; then
+	echo "Error: Environment variable $1 is not set."
+	exit 1
+fi
+
+checkstream ${CACAO_SHSREF_MASK}
 
 FPScheckOK="OK"
 case "${STREAMOPT}" in
@@ -155,7 +159,7 @@ if [ ${ACTION} == "start" ]; then
 		fi
 
 		sendFPScmd "setval ${FPSNAME}.input_name ${IMNAME}"
-		sendFPScmd "setval ${FPSNAME}.mask_name ${IM_MASK}"
+		sendFPScmd "setval ${FPSNAME}.mask_name ${CACAO_SHSREF_MASK}"
 		sendFPScmd "confwupdate ${FPSNAME}"
 		sendFPScmd "runstart ${FPSNAME}"
 	else

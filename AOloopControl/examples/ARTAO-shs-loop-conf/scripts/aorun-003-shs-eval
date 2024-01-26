@@ -30,18 +30,28 @@ ACTION="${inputMSargARRAY[0]}"
 ACTIONOK=0
 
 
-
 if [ ${ACTION} == "check" ]; then
 	ACTIONOK=1
 fi
+
+# Check for reference variables
+check_variable() {
+    if [ -z "${!1}" ]; then
+        echo "Error: Environment variable $1 is not set."
+        exit 1
+    fi
+}
+check_variable "CACAO_SHSREF_POS"
+check_variable "CACAO_SHSREF_MASK"
+check_variable "CACAO_SHSREF_INT"
 
 # Checking stream
 streamcheckOK="OK"
 checkstream aol${CACAO_LOOPNUMBER}_shsCam
 checkstream aol${CACAO_LOOPNUMBER}_shsCam_AVG
-checkstream aol${CACAO_LOOPNUMBER}_shsCam_RefPositions
-checkstream aol${CACAO_LOOPNUMBER}_shsCam_RefMask
-checkstream aol${CACAO_LOOPNUMBER}_shsCam_RefIntensity
+checkstream $CACAO_SHSREF_POS
+checkstream $CACAO_SHSREF_MASK
+checkstream $CACAO_SHSREF_INT
 
 if [ ${streamcheckOK} == "FAIL" ]; then
 	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
@@ -61,7 +71,6 @@ fi
 
 set +e
 shsEvalRunning=0
-echo "${CACAO_LOOPNUMBER}"
 echo "Check if evaluation process is running. An error message will apear if it doesn't - that's expected."
 pOK=$(ps -alx| grep shsOnGPU-Eval-${CACAO_LOOPNUMBER} | grep RUNSTART | wc -l)
 if [ $pOK -gt 0 ]; then
@@ -81,6 +90,9 @@ if [ ${ACTION} == "start" ]; then
 	# Starting SHS evaluation process
 	# ======================================================================
 	if [ ${shsEvalRunning} == "0" ]; then
+		sendFPScmd "setval shsOnGPU-Eval-${CACAO_LOOPNUMBER}.reference.position ${CACAO_SHSREF_POS}"
+		sendFPScmd "setval shsOnGPU-Eval-${CACAO_LOOPNUMBER}.reference.mask ${CACAO_SHSREF_MASK}"
+		sendFPScmd "setval shsOnGPU-Eval-${CACAO_LOOPNUMBER}.reference.intensity ${CACAO_SHSREF_INT}"
 		sendFPScmd "confwupdate shsOnGPU-Eval-${CACAO_LOOPNUMBER}"
 		sendFPScmd "runstart shsOnGPU-Eval-${CACAO_LOOPNUMBER}"
 	else
