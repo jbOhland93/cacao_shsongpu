@@ -7,12 +7,14 @@
 #include "../util/Point.hpp"
 
 spRefManager SGE_ReferenceManager::makeReferenceManager(
-        IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Camera stream
         IMAGE* dark,        // Dark stream
+        IMAGE* refPos,              // Stream with SHS reference positions
+        IMAGE* refMask,             // Stream with SHS reference mask
+        IMAGE* refInt,              // Stream with SHS reference intensity
         std::string prefix) // Stream prefix
 {
-    return spRefManager(new SGE_ReferenceManager(ref, cam, dark, prefix));
+    return spRefManager(new SGE_ReferenceManager(cam, dark, refPos, refMask, refInt, prefix));
 }
 
 SGE_ReferenceManager::~SGE_ReferenceManager()
@@ -50,16 +52,16 @@ float* SGE_ReferenceManager::getRefYGPU()
 }
 
 SGE_ReferenceManager::SGE_ReferenceManager(
-        IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Stream holding the current SHS frame
         IMAGE* dark,        // Stream holding the dark frame of the SHS
+        IMAGE* refPos,              // Stream with SHS reference positions
+        IMAGE* refMask,             // Stream with SHS reference mask
+        IMAGE* refInt,              // Stream with SHS reference intensity
         std::string prefix) // Stream prefix
     : m_streamPrefix(prefix)
 {
     printf("\nSetting up reference manager ...\n");
-    checkInputStreamCoherence(ref, cam, dark);
-    checkInputNamingCoherence(cam, dark);
-    adoptReferenceStreamsFromKW();
+    checkInputStreamCoherence(cam, dark, refPos, refMask, refInt);
     readConstantsFromKW();
     generateGPUkernel();
     copySearchPosToGPU();
@@ -67,7 +69,8 @@ SGE_ReferenceManager::SGE_ReferenceManager(
     printf("Reference manager setup completed.\n");
 }
 
-void SGE_ReferenceManager::checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMAGE* dark)
+void SGE_ReferenceManager::checkInputStreamCoherence(
+    IMAGE* cam, IMAGE* dark, IMAGE* refPos, IMAGE* refMask, IMAGE* refInt)
 {
     // Check compatibility of camera and dark images
     int imWidth = cam->md->size[0];
@@ -80,9 +83,9 @@ void SGE_ReferenceManager::checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMA
         throw std::runtime_error("SGE_ReferenceManager: the dark stream has to be of type float.\n");
 
     // Adopt the reference image
-    if (!checkAtype<float>(ref->md->datatype))
+    if (!checkAtype<float>(refPos->md->datatype))
         throw std::runtime_error("SGE_ReferenceManager: reference has to be of type float.\n");
-    mp_IHreference = ImageHandler2D<float>::newHandler2DAdoptImage(ref->name);
+    mp_IHreference = ImageHandler2D<float>::newHandler2DAdoptImage(refPos->name);
     m_numSpots = mp_IHreference->mWidth;
 
     // Check reference positions against camera image size
@@ -96,82 +99,27 @@ void SGE_ReferenceManager::checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMA
         if (refX < 0 || refX >= imWidth || refY < 0 || refY >= imHeight)
             throw std::runtime_error("SGE_ReferenceManager: Reference positions outside of image bounds.");
     }
-}
 
-void SGE_ReferenceManager::checkInputNamingCoherence(IMAGE* cam, IMAGE* dark)
-{
-    printf("Checking camera and dark stream names against names stored in reference KWs ...\n");
-    std::string inputName;
-    if (mp_IHreference->getKeyword(REF_KW_INPUT_NAME, &inputName))
-    {
-        std::string compareName = std::string(cam->name);
-        if (compareName.length() > 16)
-            compareName = compareName.substr(0, 16);
-        if (compareName == inputName)
-            printf("\tThe shs camera stream name matches the name stored in the reference.\n");
-        else
-        {
-            printf("WARNING: shs camera stream name does not match the name stored in the reference!\n");
-            printf("\tExpected name (trimmed to 16 characters): %s\n", inputName.c_str());
-            printf("\tActual name (trimmed to 16 characters): %s\n", compareName.c_str());
-        }
-    }
-    else
-        printf("WARNING: no shs camera stream name found in reference keywords! Unable to check integrity.\n");
+    // Adopt the mask image
+    if (!checkAtype<uint8_t>(refMask->md->datatype))
+        throw std::runtime_error("SGE_ReferenceManager: reference mask has to be of type uint8_t or float.\n");
+    mp_IHmask = ImageHandler2D<uint8_t>::newHandler2DAdoptImage(refMask->name);
+    // Verify number of spots
+    int spotCounter = 0;
+    for (size_t ix = 0; ix < mp_IHmask->mWidth; ix++)
+        for (size_t iy = 0; iy < mp_IHmask->mHeight; iy++)
+            if ( mp_IHmask->read(ix, iy) != 0)
+                spotCounter ++;
+    if (spotCounter != m_numSpots)
+        throw std::runtime_error("SGE_ReferenceManager: number of valid mask samples does not equal reference size.\n");
 
-    std::string darkName;
-    if (!mp_IHreference->getKeyword(REF_KW_DARK_NAME, &darkName))
-        printf("WARNING: no shs dark stream name found in reference keywords! Unable to check integrity.\n");
-    else
-    {
-        std::string compareName = std::string(dark->name);
-        if (compareName.length() > 16)
-            compareName = compareName.substr(0, 16);
-        if (compareName == darkName)
-            printf("\tThe shs dark stream name matches the name stored in the reference.\n");
-        else
-        {
-            printf("WARNING: shs dark stream name does not match the name stored in the reference!\n");
-            printf("\tExpected name (trimmed to 16 characters): %s\n", darkName.c_str());
-            printf("\tActual name (trimmed to 16 characters): %s\n", compareName.c_str());
-        }
-    }
-}
-
-void SGE_ReferenceManager::adoptReferenceStreamsFromKW()
-{
-    // Extract info from the reference image keywords
-    printf("Parsing reference keywords, adopting mask and intensity reference streams...\n");
-    
-    int64_t suffixLength;
-    if (!mp_IHreference->getKeyword(REF_KW_SUFFIX_LEN, &suffixLength))
-        throw std::runtime_error("SGE_ReferenceManager: no suffix length found in reference keywords. Cannot retrieve the stream names of the mask and intensity map.");
-    else
-    {
-        m_baseName = mp_IHreference->getImage()->name;
-        m_baseName = m_baseName.substr(0, m_baseName.length()-suffixLength);
-        std::string maskSuffix;
-        if (!mp_IHreference->getKeyword(REF_KW_MASK_SUFFIX, &maskSuffix))
-            throw std::runtime_error("SGE_ReferenceManager: no mask suffix found in reference keywords. Could not retrieve the mask stream name.\n");
-        else
-        {
-            std::string maskName = m_baseName;
-            maskName.append(maskSuffix);
-            mp_IHmask = ImageHandler2D<uint8_t>::newHandler2DAdoptImage(maskName.c_str());
-            printf("\tAdopted the mask stream: %s\n", maskName.c_str());
-        }
-        
-        std::string intensitySuffix;
-        if (!mp_IHreference->getKeyword(REF_KW_INTENSITY_SUFFIX, &intensitySuffix))
-            throw std::runtime_error("SGE_ReferenceManager: no intensity map suffix found in reference keywords. Could not retrieve the intensity stream name.\n");
-        else
-        {
-            std::string intensityName = m_baseName;
-            intensityName.append(intensitySuffix);
-            mp_IHintensity = ImageHandler2D<float>::newHandler2DAdoptImage(intensityName.c_str());
-            printf("\tAdopted the intensity stream: %s\n", intensityName.c_str());
-        }
-    }
+    // Adopt the intensity image
+    if (!checkAtype<float>(refInt->md->datatype))
+        throw std::runtime_error("SGE_ReferenceManager: reference intensity has to be of type float.\n");
+    mp_IHintensity = ImageHandler2D<float>::newHandler2DAdoptImage(refInt->name);
+    if (mp_IHintensity->mWidth != mp_IHmask->mWidth ||
+        mp_IHintensity->mHeight != mp_IHmask->mHeight)
+        throw std::runtime_error("SGE_ReferenceManager: reference intensity has to feature the same size as the mask.\n");
 }
 
 void SGE_ReferenceManager::readConstantsFromKW()

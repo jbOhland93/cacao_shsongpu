@@ -23,17 +23,22 @@ public:
         float mlaPitch_um,   // Distance of the microlenses in um
         float mlaDist_um,    // Distance of the microlenses to the cam chip in um
         uint32_t numSamples, // number of samples to be recorded
-        const char* savingLocation = ".", // Location for saving fits
         bool visualize = false); // If true, additional streams for
                                  // visual testing are generated
 
     // Triggers reading the input- and dark stream
     errno_t sampleDo();
     // Evaluates the recorded buffers and generates the reference output
+    // minRelIntensity: Threshhold for generating the spot mask
+    //      If the intensity of the subaperture is lower
+    //      than the max. intensity multiplied by this value,
+    //      the subaperture is regarded invalid.
     // uradPrecisionThresh: Threshhold for generating the spot mask
     //      If the precision of a subaperture is better than this,
     //      the sample will be included in the mask.
-    errno_t evaluateRecBuffers(float uradPrecisionThresh);
+    errno_t evaluateRecBuffers(
+        float minRelIntensity,
+        float uradPrecisionThresh);
     // Returns a description of the current internal state
     const char* getStateDescription();
 
@@ -59,7 +64,6 @@ private:
     // be writen to SHM in order to verify the process
     bool mVisualize = true;
     std::string mTeststreamPrefix = "Vrfy-"; // Prefix for visualization streams
-    std::string mSavingLocation; // Folder for saving reference files
 
 // SHS parameters
     float mPxSize_um;
@@ -115,10 +119,6 @@ private:
         double minDistance);
     // Spans a regular grid, matching the given unsorted spots
     void spanCoarseGrid(std::vector<Point<double>> fitSpots);
-    // Saves an image
-    std::string saveImage(spIHBase imageHandler);
-    // Creates the filename for saving the reference
-    std::string generateFitsName(std::string prefix);
 };
 
 #endif // SGR_RECORDER_HPP

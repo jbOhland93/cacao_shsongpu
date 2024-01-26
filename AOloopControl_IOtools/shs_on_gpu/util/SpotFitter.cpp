@@ -269,9 +269,7 @@ void SpotFitter::expressFit(
 {
     if (iterations < 1)
         return;
-    
     bool visualizeFirst = (iterations == 1) && visualize;
-
     setROIs(centers, windowSize);
     makeLineouts(false, streamPrefix, visualizeFirst);
     fitCurves(streamPrefix, visualizeFirst);

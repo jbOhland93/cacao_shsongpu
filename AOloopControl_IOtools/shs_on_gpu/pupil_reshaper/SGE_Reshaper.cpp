@@ -91,5 +91,16 @@ errno_t SGE_Reshaper::reshapeDo()
     }
     mp_IHoutput->updateWrittenImage();
 
+    IMAGE* img = mp_IHoutput->getImage();
+    STREAM_PROC_TRACE* traces = img->streamproctrace;
+    timespec first = traces[0].ts_streamupdate;
+    printf("\n\nTIMES:\n");
+    for (int i = 0; i < IMAGE_NB_PROCTRACE; i++)
+    {
+        timespec cur = traces[i].ts_streamupdate;
+        printf("t(%d)=%.3fus\n", i, (cur.tv_sec-first.tv_sec*1e6)+(cur.tv_nsec-first.tv_nsec)/1e3);
+    }
+    
+
     return RETURN_SUCCESS;
 }

@@ -11,7 +11,8 @@ class WFGLocalResponseGenerator {
 public:
     static spWGLRspnsGen makeLocalResponseGenerator(spPupil pupil);
 
-    std::pair<spWF, spWFGrad> generateResponse(double centerX, double centerY, double width);
+    std::pair<spWF, spWFGrad> generateResponse(
+        double centerX, double centerY, double width, bool includeTilt);
 
 private:
     spPupil mPupil;

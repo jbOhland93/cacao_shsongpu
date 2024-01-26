@@ -20,12 +20,15 @@ static int cmdindex;
 //#include "CommandLineInterface/timeutils.h"
 
 // Local variables pointers
-// stream name of the SHS reference positions
-static char *refname;
 // stream name of the SHS camera
 static char *camname;
 // stream name of the SHS dark frame
 static char *darkname;
+
+// stream name of the SHS reference positions
+static char *refPosName;
+static char *refMaskName;
+static char *refIntName;
 
 // field to activate/deactivate the evaluation
 static int64_t *evaluationOn;
@@ -34,6 +37,10 @@ static long     fpi_evaluationOn = -1;
 // field to determine if the absolute or relative reference shall be used
 static int64_t *absRef;
 static long     fpi_absRef = -1;
+
+// field to determine if the wf tilt shall be subtracted
+static int64_t *removeTilt;
+static long     fpi_removeTilt = -1;
 
 // Toggle: calculate the WF from the gradient field
 static int64_t *calcWF;
@@ -65,15 +72,6 @@ static CLICMDARGDEF farg[] =
 {
     {
         CLIARG_IMG,
-        ".ref_name",
-        "reference image",
-        "cam",
-        CLIARG_VISIBLE_DEFAULT,
-        (void **) &refname,
-        NULL
-    },
-    {
-        CLIARG_IMG,
         ".shscam",
         "shs camera image",
         "shscam",
@@ -88,6 +86,33 @@ static CLICMDARGDEF farg[] =
         "shsdark",
         CLIARG_VISIBLE_DEFAULT,
         (void **) &darkname,
+        NULL
+    },
+    {
+        CLIARG_IMG,
+        ".reference.position",
+        "stream holding the reference spot positions",
+        "pos",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &refPosName,
+        NULL
+    },
+    {
+        CLIARG_IMG,
+        ".reference.mask",
+        "stream holding the reference mask",
+        "mask",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &refMaskName,
+        NULL
+    },
+    {
+        CLIARG_IMG,
+        ".reference.intensity",
+        "stream holding the reference intensity",
+        "int",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &refIntName,
         NULL
     },
     {
@@ -107,6 +132,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &absRef,
         &fpi_absRef
+    },
+    {
+        CLIARG_ONOFF,
+        ".comp.removeTilt",
+        "toggle tilt subtraction",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &removeTilt,
+        &fpi_removeTilt
     },
     {
         CLIARG_ONOFF,
@@ -188,6 +222,7 @@ static errno_t customCONFsetup()
         // can toggle while running
         data.fpsptr->parray[fpi_evaluationOn].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_absRef].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_removeTilt].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_calcWF].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_cpyGradToCPU].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_cpyWfToCPU].fpflag |= FPFLAG_WRITERUN;
@@ -273,6 +308,7 @@ static errno_t streamprocess(SGEEHandle evaluator)
     errno_t retVal = SGEE_eval_do(
         evaluator,
         *absRef,
+        *removeTilt,
         *calcWF,
         *cpyGradToCPU,
         *cpyWfToCPU,
@@ -289,12 +325,16 @@ static errno_t compute_function()
 {
     DEBUG_TRACE_FSTART();
 
-    IMGID refimg = mkIMGID_from_name(refname);
-    resolveIMGID(&refimg, ERRMODE_ABORT);
     IMGID camimg = mkIMGID_from_name(camname);
     resolveIMGID(&camimg, ERRMODE_ABORT);
     IMGID darkimg = mkIMGID_from_name(darkname);
     resolveIMGID(&darkimg, ERRMODE_ABORT);
+    IMGID posimg = mkIMGID_from_name(refPosName);
+    resolveIMGID(&posimg, ERRMODE_ABORT);
+    IMGID maskimg = mkIMGID_from_name(refMaskName);
+    resolveIMGID(&maskimg, ERRMODE_ABORT);
+    IMGID intimg = mkIMGID_from_name(refIntName);
+    resolveIMGID(&intimg, ERRMODE_ABORT);
 
     printf(" COMPUTE Flags = %ld\n", CLIcmddata.cmdsettings->flags);
     INSERT_STD_PROCINFO_COMPUTEFUNC_INIT
@@ -328,9 +368,11 @@ static errno_t compute_function()
     // Construct the evaluator
     SGEEHandle evaluator = create_SGE_Evaluator(
         data.fpsptr,
-        refimg.im,
         camimg.im,
         darkimg.im,
+        posimg.im,
+        maskimg.im,
+        intimg.im,
         loopPrefix);
     printf("== Evaluator constructed. Ready for evaluation.\n");
     // ===

@@ -5,16 +5,20 @@ extern "C"
 {
     SGEEHandle create_SGE_Evaluator(
         FUNCTION_PARAMETER_STRUCT* fps,
-        IMAGE* ref,
         IMAGE* shscam,
         IMAGE* shsdark,
+        IMAGE* refPos,
+        IMAGE* refMask,
+        IMAGE* refInt,
         const char* streamPrefix)
     {
         return new SGE_Evaluator(
             fps,
-            ref,
             shscam,
             shsdark,
+            refPos,
+            refMask,
+            refInt,
             streamPrefix);
     }
 
@@ -26,6 +30,7 @@ extern "C"
     errno_t SGEE_eval_do(
         SGEEHandle p,
         int64_t useAbsRef,
+        int64_t removeTilt,
         int64_t calcWF,
         int64_t cpyGradToCPU,
         int64_t cpyWfToCPU,
@@ -34,6 +39,7 @@ extern "C"
     {
         return ((SGE_Evaluator*) p)->evaluateDo(
             useAbsRef != 0,
+            removeTilt != 0,
             calcWF != 0,
             cpyGradToCPU != 0,
             cpyWfToCPU != 0,

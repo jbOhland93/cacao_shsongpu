@@ -10,7 +10,8 @@ public:
     ModalWFReconstructorBuilder(
         spImHandler2D(uint8_t) mask,
         std::string streamPrefix,
-        int numModes = -1);
+        int numModes = -1,
+        bool includeTilt = true);
     // (Re)calculates the reconstruction matrix, using the given number of WF modes.
     // If numModes is <= 0, all available modes (except piston) are used.
     void calcModes(int numModes = -1);

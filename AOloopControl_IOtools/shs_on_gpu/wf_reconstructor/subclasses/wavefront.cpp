@@ -30,6 +30,27 @@ void Wavefront::subtractMean()
         mData[i] -= mean;
 }
 
+void Wavefront::subtractTilt()
+{
+    double* tiltArrX = mPupil->getNormedTiltArrX();
+    double* tiltArrY = mPupil->getNormedTiltArrY();
+    
+    // Get tilt coefficients
+    double cX = 0;
+    double cY = 0;
+    for (int i = 0; i < mPupil->getNumValidFields(); i++)
+    {
+        cX += tiltArrX[i] * mData[i];
+        cY += tiltArrY[i] * mData[i];
+    }
+    // Subtract tilt
+    for (int i = 0; i < mPupil->getNumValidFields(); i++)
+    {
+        mData[i] -= tiltArrX[i] * cX;
+        mData[i] -= tiltArrY[i] * cY;
+    }
+}
+
 void Wavefront::printWF()
 {
     double* wf2D = mPupil->createNew2DarrFromValues(

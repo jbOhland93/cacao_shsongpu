@@ -13,6 +13,7 @@ public:
     spPupil getPupil() { return mPupil; }
     double* getDataPtr(int* arrSizeOut);
     void subtractMean();
+    void subtractTilt();
     void printWF();
     double scalarProduct(spWF other);
     

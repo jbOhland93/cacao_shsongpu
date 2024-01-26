@@ -31,14 +31,25 @@ public:
 
     bool isInProximity(int pX, int pY, double distance);
 
+    // Returns a 1D array, corresponding to the RMS=1 tilt in X-direction
+    // Can be used for tilt subtraction
+    double* getNormedTiltArrX();
+    // Returns a 1D array, corresponding to the RMS=1 tilt in Y-direction
+    // Can be used for tilt subtraction
+    double* getNormedTiltArrY();
+
 private:
     int mWidth;
     int mHeight;
     int mNumValidFields;
     bool* mPupilArr = nullptr;
+    double* mNormedTiltXarr = nullptr;
+    double* mNormedTiltYarr = nullptr;
 
     Pupil(); // No publically available Ctor
     Pupil(int width, int height, uint8_t* pupilArr);
+
+    void subtractMeanAndNormalize(double* arr);
 };
 
 template <typename T>

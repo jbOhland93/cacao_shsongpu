@@ -13,9 +13,11 @@ class SGE_ReferenceManager
 public:
     // Factory function
     static spRefManager makeReferenceManager(
-        IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Camera stream
         IMAGE* dark,        // Dark stream
+        IMAGE* refPos,              // Stream with SHS reference positions
+        IMAGE* refMask,             // Stream with SHS reference mask
+        IMAGE* refInt,              // Stream with SHS reference intensity
         std::string prefix);// Stream prefix
     // Dtor
     ~SGE_ReferenceManager();
@@ -63,15 +65,15 @@ private:
     SGE_ReferenceManager(); // No publically available Ctor
     // Ctor, doing the initialization
     SGE_ReferenceManager(
-        IMAGE* ref,         // Stream holding the reference data
         IMAGE* cam,         // Camera stream
         IMAGE* dark,        // Dark stream
+        IMAGE* refPos,              // Stream with SHS reference positions
+        IMAGE* refMask,             // Stream with SHS reference mask
+        IMAGE* refInt,              // Stream with SHS reference intensity
         std::string prefix);// Stream prefix
 
     // Helper functions
-    void checkInputStreamCoherence(IMAGE* ref, IMAGE* cam, IMAGE* dark);
-    void checkInputNamingCoherence(IMAGE* cam, IMAGE* dark);
-    void adoptReferenceStreamsFromKW();
+    void checkInputStreamCoherence(IMAGE* cam, IMAGE* refPos, IMAGE* refMask, IMAGE* refInt, IMAGE* dark);
     void readConstantsFromKW();
     void generateGPUkernel();
     void copySearchPosToGPU();

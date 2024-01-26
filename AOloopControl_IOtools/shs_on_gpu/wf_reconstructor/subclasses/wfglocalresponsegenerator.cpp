@@ -7,7 +7,8 @@ spWGLRspnsGen WFGLocalResponseGenerator::makeLocalResponseGenerator(spPupil pupi
     return spWGLRspnsGen(new WFGLocalResponseGenerator(pupil));
 }
 
-std::pair<spWF, spWFGrad> WFGLocalResponseGenerator::generateResponse(double centerX, double centerY, double width)
+std::pair<spWF, spWFGrad> WFGLocalResponseGenerator::generateResponse(
+    double centerX, double centerY, double width, bool includeTilt)
 {
     // Initialize WF and Grad objects
     spWF wf = Wavefront::makeWavefront(mPupil);
@@ -39,6 +40,12 @@ std::pair<spWF, spWFGrad> WFGLocalResponseGenerator::generateResponse(double cen
 
     // Subtract the mean from the WF only (piston is not of interest).
     wf->subtractMean();
+    // If required, subtract the tilt
+    if (!includeTilt)
+    {
+        grad->subtractTilt();
+        wf->subtractTilt();
+    }
 
     return std::pair<spWF, spWFGrad>(wf, grad);
 }

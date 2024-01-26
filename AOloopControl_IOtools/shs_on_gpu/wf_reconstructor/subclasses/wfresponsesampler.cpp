@@ -7,7 +7,7 @@ spRspnsSampler ResponseSampler::makeSampler(spPupil pupil, double proximity)
     return spRspnsSampler(new ResponseSampler(pupil, proximity));
 }
 
-std::vector<std::pair<spWF, spWFGrad>> ResponseSampler::generateSamples(double responseWidth)
+std::vector<std::pair<spWF, spWFGrad>> ResponseSampler::generateSamples(double responseWidth, bool includeTilt)
 {
     std::vector<std::pair<spWF, spWFGrad>> samples;
 
@@ -16,7 +16,7 @@ std::vector<std::pair<spWF, spWFGrad>> ResponseSampler::generateSamples(double r
     for (int y = -cProx; y < mPupil->getHeight() + cProx; y++) {
         for (int x = -cProx; x < mPupil->getWidth() + cProx; x++) {
             if (mPupil->isInProximity(x, y, mMinPupilProximity)) {
-                auto response = mResponseGenerator->generateResponse(x, y, responseWidth);
+                auto response = mResponseGenerator->generateResponse(x, y, responseWidth, includeTilt);
                 samples.push_back(response);
             }
         }

@@ -15,6 +15,8 @@ public:
     double* getDataPtrDX(int* arrSizeOut);
     double* getDataPtrDY(int* arrSizeOut);
 
+    void subtractTilt();
+
     void printGrd();
     double scalarProduct(spWFGrad other);
     

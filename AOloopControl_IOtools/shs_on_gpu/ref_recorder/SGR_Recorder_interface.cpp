@@ -11,7 +11,6 @@ extern "C"
         float mlaPitch,
         float mlaDist,
         uint32_t numSamples,
-        const char* savingLocation,
         int64_t visualize)
     {
         return new SGR_Recorder(
@@ -22,7 +21,6 @@ extern "C"
             mlaPitch,
             mlaDist,
             numSamples,
-            savingLocation,
             visualize > 0);
     }
 
@@ -36,9 +34,13 @@ extern "C"
         return ((SGR_Recorder*) p)->sampleDo();
     }
 
-    errno_t SGRR_evaluate_rec_buffers(SGRRHandle p, float uradPrecisionThresh)
+    errno_t SGRR_evaluate_rec_buffers(
+        SGRRHandle p,
+        float minRelIntensity,
+        float uradPrecisionThresh)
     {
-        return ((SGR_Recorder*) p)->evaluateRecBuffers(uradPrecisionThresh);
+        return ((SGR_Recorder*) p)->evaluateRecBuffers(
+            minRelIntensity, uradPrecisionThresh);
     }
 
     const char* get_SGRR_state_descr(SGRRHandle p)

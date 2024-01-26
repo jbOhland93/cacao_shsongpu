@@ -9,6 +9,7 @@
 
 #include "SGE_GridLayout.hpp"
 #include "SGE_CUDAkernel.hpp"
+#include "SGE_CUDAremoveTilt.hpp"
 
 #include "../util/atypeUtil.hpp"
 #include "../util/CudaUtil.hpp"
@@ -41,16 +42,18 @@
 
 SGE_Evaluator::SGE_Evaluator(
         FUNCTION_PARAMETER_STRUCT* fps,
-        IMAGE* ref,                 // Stream holding the reference data
         IMAGE* cam,                 // Stream holding the current SHS frame
         IMAGE* dark,                // Stream holding the dark frame of the SHS
+        IMAGE* refPos,              // Stream with SHS reference positions
+        IMAGE* refMask,             // Stream with SHS reference mask
+        IMAGE* refInt,              // Stream with SHS reference intensity
         const char* streamPrefix,   // Prefix for the ISIO streams
         int deviceID)               // ID of the GPU device
     : mp_fps(fps), m_streamPrefix(streamPrefix)
 {
     // Set up the evaluator
     setupCudaEnvironment(deviceID);
-    setupReferenceManager(ref, cam, dark);
+    setupReferenceManager(cam, dark, refPos, refMask, refInt);
     adoptInputStreams(cam->name, dark->name);
     setupGridLayout(deviceID);
     createOutputImages();
@@ -64,6 +67,9 @@ SGE_Evaluator::~SGE_Evaluator()
 {
     if (m_wfStatsLog.is_open())
             m_wfStatsLog.close();
+
+    if (mp_d_gradientReductionArr != nullptr)
+        cudaFree(mp_d_gradientReductionArr);
 
     // Clean up debugging fields
 #ifdef ENABLE_EVALUATION_TIME_MEASUREMENT
@@ -80,6 +86,7 @@ SGE_Evaluator::~SGE_Evaluator()
 
 errno_t SGE_Evaluator::evaluateDo(
     bool useAbsRef,
+    bool removeTilt,
     bool calcWF,
     bool cpyGradToCPU,
     bool cpyWfToCPU,
@@ -118,9 +125,14 @@ errno_t SGE_Evaluator::evaluateDo(
     // Print error of kernel launch
     printCE(cudaGetLastError());
 
+    if (removeTilt)
+        removeTiltOnGPU();
+
     if (calcWF)
     { // Reconstruct the WF while everything is still on the GPU
-        mp_wfReconstructor->reconstructWavefrontArrGPU_d2d(
+        spWFReconst WFR = removeTilt ?
+            mp_wfReconstructor_noTilt : mp_wfReconstructor_tilt;
+        WFR->reconstructWavefrontArrGPU_d2d(
             mp_IHgradient->mNumPx,
             mp_IHgradient->getGPUCopy(),
             mp_IHwf->mNumPx,
@@ -155,12 +167,15 @@ void SGE_Evaluator::setupCudaEnvironment(int deviceID)
     printCE(err);
 }
 
-void SGE_Evaluator::setupReferenceManager(IMAGE* ref, IMAGE* cam, IMAGE* dark)
+void SGE_Evaluator::setupReferenceManager(
+    IMAGE* cam, IMAGE* dark, IMAGE* refPos, IMAGE* refMask, IMAGE* refInt)
 {
     mp_refManager = SGE_ReferenceManager::makeReferenceManager(
-                                            ref,
                                             cam,
                                             dark,
+                                            refPos,
+                                            refMask,
+                                            refInt,
                                             m_streamPrefix);
 }
 
@@ -229,8 +244,15 @@ void SGE_Evaluator::createOutputImages()
 
 void SGE_Evaluator::setupWFreconstruction()
 {
-    ModalWFReconstructorBuilder wfRecBuilder(mp_refManager->getMaskIH(), m_streamPrefix);
-    mp_wfReconstructor =  wfRecBuilder.getReconstructor();
+    std::string prefix = m_streamPrefix;
+    prefix.append("tilt_");
+    ModalWFReconstructorBuilder WFRbuilderTilt(mp_refManager->getMaskIH(), prefix, -1, true);
+    mp_wfReconstructor_tilt =  WFRbuilderTilt.getReconstructor();
+
+    prefix = m_streamPrefix;
+    prefix.append("noTilt_");
+    ModalWFReconstructorBuilder WFRbuilderNoTilt(mp_refManager->getMaskIH(), prefix, -1, false);
+    mp_wfReconstructor_noTilt =  WFRbuilderNoTilt.getReconstructor();
 }
 
 void SGE_Evaluator::logWFstatsToFile(bool doLog)
@@ -281,6 +303,31 @@ void SGE_Evaluator::logWFstatsToFile(bool doLog)
     else
         if (m_wfStatsLog.is_open())
             m_wfStatsLog.close();
+}
+
+void SGE_Evaluator::removeTiltOnGPU()
+{
+    int N = mp_GridLayout->mNumSubapertures;
+    float* d_x = mp_IHgradient->getGPUCopy();
+    float* d_y = d_x + N;
+    float* d_reduce_x;
+    float* d_reduce_y;
+    
+    // Prepare reduction array
+    if (mp_d_gradientReductionArr == nullptr)
+        cudaMalloc(&mp_d_gradientReductionArr, 2* N * sizeof(float));
+    d_reduce_x = mp_d_gradientReductionArr;
+    d_reduce_y = d_reduce_x + N;
+    
+    // Launch kernels
+    deviceReduceKernel<<<1, N>>>(d_x, d_reduce_x, N);
+    deviceReduceKernel<<<1, N>>>(d_y, d_reduce_y, N);
+    deviceReduceKernel<<<1, N>>>(d_reduce_x, d_reduce_x, N);
+    deviceReduceKernel<<<1, N>>>(d_reduce_y, d_reduce_y, N);
+    deviceRemoveTilt<<<1, 2*N>>>(d_x, d_reduce_x, N);
+
+    // Print error of kernel launch
+    printCE(cudaGetLastError());
 }
 
 void SGE_Evaluator::initDebugFields()

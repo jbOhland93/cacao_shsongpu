@@ -51,6 +51,7 @@ set(INCLUDEFILES
     ao188_preprocessor.h
     findspots.h
     shs_on_gpu/evaluator/SGE_CUDAkernel.hpp
+    shs_on_gpu/evaluator/SGE_CUDAremoveTilt.hpp
     shs_on_gpu/evaluator/SGE_Evaluator.hpp
     shs_on_gpu/evaluator/SGE_Evaluator_interface.h
     shs_on_gpu/evaluator/SGE_GridLayout.hpp

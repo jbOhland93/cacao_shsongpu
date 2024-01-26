@@ -16,9 +16,11 @@ public:
     // Ctor, doing the initialization
     SGE_Evaluator(
         FUNCTION_PARAMETER_STRUCT* fps, // process related fps
-        IMAGE* ref,                 // Stream holding the reference data
         IMAGE* cam,                 // Camera stream
         IMAGE* dark,                // Dark stream
+        IMAGE* refPos,              // Stream with SHS reference positions
+        IMAGE* refMask,             // Stream with SHS reference mask
+        IMAGE* refInt,              // Stream with SHS reference intensity
         const char* streamPrefix,   // Prefix for the ISIO streams
         int deviceID = 0);          // ID of the GPU device
     // Dtor
@@ -27,6 +29,7 @@ public:
     // Triggers the evaluation
     errno_t evaluateDo(
         bool useAbsRef,     // Reference will be absolute w.r.t. the MLA grid
+        bool removeTilt,    // Tilt will be subtracted
         bool calcWF,        // Calculate the WF from the gradient field
         bool cpyGradToCPU,  // Copy the evaluated gradient to the CPU
         bool cpyWfToCPU,    // Copy the WF to the CPU, if reconstructed
@@ -46,14 +49,15 @@ private:
     spImHandler2D(float) mp_IHgradient;
     // The image holding the intensity over the pupil
     spImHandler2D(float) mp_IHintensity;
-    // The modal WF reconstructor on the pupil of the reference
-    spWFReconst mp_wfReconstructor;
+    // The modal WF reconstructors on the pupil of the reference
+    spWFReconst mp_wfReconstructor_tilt;
+    spWFReconst mp_wfReconstructor_noTilt;
     // The image holding the reconstructed WF
     spImHandler2D(float) mp_IHwf;
 
     // Setup functions
     void setupCudaEnvironment(int deviceID);
-    void setupReferenceManager(IMAGE* ref, IMAGE* cam, IMAGE* dark);
+    void setupReferenceManager(IMAGE* cam, IMAGE* dark, IMAGE* refPos, IMAGE* refMask, IMAGE* refInt);
     void adoptInputStreams(std::string camName, std::string darkName);
     void setupGridLayout(int deviceID);
     void createOutputImages();
@@ -62,6 +66,8 @@ private:
     // Misc
     void logWFstatsToFile(bool doLog);
     std::ofstream m_wfStatsLog;
+    float* mp_d_gradientReductionArr = nullptr; // Array used during tilt removal
+    void removeTiltOnGPU();
 
     // Members for debugging
     cudaEvent_t m_cuEvtStart, m_cuEvtStop;  // Events for timing

@@ -3,7 +3,8 @@
 ModalWFReconstructorBuilder::ModalWFReconstructorBuilder(
         spImHandler2D(uint8_t) mask,
         std::string streamPrefix,
-        int numModes)
+        int numModes,
+        bool includeTilt)
     : mStreamPrefix(streamPrefix)
 {
     int pupilWidth = mask->mWidth;
@@ -15,8 +16,8 @@ ModalWFReconstructorBuilder::ModalWFReconstructorBuilder(
     mGradLength = mWfLenght*2;
     
     spRspnsSampler sampler = ResponseSampler::makeSampler(mPupil, 2.1);
-    auto samples = sampler->generateSamples(2./(pupilWidth+pupilHeight));
-    mModeGenerator = WFGradModeGenerator::makeWFGradModeGenerator(samples, numModes);
+    auto samples = sampler->generateSamples(2./(pupilWidth+pupilHeight), includeTilt);
+    mModeGenerator = WFGradModeGenerator::makeWFGradModeGenerator(samples);
     
     calcModes(numModes);
 }

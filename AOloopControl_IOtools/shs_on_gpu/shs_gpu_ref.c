@@ -34,17 +34,11 @@ static long      fpi_mlapitch = -1;
 static float *shsfoclen;
 static long      fpi_shsfoclen = -1;
 
+static float *minRelIntensity;
+static long      fpi_minRelIntensity = -1;
+
 static float *minSpotPrec;
 static long      fpi_minSpotPrec = -1;
-
-static char *savingLocation;
-static long      fpi_savingLocation = -1;
-
-static uint32_t *loopnumber;
-static long      fpi_loopnumber = -1;
-
-static char *loopname;
-static long      fpi_loopname = -1;
 
 static int64_t *visualize;
 static long      fpi_visualize = -1;
@@ -71,7 +65,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_FLOAT32,
-        ".campixsize",
+        ".shs.campixsize",
         "camera pixel size in um",
         "13.7",
         CLIARG_HIDDEN_DEFAULT,
@@ -80,7 +74,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_FLOAT32,
-        ".mlapitch",
+        ".shs.mlapitch",
         "MLA pitch in um",
         "250.0",
         CLIARG_HIDDEN_DEFAULT,
@@ -89,7 +83,7 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_FLOAT32,
-        ".shsfoclen",
+        ".shs.shsfoclen",
         "MLS-to-sensor distance in um",
         "11330.0",
         CLIARG_HIDDEN_DEFAULT,
@@ -98,7 +92,16 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_FLOAT32,
-        ".minSpotPrec",
+        ".mask.minRelInt",
+        "Minimum subaperture intensity comapred to max [0:1]",
+        "0.2",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &minRelIntensity,
+        &fpi_minRelIntensity
+    },
+    {
+        CLIARG_FLOAT32,
+        ".mask.minSpotPrec",
         "Minimum spot precision in urad, for generating a mask",
         "60.0",
         CLIARG_HIDDEN_DEFAULT,
@@ -106,35 +109,8 @@ static CLICMDARGDEF farg[] =
         &fpi_minSpotPrec
     },
     {
-        CLIARG_STR,
-        ".savingLocation",
-        "relative path for saving the reference without trailing slash",
-        "../SHS_REF",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &savingLocation,
-        &fpi_savingLocation
-    },
-    {
-        CLIARG_UINT32,
-        ".loopnumber",
-        "The number of the AO loop, used for stream naming",
-        "0",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &loopnumber,
-        &fpi_loopnumber
-    },
-    {
-        CLIARG_STR,
-        ".loopname",
-        "The name of the AO loop, used for stream naming",
-        "",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &loopname,
-        &fpi_loopname
-    },
-    {
         CLIARG_ONOFF,
-        ".visualize",
+        ".option.visualize",
         "Generates additional image streams to visually assess the process",
         "0",
         CLIARG_HIDDEN_DEFAULT,
@@ -268,7 +244,6 @@ static errno_t compute_function()
         *mlapitch,
         *shsfoclen,
         loopcnt,
-        savingLocation,
         *visualize);
     printf("\nSGR recorder status: %s", get_SGRR_state_descr(recorder));
     // === RECORDER SETUP DONE
@@ -280,7 +255,10 @@ static errno_t compute_function()
     INSERT_STD_PROCINFO_COMPUTEFUNC_END
 
     // === EVALUATING RESULTS HERE
-    errno_t err = SGRR_evaluate_rec_buffers(recorder, *minSpotPrec);
+    errno_t err = SGRR_evaluate_rec_buffers(
+        recorder,
+        *minRelIntensity,
+        *minSpotPrec);
     //processinfo_update_output_stream(processinfo, outimg.ID);
     
     if (err == RETURN_SUCCESS)

@@ -3,8 +3,6 @@
 
 extern "C" {
     #include "../../../../../src/CommandLineInterface/CLIcore.h"
-    #include "../../../../../src/COREMOD_iofits/savefits.h"
-    #include "../../../../../src/COREMOD_memory/read_shmim.h"
 }
 
 #include <string>
@@ -28,7 +26,6 @@ SGR_Recorder::SGR_Recorder(
     float mlaPitch_um,
     float mlaDist_um,
     uint32_t numSamples,
-    const char* savingLocation,
     bool visualize)
     :
     mp_fps(fps),
@@ -38,7 +35,6 @@ SGR_Recorder::SGR_Recorder(
     mMlaPitch_um(mlaPitch_um),
     mMlaDist_um(mlaDist_um),
     mSamplesExpected(numSamples),
-    mSavingLocation(savingLocation),
     mVisualize(visualize)
 {
     // Check if input and dark images are compatible
@@ -166,7 +162,9 @@ errno_t SGR_Recorder::sampleDo()
     }
 }
 
-errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
+errno_t SGR_Recorder::evaluateRecBuffers(
+    float minRelIntensity,
+    float uradPrecisionThresh)
 {
     if (mState != RECSTATE::READY_FOR_EVAL)
     {
@@ -200,9 +198,9 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         // Prepare final reference names
         std::string refBaseName = mpInput->name;
         refBaseName.append("_");
-        std::string refNameSuffix = "RefPositions";
-        std::string maskNameSuffix = "RefMask";
-        std::string intensityNameSuffix = "RefIntensity";
+        std::string refNameSuffix = "SHSRef_Positions";
+        std::string maskNameSuffix = "SHSRef_Mask";
+        std::string intensityNameSuffix = "SHSRef_Intensity";
         std::string refName = refBaseName;
         std::string maskName = refBaseName;
         std::string intensityName = refBaseName;
@@ -234,7 +232,8 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         uint32_t cbSize = mIHintensityREC->getImage()->md->CBsize;
         // Initialize fields for statistics
         std::vector<float> vI, vX, vY;
-        float avgI, avgX, avgY, stdDvX, stdDvY, stdDvXY;
+        float maxI, avgI, avgX, avgY, stdDvX, stdDvY, stdDvXY;
+        maxI = 0;
         
         for (uint32_t ix = 0; ix < mGridSize.mX; ix++)
             for (uint32_t iy = 0; iy < mGridSize.mY; iy++)
@@ -251,6 +250,7 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
                     avgY += vY.at(iz);
                 }
                 avgI /= cbSize;
+                maxI = maxI > avgI ? maxI : avgI;
                 avgX /= cbSize;
                 avgY /= cbSize;
                 IHavgI->write(avgI, ix, iy);
@@ -269,7 +269,20 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
 
                 IHstdDvP->write(stdDvX, ix, iy);
                 IHstdDvP->write(stdDvY, ix+mGridSize.mX, iy);
-                if (stdDvXY <= pxPrecision)
+            }
+
+        // Build mask
+        for (uint32_t ix = 0; ix < mGridSize.mX; ix++)
+            for (uint32_t iy = 0; iy < mGridSize.mY; iy++)
+            {
+
+                float stdDvX = IHstdDvP->read(ix, iy);
+                float stdDvY = IHstdDvP->read(ix+mGridSize.mX, iy);
+                float stdDvXY = sqrt(stdDvX*stdDvX+stdDvY*stdDvY);
+
+                float relInt = IHavgI->read(ix, iy) / maxI;
+
+                if (stdDvXY <= pxPrecision && relInt >= minRelIntensity)
                     IHspotMask->write(1, ix, iy);
                 else
                     IHspotMask->write(0, ix, iy);
@@ -356,20 +369,6 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
         }
         printf("Metadata written to ISIO keywords.\n");
 
-        printf("Saving reference fits files ...\n");
-        // Guarantee that saving destination exists
-        struct stat sb;
-        if (!(stat(mSavingLocation.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode)))
-            if (mkdir(mSavingLocation.c_str(), 0700) != 0)
-            {
-                mErrDescr = "Error creating saving folder for fits files.";
-                mState = RECSTATE::ERROR;
-                return RETURN_FAILURE;
-            }
-        // Save files
-        saveImage(IHspotMask);
-        saveImage(IHcpuRef);
-        saveImage(IHavgI);
         // Save data to cacaovars
         std::string cacaovarsName = mp_fps->md->datadir;
         cacaovarsName += "/cacaovars.bash";
@@ -378,12 +377,6 @@ errno_t SGR_Recorder::evaluateRecBuffers(float uradPrecisionThresh)
                         << numOfValidSpots <<"\n";
         cacaovarsOut    << "export CACAO_WFSysize="
                         << 1 <<"\n";
-        cacaovarsOut    << "export CACAO_SHSREF="
-                        << IHcpuRef->getImage()->name <<"\n";
-        cacaovarsOut    << "export CACAO_SHSREF_MASK="
-                        << IHspotMask->getImage()->name <<"\n";
-        cacaovarsOut    << "export CACAO_SHSREF_INT="
-                        << IHavgI->getImage()->name <<"\n";
         cacaovarsOut.close();
 
         mState = RECSTATE::FINISH;
@@ -537,7 +530,6 @@ void SGR_Recorder::prepareSpotFinding()
         spotFitter.expressFit(
             particlesFiltered, mGridRectSize, 2,
             mTeststreamPrefix, mVisualize);    
-    
         // Span a preliminary search grid, based on the fit positions
         std::vector<Point<double>> fitSpots = spotFitter.getFittedSpotCenters();
         spanCoarseGrid(spotFitter.getFittedSpotCenters());
@@ -590,7 +582,7 @@ std::vector<Point<uint32_t>> SGR_Recorder::filterByMinDistance(
     std::vector<Point<uint32_t>> pIn,
     double minDistance)
 {
-    std::vector<Point<uint32_t>> pFiltered;
+    std::vector<Point<uint32_t>> pFilteredDistance;
     float keepoutDistance = 0.8*mApertureDiameter_px;
     for (int i = 0; i < pIn.size(); i++)
     {
@@ -605,8 +597,22 @@ std::vector<Point<uint32_t>> SGR_Recorder::filterByMinDistance(
                     break;
             }
         if (minDistance >= keepoutDistance)
-            pFiltered.push_back(pIn.at(i));
+            pFilteredDistance.push_back(pIn.at(i));
     }
+
+    // Throw away points in proximity to image borders
+    std::vector<Point<uint32_t>> pFiltered;
+    int dFromEdge = mApertureDiameter_px/2+1;
+    int w = mpInput->md->size[0];
+    int h = mpInput->md->size[1];
+    for (int i = 0; i < pFilteredDistance.size(); i++)
+    {
+        Point<uint32_t> cur = pFilteredDistance.at(i);
+        if (cur.mX > dFromEdge && cur.mY > dFromEdge &&
+            w-cur.mX > dFromEdge && h-cur.mY > dFromEdge)
+            pFiltered.push_back(cur);
+    }
+
     printf("Number of spots after filtering: %d\n",
         (int) pFiltered.size());
     
@@ -670,61 +676,6 @@ void SGR_Recorder::spanCoarseGrid(std::vector<Point<double>> fitSpots)
             }
         mIHgridVisualization->updateWrittenImage();        
     }
-}
-
-std::string SGR_Recorder::saveImage(spIHBase imageHandler)
-{
-    const char* imageName = imageHandler->getImage()->name;
-    std::string fitsName;
-    // First resolve the image ID
-    long id = read_sharedmem_image(imageName);
-    if (id >= 0)
-    {   // Then, save the file.
-        fitsName = generateFitsName(imageName);
-        errno_t err = save_fits(imageName, fitsName.c_str());
-        if (err == RETURN_SUCCESS)
-            printf("\t=> Written to %s\n", fitsName.c_str());
-        else
-        {
-            mErrDescr.append("SGR_Recorder::saveImage: ");
-            mErrDescr.append("Error on saving fits file.");
-            mState = RECSTATE::ERROR;
-        }
-    }
-    else
-    {
-        mErrDescr.append("SGR_Recorder::saveImage: ");
-        mErrDescr.append("Could not resolve image id before saving fits.");
-        mState = RECSTATE::ERROR;
-    }
-    return fitsName;
-}
-
-std::string SGR_Recorder::generateFitsName(std::string prefix) {
-    std::time_t t = std::time(nullptr);
-    std::tm* now = std::localtime(&t);
-    
-    std::tm gmt = *now;
-    std::time_t utc_time = mktime(&gmt);
-
-    int offset_minutes = (utc_time - t) / 60;
-
-    // Convert to hours and minutes
-    int offset_hours = offset_minutes / 60;
-    offset_minutes = std::abs(offset_minutes % 60);
-
-    std::ostringstream oss;
-    oss << mSavingLocation << "/" << prefix << "_"
-        << (now->tm_year + 1900) << '-'
-        << std::setfill('0') << std::setw(2) << (now->tm_mon + 1) << '-'
-        << std::setfill('0') << std::setw(2) << now->tm_mday << "_T"
-        << std::setfill('0') << std::setw(2) << now->tm_hour << '.'
-        << std::setfill('0') << std::setw(2) << now->tm_min
-        << std::setfill('0') << std::setw(3) << std::internal << std::showpos << offset_hours << std::noshowpos << "."
-        << std::setfill('0') << std::setw(2) << std::abs(offset_minutes)
-        << ".fits";
-    
-    return oss.str();
 }
 
 }

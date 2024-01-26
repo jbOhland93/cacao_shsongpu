@@ -10,6 +10,10 @@ spPupil Pupil::makePupil(int width, int height, uint8_t* pupilArr)
 Pupil::~Pupil()
 {
     delete[] mPupilArr;
+    if (mNormedTiltXarr != nullptr);
+        delete[] mNormedTiltXarr;
+    if (mNormedTiltYarr != nullptr);
+        delete[] mNormedTiltYarr;
 }
 
 void Pupil::printPupil()
@@ -50,6 +54,89 @@ bool Pupil::isInProximity(int pX, int pY, double distance) {
     }
 
     return false;
+}
+
+double* Pupil::getNormedTiltArrX()
+{
+    if (mNormedTiltXarr != nullptr)
+        return mNormedTiltXarr;
+    else
+    {
+        // Build tilt array
+        mNormedTiltXarr = new double[mNumValidFields];
+        int i = 0;
+        double sum = 0;
+        for (int x = 0; x < mWidth; ++x)
+            for (int y = 0; y < mHeight; ++y)
+            {
+                if (mPupilArr[y*mWidth+x])
+                {
+                    mNormedTiltXarr[i] = x;
+                    sum += x;
+                    i++;
+                }
+            }
+        subtractMeanAndNormalize(mNormedTiltXarr);
+        
+        // Return tilt array
+        return mNormedTiltXarr;
+    }
+}
+
+double* Pupil::getNormedTiltArrY()
+{
+    if (mNormedTiltYarr != nullptr)
+        return mNormedTiltYarr;
+    else
+    {
+        // Build raw tilt array
+        mNormedTiltYarr = new double[mNumValidFields];
+        int i = 0;
+        double sum = 0;
+        for (int x = 0; x < mWidth; ++x)
+            for (int y = 0; y < mHeight; ++y)
+            {
+                if (mPupilArr[y*mWidth+x])
+                {
+                    mNormedTiltYarr[i] = y;
+                    sum += y;
+                    i++;
+                }
+            }
+        subtractMeanAndNormalize(mNormedTiltYarr);
+                
+        // Return tilt array
+        return mNormedTiltYarr;
+    }
+}
+
+void Pupil::subtractMeanAndNormalize(double* arr)
+{
+    // Subtract mean
+    double sum = 0;
+    for (int i = 0; i < mNumValidFields; i++)
+        sum += arr[i];
+    double mean = sum / mNumValidFields;
+    for (int i = 0; i < mNumValidFields; i++)
+        arr[i] -= mean;
+    
+    // Normalize
+    double squareSum = 0;
+    for (int i = 0; i < mNumValidFields; i++)
+        squareSum += arr[i]*arr[i];
+    double norm = sqrt(squareSum);
+    for (int i = 0; i < mNumValidFields; i++)
+        arr[i] /= norm;
+
+    // Test
+    squareSum = 0;
+    for (int i = 0; i < mNumValidFields; i++)
+        squareSum += arr[i]*arr[i];
+    if (abs(squareSum-1) > 1e-6)
+    {
+        printf("Pupil::subtractMeanAndNormalize: faulty normalization (square sum = %.6f)\n", squareSum);
+        throw std::runtime_error("Pupil::subtractMeanAndNormalize: faulty normalization.");
+    }
 }
 
 Pupil::Pupil(int width, int height, uint8_t* pupilArr)

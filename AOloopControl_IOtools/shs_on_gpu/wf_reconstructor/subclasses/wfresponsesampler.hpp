@@ -10,7 +10,7 @@ class ResponseSampler {
 public:
     static spRspnsSampler makeSampler(spPupil pupil, double proximity);
 
-    std::vector<std::pair<spWF, spWFGrad>> generateSamples(double responseWidth);
+    std::vector<std::pair<spWF, spWFGrad>> generateSamples(double responseWidth, bool includeTilt);
 
 private:
     spPupil mPupil;

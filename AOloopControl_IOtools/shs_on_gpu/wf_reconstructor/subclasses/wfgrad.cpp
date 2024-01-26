@@ -29,6 +29,24 @@ double* WFGrad::getDataPtrDY(int* arrSizeOut)
     return ptrDY;
 }
 
+void WFGrad::subtractTilt()
+{
+    double sumX = 0;
+    double sumY = 0;
+    for (int i = 0; i < mPupil->getNumValidFields(); i++)
+    {
+        sumX = ptrDX[i];
+        sumY = ptrDY[i];
+    }
+    double meanX = sumX/mPupil->getNumValidFields();
+    double meanY = sumY/mPupil->getNumValidFields();
+    for (int i = 0; i < mPupil->getNumValidFields(); i++)
+    {
+        ptrDX[i] -= meanX;
+        ptrDY[i] -= meanY;
+    }
+}
+
 void WFGrad::printGrd()
 {
     double* grdX2D = mPupil->createNew2DarrFromValues(

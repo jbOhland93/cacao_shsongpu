@@ -14,9 +14,11 @@ typedef void * SGEEHandle;
 // Constructor
 SGEEHandle create_SGE_Evaluator(
     FUNCTION_PARAMETER_STRUCT* fps, // process relatef fps
-    IMAGE* ref,                 // Stream with SHS reference positions
     IMAGE* shscam,              // Stream of the SHS camera
     IMAGE* shsdark,             // Stream containing the darkframe for the SHS camera
+    IMAGE* refPos,              // Stream with SHS reference positions
+    IMAGE* refMask,             // Stream with SHS reference mask
+    IMAGE* refInt,              // Stream with SHS reference intensity
     const char* streamPrefix);  // Prefix for the ISIO streams
     
 // Desctructor
@@ -26,6 +28,7 @@ void free_SGE_Evaluator(SGEEHandle);
 errno_t SGEE_eval_do(
     SGEEHandle p,
     int64_t useAbsRef,     // Reference will be absolute w.r.t. the MLA grid
+    int64_t removeTilt,    // Tilt will be subtracted
     int64_t calcWF,        // Calculate the WF from the gradient field
     int64_t cpyGradToCPU,  // Copy the evaluated gradient to the CPU
     int64_t cpyWfToCPU,    // Copy the WF to the CPU, if reconstructed
