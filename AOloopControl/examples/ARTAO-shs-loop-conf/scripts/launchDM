@@ -16,6 +16,7 @@ source cacaovars.*.bash
 DM_ADDRESS="192.168.0.1"
 #INPUT_STREAM="dm${CACAO_DMINDEX}disp"
 INPUT_STREAM="aol${CACAO_LOOPNUMBER}_dmdisp"
+DM_DC_OFFSET="0.26"
 
 export SESSION_NAME="DO_DM-${CACAO_LOOPNUMBER}"
 CACAO_DMSETTINGS_FILE="${PWD}/dmsettings"
@@ -48,6 +49,7 @@ else
   echo "" >> ${CACAO_DMSETTINGS_FILE} # make sure we start in new line
   echo "DM-IPAddress=${DM_ADDRESS}" >> ${CACAO_DMSETTINGS_FILE}
   echo "actuatorCount=${CACAO_DMxsize}" >> ${CACAO_DMSETTINGS_FILE}
+  echo "actuatorDCoffset=${DM_DC_OFFSET}" >> ${CACAO_DMSETTINGS_FILE}
   echo "DMcombStream=${INPUT_STREAM}" >> ${CACAO_DMSETTINGS_FILE}
   echo "CPUcore=${CPU}" >> ${CACAO_DMSETTINGS_FILE}
 
