@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Applies logged DM values to a ZPO channel"
+
+
+# Extended description
+MSextdescr="Loads latest or custom DM values from the logging directory to an input of the DM combination.
+
+-f <filename> will allow for custom files - default is the latest logged file.
+-c <channel> will set the ZP channel of the DM - default is 7.
+"
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+# prerequisites
+#
+RequiredCommands=( milk )
+RequiredFiles=()
+RequiredPipes=()
+RequiredDirs=()
+
+# Image stream names
+DMDISP="dm${CACAO_DMINDEX}disp"
+
+# SCRIPT OPTIONS
+# syntax: "short:long:functioncall:args[types]:description"
+file_default="latest logged"
+file=${file_default}
+MSopt+=( "f:fits:set_file:fits[string]:select the file to be loaded" )
+function set_file() {
+	file="$1"
+}
+
+ZP_CH="aol${CACAO_LOOPNUMBER}_dmZP7"
+MSopt+=( "c:channel:set_zpch:channel[long]:select the destination ZP channel" )
+function set_zpch() {
+	ZP_CH="aol${CACAO_LOOPNUMBER}_dmZP$1"
+}
+
+source milk-argparse
+
+echo "Source file selection: $file"
+echo "Destination ZP channel: $ZP_CH"
+
+# Checking destination
+streamcheckOK="OK"
+checkstream ${ZP_CH}
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	cacaomsglog "ERROR streamcheck - WFS mask does not exist"
+	exit 1
+else
+    echo "Stream $ZP_CH exists."
+fi
+
+# Checking fits file
+if [[ $file == $file_default ]]; then
+    # Default - use latest logged file
+    # Set directories
+    DMVAL_LOGDIR="logdir/aol_artao-loop/dm${CACAO_DMINDEX}disp"
+    DMVAL_CONFDIR="conf"
+    # Find latest file
+    DMVAL_SRC=$(find "$DMVAL_LOGDIR" -type f -name '*.fits' | sort | tail -n 1)
+    DMVAL_SRC=$(basename "$DMVAL_SRC")
+    # Copy and link file
+    if [[ -n $DMVAL_SRC ]]; then
+        cp "$DMVAL_LOGDIR/$DMVAL_SRC" "$DMVAL_CONFDIR"
+        ln -sf ${DMVAL_SRC} ${DMVAL_CONFDIR}/${DMDISP}.fits
+        echo "DM value file $DMVAL_SRC copied successfully."
+        file=${DMDISP}.fits
+    else
+        echo "No files found in $DMVAL_LOGDIR."
+        exit 1
+    fi
+else
+    # Custom file
+    if [ -f $file ]; then
+        echo "File $file found."
+    else
+        echo "FITS file $file does not exist. Aborting."
+        exit 1
+    fi
+fi
+
+# Load fits file
+milk-FITS2shm "${DMVAL_CONFDIR}/${DMDISP}.fits" ${ZP_CH}
+
+cacaomsglog "END"

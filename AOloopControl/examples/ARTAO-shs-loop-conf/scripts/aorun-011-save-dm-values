@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Save current DM values to fits"
+
+
+# Extended description
+MSextdescr="Takes a snapshot of the dmdisp stream and stores it to a fits file for later use.
+
+The values can be loaded into an input channel of the DM combination to apply it using the
+aorun-012-load-dm-values script.
+"
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+# prerequisites
+#
+RequiredCommands=( milk )
+RequiredFiles=()
+RequiredPipes=()
+RequiredDirs=()
+
+# Image stream names
+DMDISP="dm${CACAO_DMINDEX}disp"
+
+source milk-argparse
+
+# Checking dispch
+streamcheckOK="OK"
+if [ -z "${CACAO_SHSREF_MASK}" ]; then
+	echo "Error: Environment variable $1 is not set."
+	exit 1
+fi
+
+streamcheckOK="OK"
+checkstream ${DMDISP}
+if [ ${streamcheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
+	cacaomsglog "ERROR streamcheck - WFS mask does not exist"
+	exit 1
+fi
+
+# Save fits file
+milk-shm2FITS ${DMDISP} conf/${DMDISP}.fits
+
+# Copy fits file to logging directory
+source cacaofuncs-log
+cacao-calib-logFITSfile ${DMDISP}
+
+cacaomsglog "END"
