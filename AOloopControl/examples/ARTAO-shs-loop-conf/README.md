@@ -241,7 +241,7 @@ Now, compute the control modes, in both WFS and DM spaces.
 Set GPU device (if GPU available).
 
 ```bash
-cacao-fpsctrl setval compstrCM svdlim 0.01
+cacao-fpsctrl setval compstrCM svdlim 0.03
 cacao-fpsctrl setval compstrCM GPUdevice 0
 ```
 Then run the compstrCM process to compute CM and load it to shared memory :
@@ -306,10 +306,10 @@ cacao-aorun-070-cmval2dm start
 # Set loop gain
 cacao-fpsctrl setval mfilt loopgain 0.081
 # Set loop mult
-cacao-fpsctrl setval mfilt loopmult 0.999
+cacao-fpsctrl setval mfilt loopmult 0.99
 
 # set modal gains, mults and limits
-cacao-aorun-061-setmgains 0.3 -f 0.7 -t 1.4
+cacao-aorun-061-setmgains 0.3 -f 0.7 -t 1
 cacao-aorun-062-setmmults 0.05 -f 0.9 -t 1.0
 cacao-aorun-063-setmlimits 0.8 -f 0.05 -t 1.0
 
@@ -327,6 +327,8 @@ cacao-wfsref-setflat
 ### 9.3 Zero Point Offsetting using Zernike Polynomials
 A common way to change the shape of the focal spot is to apply a known amount of Zernike aberrations to the beam. As the DM of the ARTAO system does not feature a regular grid of actuators, this is most easily done in WFS space. In this example, we are applying Zernike aberrations to the ZPO stream of the WFS acquisition process.
 ```bash
+# Activate reference correction, if not already done:
+cacao-fpsctrl setval acquWFS comp.WFSrefc ON
 # Check the available Zernike polynomials of the script
 ./scripts/aorun-010-add-zernike-wfs-offset -h
 # Example: apply a bit of defocusing and some negative Coma Y

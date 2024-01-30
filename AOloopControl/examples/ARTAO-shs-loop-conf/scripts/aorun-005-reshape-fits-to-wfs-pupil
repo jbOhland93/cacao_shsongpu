@@ -34,9 +34,13 @@ FITS_FOLDER=$(dirname "$FITS_PATH")
 FITS_NAME=$(basename "$FITS_PATH")
 echo "Reshaping $FITS_NAME in folder $FITS_FOLDER."
 
+if [ -z "${CACAO_SHSREF_MASK}" ]; then
+	echo "Error: Environment variable $1 is not set."
+	exit 1
+fi
+
 streamcheckOK="OK"
-IMMASK=aol${CACAO_LOOPNUMBER}_shsCam_RefMask
-checkstream $IMMASK
+checkstream ${CACAO_SHSREF_MASK}
 if [ ${streamcheckOK} == "FAIL" ]; then
 	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] stream check failed"
 	exit 1
@@ -74,11 +78,11 @@ loadfits ${FITS_NAME} ${LOCAL_FITS_IM}
 imcpshm ${LOCAL_FITS_IM} ${SHM_FITS_IM}
 
 # Read mask
-readshmim ${IMMASK}
+readshmim ${CACAO_SHSREF_MASK}
 
 # Reshape image
 cacaoio.pupilReshape .linesAsSlices ON
-cacaoio.pupilReshape ${SHM_FITS_IM} ${IMMASK}
+cacaoio.pupilReshape ${SHM_FITS_IM} ${CACAO_SHSREF_MASK}
 
 # Save reshaped image to fits
 readshmim ${SHM_RESHAPE}
