@@ -92,6 +92,9 @@ export CACAO_FPSPROC_LOG_SHSONGPU_WF="ON"
 # Log SHS intensity (1D)
 # fps name: log-Intensity-8
 export CACAO_FPSPROC_LOG_SHSONGPU_INT="OFF"
+# Log WFS control mode coefficients (1D)
+# fps name: log-CModes-8
+export CACAO_FPSPROC_LOG_CMODES="ON"
 
 
 # DM combination

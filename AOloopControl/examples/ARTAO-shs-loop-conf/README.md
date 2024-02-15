@@ -215,20 +215,29 @@ The following files are written to ./conf/RMmodesDM/
 | `SmodesC.fits    `   | *Simple* (single actuator) pokes                    |
 
 ### 8.2. Acquire WFS response
-In this example, we are going to use single actuator pokes instead of the more advanced Hadamard pokes as used by the SCExAO examples. This is because of two reasons related to the bimorph DM of ARTAO:
-1. The response functions of the bimorph DM actuators are not localized like the ones of MEMS DMs but distributed over the whole aperture. This means that the SNR is inherently better for single actuator pokes than for in the case of a MEMS DM. Therefore, ARTAO does not profit from Hadamard poking to the same amount.
-2. The hysteresis of the piezos contributes to the response matrix in a deterministic manner when using single actuator pokes, while this is uncertain for Hadamard modes due to the irregular control sequence for each actuator.
+In this example, we are going to use the Hadamard poking that is part of cacao, as this maximizes the signal over the aperture and enables us to record a cleaner response.
+To do so, we record the linear response to the Hadamard poke matrix generated in the last step and will "decode" the recorded linear response back into the response of each individual actuator afterwards.
 
 ```bash
-# Acquire response matrix - Single actuator modes
-# 10 cycles
-cacao-aorun-030-acqlinResp -n 10 SmodesC
+# Acquire response matrix to Hadamard modes, 10 cycles.
+cacao-aorun-030-acqlinResp -n 10 HpokeC
 ```
-This could take a while. Check status on milk-procCTRL and/or watch the wavefront evolution. To inspect results, reshape the file conf/RMmodesWFS/HpokeC.WFSresp.fits:
+This could take a while. Check status on milk-procCTRL.
+To inspect results, display file conf/RMmodesWFS/HpokeC.WFSresp.fits.
+
+### Decode Hadamard matrix
 ```bash
+cacao-aorun-031-RMHdecode
+```
+To inspect results, display file conf/RMmodesWFS/zrespM-H.fits.
+This should visually look like a zonal response matrix.
+```bash
+# Copy decoded response matrix to a filename without dash
+# This is an issue of the reshape script and should be fixed in the future.
+cp conf/RMmodesWFS/zrespM-H.fits conf/RMmodesWFS/zrespMH.fits
 # Reshape the original fits file to the pupil
-./scripts/aorun-005-reshape-fits-to-wfs-pupil conf/RMmodesWFS/SmodesC.WFSresp.fits
-# Inspect the output file conf/RMmodesWFS/SmodesC.WFSresp_rshp.fits
+./scripts/aorun-005-reshape-fits-to-wfs-pupil conf/RMmodesWFS/zrespMH.fits
+# Inspect the output file conf/RMmodesWFS/conf/RMmodesWFS/zrespMH_rshp.fits
 ```
 
 ### 8.3. Compute control matrix (straight)
@@ -241,7 +250,7 @@ Now, compute the control modes, in both WFS and DM spaces.
 Set GPU device (if GPU available).
 
 ```bash
-cacao-fpsctrl setval compstrCM svdlim 0.03
+cacao-fpsctrl setval compstrCM svdlim 0.01
 cacao-fpsctrl setval compstrCM GPUdevice 0
 ```
 Then run the compstrCM process to compute CM and load it to shared memory :
@@ -304,12 +313,12 @@ cacao-aorun-070-cmval2dm start
 
 ```bash
 # Set loop gain
-cacao-fpsctrl setval mfilt loopgain 0.081
+cacao-fpsctrl setval mfilt loopgain 0.27
 # Set loop mult
 cacao-fpsctrl setval mfilt loopmult 0.99
 
 # set modal gains, mults and limits
-cacao-aorun-061-setmgains 0.3 -f 0.7 -t 1
+cacao-aorun-061-setmgains 1.0 -f 0.9 -t 1.4
 cacao-aorun-062-setmmults 0.05 -f 0.9 -t 1.0
 cacao-aorun-063-setmlimits 0.8 -f 0.05 -t 1.0
 
