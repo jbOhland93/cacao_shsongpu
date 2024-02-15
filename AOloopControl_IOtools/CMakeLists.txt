@@ -94,6 +94,7 @@ set(SCRIPTS
     scripts/cacao-fpslistadd-SHSONGPU_EVAL
     scripts/cacao-fpslistadd-SHSONGPU_REF
     scripts/cacao-setup-logging-fps
+    scripts/specifications/cacao-fpslistadd-LOG_CMODES
     scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_SHS
     scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_GRAD
     scripts/specifications/cacao-fpslistadd-LOG_SHSONGPU_WF
