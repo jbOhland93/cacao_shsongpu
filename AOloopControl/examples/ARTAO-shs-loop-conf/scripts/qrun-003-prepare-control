@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+
+# Script to record a DM response and prepare all processes
+# to close the loop. Requires the WF metrology to be running.
+# External dependendies: ds9
+
+source cacao-check-cacaovars
+
+# Measure the latency
+cacao-aorun-021-mlat-slowDM -w
+
+echo -e "\n\nLatency measurement complete.\n\n"
+sleep 1
+
+# Prepare the poke modes
+cacao-mkDMpokemodes
+
+wait_for_file() {
+    local file=$1
+    while [ ! -f $file ]; do
+        sleep 1
+    done
+}
+
+wait_for_file "conf/RMmodesDM/HpokeC.fits"
+
+# Function to take a response repeatedly if the user is unhappy
+rec_resp() {
+    local npokes=$1
+    # Record the response    
+    cacao-aorun-030-acqlinResp -n "$npokes" HpokeC
+    # Decode the response
+    cacao-aorun-031-RMHdecode
+
+    # Display the decoded response
+    wait_for_file "conf/RMmodesWFS/zrespM-H.fits"
+    cp conf/RMmodesWFS/zrespM-H.fits conf/RMmodesWFS/zrespMHR.fits
+    ./scripts/aorun-005-reshape-fits-to-wfs-pupil conf/RMmodesWFS/zrespMHR.fits
+    wait_for_file "conf/RMmodesWFS/zrespMHR_rshp.fits"
+    ds9 conf/RMmodesWFS/zrespMHR_rshp.fits &
+    bg_pid=$!
+
+    # Prompt the user for yes or no
+    read -p "Does the response look appropriate? (yes/no): " answer
+
+    # Stop the mask displaying
+    kill $bg_pid
+
+    # Continue or exit
+    if [ "$answer" = "yes" ]; then
+        return 0
+    else
+        echo -e "\nPlease enter the number of iterations for the next run. Current: ${npokes}"
+        read -p "Number of iterations: " iter
+        rec_resp $iter
+    fi
+}
+
+rec_resp "4"
+
+# Generate masks
+cacao-aorun-032-RMmkmask -f conf/RMmodesWFS/RMmodesWFS.fits
+cacao-fpsctrl setval compstrCM GPUdevice 0
+
+# Function to calculate the response matrix repetedly if the user is unhappy
+calc_cm() {
+    local svdlim=$1
+
+    # Set the SVD limit
+    cacao-fpsctrl setval compstrCM svdlim $svdlim
+    # compute the CM
+    cacao-aorun-039-compstrCM
+
+    # Display the CM
+    wait_for_file "conf/CMmodesWFS/CMmodesWFS.fits"
+    ./scripts/aorun-005-reshape-fits-to-wfs-pupil conf/CMmodesWFS/CMmodesWFS.fits
+    wait_for_file "conf/CMmodesWFS/CMmodesWFS_rshp.fits"
+    ds9 conf/CMmodesWFS/CMmodesWFS_rshp.fits &
+    bg_pid=$!
+
+    # Prompt the user for yes or no
+    read -p "Does the control matrix look appropriate? (yes/no): " answer
+
+    # Stop the mask displaying
+    kill $bg_pid
+
+    # Continue or exit
+    if [ "$answer" = "yes" ]; then
+        return 0
+    else
+        echo -e "\nPlease enter the SVD limit for the calculation. Current: ${svdlim}"
+        read -p "New SVD limit: " newlim
+        calc_cm $newlim
+    fi
+}
+
+calc_cm "0.01"
+
+# Function to wait for a file
+wait_for_stream() {
+    local stream=$1
+    EXPECTED_FILE="/milk/shm/${stream}.im.shm"
+    echo "Waiting for $EXPECTED_FILE to be generated..."
+    while [ ! -f "$EXPECTED_FILE" ]; do
+        sleep 1
+    done
+}
+
+# start WFS -> mode coefficient values
+wait_for_stream "aol${CACAO_LOOPNUMBER}_modesWFS"
+cacao-aorun-050-wfs2cmval start
+
+# start modal filtering
+wait_for_stream "aol${CACAO_LOOPNUMBER}_modevalWFS"
+cacao-aorun-060-mfilt start
+
+# start mode coeff values -> DM
+wait_for_stream "aol${CACAO_LOOPNUMBER}_modevalDM"
+cacao-aorun-070-cmval2dm start
+
+# Set loop gain
+cacao-fpsctrl setval mfilt loopgain 0.27
+# Set loop mult
+cacao-fpsctrl setval mfilt loopmult 0.99
+
+# set modal gains, mults and limits
+cacao-aorun-061-setmgains 1.0 -f 0.9 -t 1.4
+cacao-aorun-062-setmmults 0.05 -f 0.9 -t 1.0
+cacao-aorun-063-setmlimits 0.8 -f 0.05 -t 1.0
+
+echo -e "\n\nControl loop ready to be closed."

@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+
+# Prompt the user and wait for the input
+echo -e "\n\n--- Start shs referencing ---\n"
+echo "Please make sure that the"
+echo "- SHS camera is well illuminated"
+echo "- the signal is centered on the camera"
+echo "- the ROI of the camera is adjusted to the beam size"
+
+# Function to ask the user for confirmation.
+ask_user_confirm() {
+    echo "Please type 'done' once completed and hit Enter to continue."
+    read USER_INPUT
+    # Check if the user input is 'done'
+    while [[ "$USER_INPUT" != "done" ]]; do
+        echo "Incorrect input. Please type 'done' and hit Enter to continue."
+        read USER_INPUT
+    done
+}
+
+ask_user_confirm
+
+source cacao-check-cacaovars
+
+wait_for_stream() {
+    local stream=$1
+    EXPECTED_FILE="/milk/shm/${stream}.im.shm"
+    echo "Waiting for $EXPECTED_FILE to be generated..." >&2
+    while [ ! -f "$EXPECTED_FILE" ]; do
+        sleep 1
+    done
+}
+
+# Function to wait for a file
+wait_for_stream_display() {
+    local stream=$1
+    wait_for_stream "$stream"
+    nohup shmImshow.py $stream --fr=30 > /dev/null 2>&1 &
+    bg_pid=$!
+    echo $bg_pid  # Output the PID so it can be captured.
+}
+
+# Function to take a reference repeatedly if the user is unhappy
+rec_ref() {
+    # Record the SHS reference
+    ./scripts/aorun-002-take-shs-ref
+
+    # Display the reference mask
+    MASKSTREAM="aol${CACAO_LOOPNUMBER}_shsCam_SHSRef_Mask"
+    bg_pid=$(wait_for_stream_display "$MASKSTREAM")
+
+    # Prompt the user for yes or no
+    read -p "Does the mask look appropriate? (yes/no): " answer
+
+    # Stop the mask displaying
+    kill $bg_pid
+
+    # Continue or exit
+    if [ "$answer" = "yes" ]; then
+        return 0
+    else
+        echo -e "\nPlease change the referencing parameters to obtain a better result."
+        ask_user_confirm
+        rec_ref
+    fi
+}
+
+# Initial reference recording
+rec_ref
+
+# Start SHS evaluation
+./scripts/aorun-003-shs-eval start
+
+# Display the reconstructed WF
+wait_for_stream "aol${CACAO_LOOPNUMBER}_shsEval_wfOut"
+./scripts/aorun-004-reshape-to-wfs-pupil shsWf start
+WFSTREAM="aol${CACAO_LOOPNUMBER}_shsEval_wfOut_reshape"
+wait_for_stream_display "$WFSTREAM"
+
+# Start WF referencing
+cacao-aorun-025-acqWFS -w start
+
+# Display the referenced WF
+./scripts/aorun-004-reshape-to-wfs-pupil acqWfC start
+WFSTREAMR="aol${CACAO_LOOPNUMBER}_imWFS2_reshape"
+wait_for_stream_display "$WFSTREAMR"
+
+echo -e "\n\nWF measurement launched."
+echo "Ready to proceed with the next script."

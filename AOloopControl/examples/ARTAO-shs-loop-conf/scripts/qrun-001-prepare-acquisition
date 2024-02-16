@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Start logging
+cacao-msglogCTRL start
+cacao-msglogCTRL terms
+
+# Start dmdisp
+cacao-aorun-000-dm start
+
+# Start camera and DM processes
+./scripts/aorun-setmode-hardw
+
+# Display the camera image
+EXPECTED_FILE="/milk/shm/ximeaCam.im.shm"
+echo "Waiting for $EXPECTED_FILE to be generated..."
+while [ ! -f "$EXPECTED_FILE" ]; do
+    sleep 1
+done
+shmImshow.py ximeaCam&
+
+# Prompt the user and wait for the input
+echo -e "\n\n--- Start darkframe recording ---\n"
+echo "Please make sure the camera is acquiring images and the beam is blocked for dark recording."
+echo "Please type 'done' once completed and hit Enter to continue."
+read USER_INPUT
+
+# Check if the user input is 'done'
+while [[ "$USER_INPUT" != "done" ]]; do
+echo "Incorrect input. Please type 'done' and hit Enter to continue."
+read USER_INPUT
+done
+
+# Record darkframe
+./scripts/aorun-001-take-shs-avg -n 1000
+
+echo -e "\nDarkframe recorded."
+echo "Please unblock the beam again and proceed with the next script."
+ 
