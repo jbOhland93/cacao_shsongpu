@@ -827,6 +827,21 @@ static errno_t compute_function()
                 }
             }
 
+            // clean any NaN or inf, as they would loop back to wfsrefc
+            for(uint64_t ii = 0; ii < imgwfsrefc.md->size[0] *
+                    imgwfsrefc.md->size[1]; ii++)
+            {
+                float valf = imgwfsrefc.im->array.F[ii];
+                if( fpclassify(valf) == FP_NORMAL )
+                {
+                    imgwfsrefc.im->array.F[ii] = valf;
+                }
+                else
+                {
+                    imgwfsrefc.im->array.F[ii] = 0.0;
+                }
+            }
+
 
             processinfo_update_output_stream(processinfo, imgwfsrefc.ID);
         }
