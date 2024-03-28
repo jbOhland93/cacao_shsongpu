@@ -745,7 +745,7 @@ static errno_t compute_function()
                      tave_gain * imgimWFS2.im->array.F[ii]);
 
                 // clean any NaN or inf, as they would loop back to wfsrefc
-                if( fpclassify(valf) == FP_NORMAL )
+                if( isnormal(valf) )
                 {
                     imgimWFS3.im->array.F[ii] = valf;
                 }
@@ -800,6 +800,7 @@ static errno_t compute_function()
                         (1.0 - refcmult) * imgwfsrefc.im->array.F[ii];
                 }
             }
+
             for(uint64_t ii = 0; ii < sizeWFS; ii++)
             {
                 // refcgain is zeroing residual
@@ -823,7 +824,17 @@ static errno_t compute_function()
                 }
                 for(uint64_t ii = 0; ii < nelem; ii++)
                 {
-                    imgwfsrefc.im->array.F[ii] /= imtotal;
+                    float valf = imgwfsrefc.im->array.F[ii];
+                    valf /= imtotal;
+
+                    if( isnormal(valf) )
+                    {
+                        imgwfsrefc.im->array.F[ii] = valf;
+                    }
+                    else
+                    {
+                        imgwfsrefc.im->array.F[ii] = 0.0;
+                    }
                 }
             }
 
@@ -832,7 +843,7 @@ static errno_t compute_function()
                     imgwfsrefc.md->size[1]; ii++)
             {
                 float valf = imgwfsrefc.im->array.F[ii];
-                if( fpclassify(valf) == FP_NORMAL )
+                if( isnormal(valf) )
                 {
                     imgwfsrefc.im->array.F[ii] = valf;
                 }
