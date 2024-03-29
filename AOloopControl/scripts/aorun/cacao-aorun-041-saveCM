@@ -16,7 +16,7 @@ source cacao-check-cacaovars
 # SCRIPT OPTIONS
 # syntax: "short:long:functioncall:args[types]:description"
 
-MSopt+=( "t:tag:setfiletag:tag[string]:Set file tag [bak]" )
+MSopt+=( "t:tag:setfiletag:tag[string]:Set file tag [bak], empty by default, gets prepended with a period [.]" )
 filetag="bak"
 UpdateFiles=0 # 1 if using tag
 function setfiletag()
