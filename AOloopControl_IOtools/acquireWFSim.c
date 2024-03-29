@@ -50,6 +50,9 @@ static long     fpi_compWFSsubdark;
 static int64_t *compWFSnormalize;
 static long     fpi_compWFSnormalize;
 
+static int64_t *compWFSmask;
+static long     fpi_compWFSmask;
+
 static int64_t *compWFSrefsub;
 static long     fpi_compWFSrefsub;
 
@@ -191,6 +194,15 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_ONOFF,
+        ".comp.compWFSmask",
+        " x wfsmask ?",
+        "1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &compWFSmask,
+        &fpi_compWFSmask
+    },
+    {
+        CLIARG_ONOFF,
         ".comp.WFSrefsub",
         "subtract WFS reference aolX_wfsrefc -> imWFS2",
         "1",
@@ -254,6 +266,7 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_WFSnormfloor].fpflag     |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSsubdark].fpflag   |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSnormalize].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_compWFSmask].fpflag      |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSrefsub].fpflag    |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSsigav].fpflag     |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSrefc].fpflag      |= FPFLAG_WRITERUN;
@@ -596,7 +609,7 @@ static errno_t compute_function()
 
 
         // ===========================================
-        // NORMALIZE -> imWFS1
+        // NORMALIZE imWFS0 -> imWFS1
         // ===========================================
         int status_normalize = 0;
 
@@ -607,7 +620,8 @@ static errno_t compute_function()
         {
             status_normalize = 1;
 
-            // Compute image total
+            // Compute image total over wfsmask
+            //
             double imtotal = 0.0;
             uint64_t nelem = imgimWFS0.md->size[0] *
                              imgimWFS0.md->size[1];
@@ -639,7 +653,10 @@ static errno_t compute_function()
             }
             double totalinv       = 1.0 / (*fluxtotal + *WFSnormfloor * sizeWFS);
 
-            if(imgwfsmask.ID != -1)
+
+
+
+            if( (imgwfsmask.ID != -1) && (data.fpsptr->parray[fpi_compWFSmask].fpflag & FPFLAG_ONOFF))
             {
                 for(uint64_t ii = 0; ii < sizeWFS; ii++)
                 {
@@ -686,7 +703,7 @@ static errno_t compute_function()
 
 
         // ===========================================
-        // REFERENCE SUBTRACT -> imWFS2
+        // REFERENCE SUBTRACT imWFS2 -> imWFS2
         // ===========================================
 
         int status_refsub = 0;
@@ -768,6 +785,9 @@ static errno_t compute_function()
         int status_wfsrefc = 0;
         if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
 
+
+        // Reset imWFS3, wfsrefc and wfszpo to zero
+        //
         if(data.fpsptr->parray[fpi_resetWFSrefc].fpflag & FPFLAG_ONOFF)
         {
             for(uint64_t ii = 0; ii < sizeWFS; ii++)
