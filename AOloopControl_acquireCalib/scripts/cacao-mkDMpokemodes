@@ -71,13 +71,17 @@ echo "using DMr0 = ${DMr0}"
 
 # Make DM mask if it doesn't exist
 
+if [ -f "${DMMODEDIR}/DMmask.fits" ]; then
+echo "Using existing DMmask"
+else
+echo "Creating DMmask"
 cacao << EOF
 imgen.mkdisk DMmask ${CACAO_DMxsize} ${CACAO_DMysize} ${DMx0} ${DMy0} ${DMr0}
 saveFITS DMmask "${DMMODEDIR}/DMmask.fits"
 listim
 exitCLI
 EOF
-
+fi
 
 # Simple zonal modes
 
