@@ -209,7 +209,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_UINT32,
         ".AveMode",
-        "Averaging mode",
+        "Piston (mean) subtract",
         "0",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &AveMode,
@@ -804,7 +804,7 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
         }
     }
     else if((*volttype) == 3)
-    // Volt type == 3 -> SLM mode
+        // Volt type == 3 -> SLM mode
     {
         // linear unipolar, output is UT16
         for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
@@ -855,10 +855,7 @@ static errno_t update_dmdisp(IMGID imgdisp, IMGID *imgch, float *dmdisptmp)
             ave += dmdisptmp[ii];
         }
         ave /= (*DMxsize) * (*DMysize);
-    }
 
-    if(*AveMode < 2)  // OFFSET BY DClevel
-    {
         for(uint_fast64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
         {
             // remove negative values
@@ -985,12 +982,12 @@ static errno_t compute_function()
         zpochecksum = 0;
         for(int ch = 0; ch < NB_ZEROPOINT_CH_MAX; ++ch)
         {
-            if( zpoffset_channel[ch] )
+            if(zpoffset_channel[ch])
             {
                 zpochecksum += 1 << ch;
             }
         }
-        if( zpochecksum != zpochecksum0 )
+        if(zpochecksum != zpochecksum0)
         {
             zpooffsetchange = 1;
             //printf("CHANGE TO ZPO\n");
