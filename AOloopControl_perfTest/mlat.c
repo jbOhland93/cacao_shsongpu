@@ -31,6 +31,9 @@ long          fpi_frameratewait;
 static float *OPDamp;
 long          fpi_OPDamp;
 
+static float *CPA;
+long          fpi_CPA;
+
 static uint32_t *NBiter;
 long             fpi_NBiter;
 
@@ -85,6 +88,15 @@ static CLICMDARGDEF farg[] = {{
         CLIARG_VISIBLE_DEFAULT,
         (void **) &OPDamp,
         &fpi_OPDamp
+    },
+    {
+        CLIARG_FLOAT32,
+        ".CPA",
+        "Cycles/aperture [float]",
+        "20",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &CPA,
+        &fpi_CPA
     },
     {
         CLIARG_FLOAT32,
@@ -306,7 +318,7 @@ static errno_t compute_function()
                 float y = (2.0 * jj - 1.0 * dmxsize) / dmysize;
                 data.image[IDdm0].array.F[jj * dmxsize + ii] = 0.0;
                 data.image[IDdm1].array.F[jj * dmxsize + ii] =
-                    (*OPDamp) * (sin(20.0 * x) * sin(20.0 * y));
+                    (*OPDamp) * (sin(*CPA * x) * sin(*CPA * y));
                 RMStot += data.image[IDdm1].array.F[jj * dmxsize + ii] *
                           data.image[IDdm1].array.F[jj * dmxsize + ii];
             }
@@ -402,8 +414,10 @@ static errno_t compute_function()
         {
             // store all raw measurements in these arrays
             //
-            double *valarrayall = (double *) malloc(sizeof(double) * (*wfsNBframemax) * (*NBiter) );
-            double *dtarrayall  = (double *) malloc(sizeof(double) * (*wfsNBframemax) * (*NBiter) );
+            double *valarrayall = (double *) malloc(sizeof(double) * (*wfsNBframemax) *
+                                                    (*NBiter));
+            double *dtarrayall  = (double *) malloc(sizeof(double) * (*wfsNBframemax) *
+                                                    (*NBiter));
 
             // number of raw measurements
             int NBrawmeas = 0;
@@ -659,35 +673,35 @@ static errno_t compute_function()
 
                     switch(imgwfs.datatype)
                     {
-                    case _DATATYPE_FLOAT:
-                        IMAGE_SUMMING_CASE(F);
-                        break;
-                    case _DATATYPE_DOUBLE:
-                        IMAGE_SUMMING_CASE(D);
-                        break;
-                    case _DATATYPE_UINT16:
-                        IMAGE_SUMMING_CASE(UI16);
-                        break;
-                    case _DATATYPE_INT16:
-                        IMAGE_SUMMING_CASE(SI16);
-                        break;
-                    case _DATATYPE_UINT32:
-                        IMAGE_SUMMING_CASE(UI32);
-                        break;
-                    case _DATATYPE_INT32:
-                        IMAGE_SUMMING_CASE(SI32);
-                        break;
-                    case _DATATYPE_UINT64:
-                        IMAGE_SUMMING_CASE(UI64);
-                        break;
-                    case _DATATYPE_INT64:
-                        IMAGE_SUMMING_CASE(SI64);
-                        break;
-                    case _DATATYPE_COMPLEX_FLOAT:
-                    case _DATATYPE_COMPLEX_DOUBLE:
-                    default:
-                        PRINT_ERROR("COMPLEX TYPES UNSUPPORTED");
-                        return RETURN_FAILURE;
+                        case _DATATYPE_FLOAT:
+                            IMAGE_SUMMING_CASE(F);
+                            break;
+                        case _DATATYPE_DOUBLE:
+                            IMAGE_SUMMING_CASE(D);
+                            break;
+                        case _DATATYPE_UINT16:
+                            IMAGE_SUMMING_CASE(UI16);
+                            break;
+                        case _DATATYPE_INT16:
+                            IMAGE_SUMMING_CASE(SI16);
+                            break;
+                        case _DATATYPE_UINT32:
+                            IMAGE_SUMMING_CASE(UI32);
+                            break;
+                        case _DATATYPE_INT32:
+                            IMAGE_SUMMING_CASE(SI32);
+                            break;
+                        case _DATATYPE_UINT64:
+                            IMAGE_SUMMING_CASE(UI64);
+                            break;
+                        case _DATATYPE_INT64:
+                            IMAGE_SUMMING_CASE(SI64);
+                            break;
+                        case _DATATYPE_COMPLEX_FLOAT:
+                        case _DATATYPE_COMPLEX_DOUBLE:
+                        default:
+                            PRINT_ERROR("COMPLEX TYPES UNSUPPORTED");
+                            return RETURN_FAILURE;
                     }
 
                     valarray[kk] = sqrt(valarray[kk] / wfssize / 2);
@@ -813,41 +827,41 @@ static errno_t compute_function()
                 int iimin = 0;
                 int iimax = 0;
                 float dtrange = 0.5 / (*framerateHz); // in sec
-                for( int ii=0; ii<NBrawmeas; ii++)
+                for(int ii = 0; ii < NBrawmeas; ii++)
                 {
-                    while ( (dtarrayall[iimax] < dtarrayall[ii]+dtrange) && (iimax<NBrawmeas-1) )
+                    while((dtarrayall[iimax] < dtarrayall[ii] + dtrange) && (iimax < NBrawmeas - 1))
                     {
                         iimax ++;
                     }
-                    while ( (dtarrayall[iimin] < dtarrayall[ii]-dtrange) && (iimax<NBrawmeas-1) )
+                    while((dtarrayall[iimin] < dtarrayall[ii] - dtrange) && (iimax < NBrawmeas - 1))
                     {
                         iimin ++;
                     }
 
-                    long nbpts = iimax-iimin;
+                    long nbpts = iimax - iimin;
                     double dtmedian = dtarrayall[ii];
                     double valmedian = valarrayall[ii];
-                    if(nbpts>0)
+                    if(nbpts > 0)
                     {
                         // Take average of median 1/3 values
 
-                        double *ptsval = (double*) malloc(sizeof(double)*nbpts);
-                        double *ptsdt = (double*) malloc(sizeof(double)*nbpts);
-                        for(int jj=0; jj<nbpts; jj++)
+                        double *ptsval = (double *) malloc(sizeof(double) * nbpts);
+                        double *ptsdt = (double *) malloc(sizeof(double) * nbpts);
+                        for(int jj = 0; jj < nbpts; jj++)
                         {
-                            ptsval[jj] = valarrayall[iimin+jj];
-                            ptsdt[jj] = dtarrayall[iimin+jj];
+                            ptsval[jj] = valarrayall[iimin + jj];
+                            ptsdt[jj] = dtarrayall[iimin + jj];
                         }
                         quick_sort2(ptsval, ptsdt, nbpts);
                         double dtave = 0.0;
                         double valave = 0.0;
                         double cave = 0.0;
 
-                        for(int jj=nbpts/3; jj<2*nbpts/3; jj++)
+                        for(int jj = nbpts / 3; jj < 2 * nbpts / 3; jj++)
                         {
                             double coeff = 1.0;
-                            dtave += coeff*ptsdt[jj];
-                            valave += coeff*ptsval[jj];
+                            dtave += coeff * ptsdt[jj];
+                            valave += coeff * ptsval[jj];
                             cave += coeff;
                         }
                         dtave /= cave;
@@ -860,14 +874,15 @@ static errno_t compute_function()
                         free(ptsdt);
                     }
 
-                    if( valmedian > latencymeaspeakval )
+                    if(valmedian > latencymeaspeakval)
                     {
                         latencymeaspeakval = valmedian;
                         latencymeaspeakdt = dtmedian;
                     }
 
                     fprintf(fpout, "%d %g %g %d %d %g %g  %g %g %ld\n",
-                            ii, dtarrayall[ii], valarrayall[ii], iimin, iimax, dtarrayall[iimin], dtarrayall[iimax],
+                            ii, dtarrayall[ii], valarrayall[ii], iimin, iimax, dtarrayall[iimin],
+                            dtarrayall[iimax],
                             dtmedian, valmedian, nbpts);
 
                 }
@@ -885,7 +900,7 @@ static errno_t compute_function()
 
 
             *latencyfr = latencymeaspeakdt * (*framerateHz);
-            printf("latency = %f frame\n", *latencyfr );
+            printf("latency = %f frame\n", *latencyfr);
             functionparameter_SaveParam2disk(data.fpsptr, ".out.latencyfr");
 
             {
