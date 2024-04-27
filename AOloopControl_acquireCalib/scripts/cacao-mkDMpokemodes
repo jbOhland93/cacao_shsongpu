@@ -84,13 +84,13 @@ EOF
 fi
 
 # Simple zonal modes
-
-cacao << EOF
-loadfits "${DMMODEDIR}/DMmask.fits" DMmask
-cacaoct.aolmksimplezpM ${CACAO_DMxsize} ${CACAO_DMysize} Spoke
-saveFITS Spoke "${DMMODEDIR}/SmodesC.fits"
-exitCLI
-EOF
+# command aolmksimplezpM no longer exists
+#cacao << EOF
+#loadfits "${DMMODEDIR}/DMmask.fits" DMmask
+#cacaoct.aolmksimplezpM ${CACAO_DMxsize} ${CACAO_DMysize} Spoke
+#saveFITS Spoke "${DMMODEDIR}/SmodesC.fits"
+#exitCLI
+#EOF
 
 
 # Hadamard modes
