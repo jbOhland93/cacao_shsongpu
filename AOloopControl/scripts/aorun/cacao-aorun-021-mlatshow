@@ -7,14 +7,9 @@
 MSdescr="Measure hardware latency"
 
 
-MSextdescr="Measures hardware latency between input and output streams
+MSextdescr="Display latency curve
 
-Pokes input stream, listens to ouput stream
-Requires acquWFS process to run
-
-Writes output to env variables CACAO_WFSFRATE and CACAO_LATENCYHARDWFR
-These are written in file <looprundir>/fps.mlat-<loopnumber>.datadir/cacaovars.bash,
-which is sourced by subsequent scripts.
+Required gnuplot
 "
 
 source milk-script-std-config
