@@ -345,7 +345,7 @@ static CLICMDARGDEF farg[] =
         &fpi_voltname
     },
     {
-        CLIARG_STREAM,
+        CLIARG_STR,
         ".option.outv_ftype",
         "output volt type",
         "outv_ftype",
