@@ -376,39 +376,16 @@ static errno_t compute_function()
     }
 
     // initialize camera averaging arrays if not already done
-    float           *__restrict arrayftmp;
-    unsigned short *__restrict arrayutmp;
-    signed short    *__restrict arraystmp;
-    if(WFSatype == _DATATYPE_FLOAT)
+    void *__restrict array_tmp;
+    array_tmp = malloc(sizeof(float) * sizeWFS);
+    if(array_tmp == NULL)
     {
-        arrayftmp = (float *) malloc(sizeof(float) * sizeWFS);
-        if(arrayftmp == NULL)
-        {
-            PRINT_ERROR("malloc returns NULL pointer");
-            abort();
-        }
+        PRINT_ERROR("malloc returns NULL pointer");
+        abort();
     }
-
-    if(WFSatype == _DATATYPE_UINT16)
-    {
-        arrayutmp = (unsigned short *) malloc(sizeof(unsigned short) * sizeWFS);
-        if(arrayutmp == NULL)
-        {
-            PRINT_ERROR("malloc returns NULL pointer");
-            abort();
-        }
-    }
-
-    if(WFSatype == _DATATYPE_INT16)
-    {
-        arraystmp = (signed short *) malloc(sizeof(signed short) * sizeWFS);
-        if(arraystmp == NULL)
-        {
-            PRINT_ERROR("malloc returns NULL pointer");
-            abort();
-        }
-    }
-
+    float *__restrict arrayftmp = (float *) array_tmp;
+    uint16_t *__restrict arrayutmp = (uint16_t *) array_tmp;
+    int16_t *__restrict arraystmp = (int16_t *) array_tmp;
 
     // LOAD DARK
     IMGID imgwfsdark;
@@ -454,36 +431,32 @@ static errno_t compute_function()
 
         DEBUG_TRACEPOINT(" ");
 
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
-
-        void* ptrv = NULL;
-        switch(WFSatype)
+        if(processinfo->loopcnt % n_print_timings == 0)
         {
-        case _DATATYPE_FLOAT:
-            ptrv = (char *) imgwfsim.im->array.F;
-            ptrv += sizeof(float) * slice * sizeWFS;
-            memcpy(arrayftmp, ptrv, sizeof(float) * sizeWFS);
-            break;
-
-        case _DATATYPE_UINT16:
-            ptrv = (char *) imgwfsim.im->array.UI16;
-            ptrv += sizeof(unsigned short) * slice * sizeWFS;
-            memcpy(arrayutmp, ptrv, sizeof(unsigned short) * sizeWFS);
-            break;
-
-        case _DATATYPE_INT16:
-            ptrv = (char *) imgwfsim.im->array.SI16;
-            ptrv += sizeof(signed short) * slice * sizeWFS;
-            memcpy(arraystmp, ptrv, sizeof(signed short) * sizeWFS);
-            break;
-
-        default:
-            PRINT_ERROR("DATA TYPE NOT SUPPORTED");
-            abort();
-            break;
+            clock_gettime(CLOCK_MILK, &time1);
         }
 
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        void *ptrv = NULL;
+        switch(WFSatype)
+        {
+            case _DATATYPE_FLOAT:
+            case _DATATYPE_UINT16:
+            case _DATATYPE_INT16:
+            {
+                int ts = ImageStreamIO_typesize(imgwfsim.md->datatype);
+                ptrv = imgwfsim.im->array.raw + ts * slice * sizeWFS;
+                memcpy(array_tmp, ptrv, ts * sizeWFS);
+            }
+            break;
+
+            default:
+                PRINT_ERROR("DATA TYPE NOT SUPPORTED");
+                abort();
+                break;
+        }
+
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("Pre-copy time: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
@@ -507,80 +480,83 @@ static errno_t compute_function()
             status_darksub = 1;
         }
 
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
 
         imgimWFS0.md->write = 1;
 
         switch(WFSatype)
         {
-        case _DATATYPE_UINT16:
-            if(status_darksub == 0)
-            {
-                // no dark subtraction, convert data to float
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+            case _DATATYPE_UINT16:
+                if(status_darksub == 0)
                 {
-                    imgimWFS0.im->array.F[ii] = ((float) arrayutmp[ii]);
+                    // no dark subtraction, convert data to float
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] = ((float) arrayutmp[ii]);
+                    }
                 }
-            }
-            else
-            {
-                // dark subtraction
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                else
                 {
-                    imgimWFS0.im->array.F[ii] =
-                        ((float) arrayutmp[ii]) -
-                        imgwfsdark.im->array.F[ii];
+                    // dark subtraction
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] =
+                            ((float) arrayutmp[ii]) -
+                            imgwfsdark.im->array.F[ii];
+                    }
                 }
-            }
-            break;
+                break;
 
-        case _DATATYPE_INT16:
-            if(status_darksub == 0)
-            {
-                // no dark subtraction, convert data to float
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+            case _DATATYPE_INT16:
+                if(status_darksub == 0)
                 {
-                    imgimWFS0.im->array.F[ii] = ((float) arraystmp[ii]);
+                    // no dark subtraction, convert data to float
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] = ((float) arraystmp[ii]);
+                    }
                 }
-            }
-            else
-            {
-                // dark subtraction
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                else
                 {
-                    imgimWFS0.im->array.F[ii] =
-                        ((float) arraystmp[ii]) -
-                        imgwfsdark.im->array.F[ii];
+                    // dark subtraction
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] =
+                            ((float) arraystmp[ii]) -
+                            imgwfsdark.im->array.F[ii];
+                    }
                 }
-            }
-            break;
+                break;
 
-        case _DATATYPE_FLOAT:
-            if(status_darksub == 0)
-            {
-                // no dark subtraction, copy data to imWFS0
-                memcpy(imgimWFS0.im->array.F,
-                       arrayftmp,
-                       sizeof(float) * sizeWFS);
-            }
-            else
-            {
-                // dark subtraction
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+            case _DATATYPE_FLOAT:
+                if(status_darksub == 0)
                 {
-                    imgimWFS0.im->array.F[ii] =
-                        arrayftmp[ii] - imgwfsdark.im->array.F[ii];
+                    // no dark subtraction, copy data to imWFS0
+                    memcpy(imgimWFS0.im->array.F,
+                           arrayftmp,
+                           sizeof(float) * sizeWFS);
                 }
-            }
-            break;
+                else
+                {
+                    // dark subtraction
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] =
+                            arrayftmp[ii] - imgwfsdark.im->array.F[ii];
+                    }
+                }
+                break;
 
-        default:
-            printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
-                   __FILE__,
-                   __LINE__);
-            printf("datatype = %d\n", WFSatype);
-            exit(0);
-            break;
+            default:
+                printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
+                       __FILE__,
+                       __LINE__);
+                printf("datatype = %d\n", WFSatype);
+                exit(0);
+                break;
         }
 
         if(status_darksub == 1)
@@ -595,9 +571,10 @@ static errno_t compute_function()
         }
 
         processinfo_update_output_stream(processinfo, imgimWFS0.ID);
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
-            printf("Dark sub to imWFS0: %f us\n", timespec_diff_double(time1, time2)*1e6);
+            printf("Dark sub to imWFS0: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
 
 
@@ -613,7 +590,10 @@ static errno_t compute_function()
         // ===========================================
         int status_normalize = 0;
 
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
         imgimWFS1.md->write = 1;
 
         if(data.fpsptr->parray[fpi_compWFSnormalize].fpflag & FPFLAG_ONOFF)
@@ -656,7 +636,8 @@ static errno_t compute_function()
 
 
 
-            if( (imgwfsmask.ID != -1) && (data.fpsptr->parray[fpi_compWFSmask].fpflag & FPFLAG_ONOFF))
+            if((imgwfsmask.ID != -1)
+                    && (data.fpsptr->parray[fpi_compWFSmask].fpflag & FPFLAG_ONOFF))
             {
                 for(uint64_t ii = 0; ii < sizeWFS; ii++)
                 {
@@ -695,9 +676,10 @@ static errno_t compute_function()
             }
         }
         processinfo_update_output_stream(processinfo, imgimWFS1.ID);
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
-            printf("Renorm to imWFS1: %f us\n", timespec_diff_double(time1, time2)*1e6);
+            printf("Renorm to imWFS1: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
 
 
@@ -707,7 +689,10 @@ static errno_t compute_function()
         // ===========================================
 
         int status_refsub = 0;
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
         if(data.fpsptr->parray[fpi_compWFSrefsub].fpflag & FPFLAG_ONOFF)
         {
             // subtract reference
@@ -736,7 +721,8 @@ static errno_t compute_function()
 
             processinfo_update_output_stream(processinfo, imgimWFS2.ID);
         }
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("Refsub to imWFS2: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
@@ -747,7 +733,10 @@ static errno_t compute_function()
         // ===========================================
 
         int status_ave = 0;
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
         if(data.fpsptr->parray[fpi_compWFSsigav].fpflag & FPFLAG_ONOFF)
         {
             status_ave = 1;
@@ -762,7 +751,7 @@ static errno_t compute_function()
                      tave_gain * imgimWFS2.im->array.F[ii]);
 
                 // clean any NaN or inf, as they would loop back to wfsrefc
-                if( isnormal(valf) )
+                if(isnormal(valf))
                 {
                     imgimWFS3.im->array.F[ii] = valf;
                 }
@@ -773,7 +762,8 @@ static errno_t compute_function()
             }
             processinfo_update_output_stream(processinfo, imgimWFS3.ID);
         }
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("Av to imWFS3: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
@@ -783,7 +773,10 @@ static errno_t compute_function()
         // ===========================================
 
         int status_wfsrefc = 0;
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
 
 
         // Reset imWFS3, wfsrefc and wfszpo to zero
@@ -847,7 +840,7 @@ static errno_t compute_function()
                     float valf = imgwfsrefc.im->array.F[ii];
                     valf /= imtotal;
 
-                    if( isnormal(valf) )
+                    if(isnormal(valf))
                     {
                         imgwfsrefc.im->array.F[ii] = valf;
                     }
@@ -863,7 +856,7 @@ static errno_t compute_function()
                     imgwfsrefc.md->size[1]; ii++)
             {
                 float valf = imgwfsrefc.im->array.F[ii];
-                if( isnormal(valf) )
+                if(isnormal(valf))
                 {
                     imgwfsrefc.im->array.F[ii] = valf;
                 }
@@ -876,7 +869,8 @@ static errno_t compute_function()
 
             processinfo_update_output_stream(processinfo, imgwfsrefc.ID);
         }
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("refc to imgwfsrefc: %f us\n", timespec_diff_double(time1, time2) * 1e6);
             fflush(stdout);
