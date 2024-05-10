@@ -27,6 +27,12 @@ function set_WaitForCompletion() {
 	WaitForCompletion=1
 }
 
+DisplayGraph=0
+MSopt+=( "d:displayresults:set_DisplayGraph::run the gnuplot dislay routine" )
+function set_DisplayGraph() {
+	DisplayGraph=1
+}
+
 
 source milk-argparse
 
@@ -78,6 +84,16 @@ if [ $WaitForCompletion == "1" ]; then
 		sleep 0.2
 		pOK=$(ps -alx| grep mlat-${CACAO_LOOPNUMBER} | grep RUNSTART | wc -l) || :
 	done
+fi
+
+if [ $DisplayGraph == "1" ]; then
+	echo "Running GNUPLOT over the latest run"
+	$(cd ${LOOPNAME}-rundir/fps.mlat-${CACAO_LOOPNUMBER}.datadir;
+	gnuplot <<< EOF
+plot "hardwlatency.dat" u 2:3
+exit
+EOF
+	);
 fi
 
 cacaomsglog "END"

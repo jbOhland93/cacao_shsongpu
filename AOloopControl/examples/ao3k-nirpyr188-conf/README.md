@@ -110,10 +110,10 @@ The following files are written to ./conf/RMmodesDM/
 
 ### Run acquisition
 
-
+NEED TO POKE HARDER like .1
 ```bash
 # Acquire response matrix - Hadamard modes
-cacao-aorun-030-acqlinResp -n 20 -w HpokeC
+cacao-aorun-030-acqlinResp -n 20 HpokeC
 # 6 cycles - default is 10.
 ```
 
@@ -128,10 +128,13 @@ cacao-aorun-031-RMHdecode
 
 Compute control modes, in both WFS and DM spaces.
 
+MUST WRITE A CUSTOM SCRIPT TO DEPISTON OTHERWISE
+IT STRAIGHT UP DOESN'T WORK
+
 ```bash
 cacao-fpsctrl setval compstrCM svdlim 0.001
 ```
-Then run the compstrCM process to compute CM and load it to shared memory :
+Then run the compstrCM process to compute CM and load it to shared memory:
 ```bash
 cacao-aorun-039-compstrCM
 ```
@@ -152,7 +155,6 @@ cacao-aorun-060-mfilt start
 
 # start mode coeff values -> DM
 cacao-aorun-070-cmval2dm start
-
 ```
 
 Closing the loop and setting loop parameters with mfilt:
