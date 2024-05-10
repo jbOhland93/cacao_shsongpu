@@ -127,6 +127,21 @@ cacao-aorun-031-RMHdecode
 ## Compute control matrix (straight)
 
 Compute control modes, in both WFS and DM spaces.
+```python
+import os
+from astropy.io import fits
+import numpy as np
+RM = fits.getdata('./conf/RMmodesWFS/RMmodesWFS.fits')
+RMc = RM.copy()
+RMcfv = RMc.view().reshape(188, 25600)
+prf = np.mean(RMcfv[-40:], axis=0)
+prf /= np.sum(prf**2) ** .5
+piston_projs = RMcfv @ prf
+for i in range(188):
+    RMcfv[i,:] -= piston_projs[i] * prf
+fits.writeto('./conf/RMmodesWFS/zrespM-H-depiston.fits', RMc, overwrite=True)
+os.system('ln -sf zrespM-H-depiston.fits ./conf/RMmodesWFS/RMmodesWFS.fits')
+```
 
 MUST WRITE A CUSTOM SCRIPT TO DEPISTON OTHERWISE
 IT STRAIGHT UP DOESN'T WORK
@@ -139,6 +154,8 @@ Then run the compstrCM process to compute CM and load it to shared memory:
 cacao-aorun-039-compstrCM
 ```
 
+
+# TODO I need a proper pycacao-depistonifier
 
 
 ## Running the loop
