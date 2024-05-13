@@ -9,7 +9,7 @@ source milk-script-std-config
 
 MSextdescr="
 Initial setup for cacao instance.
-Run this script for loop rootdir.
+Run this script from loop rootdir.
 
 Creates work directory (rundir), install scripts and start conf processes in tmux sessions.
 Each cacao loop has a unique ASCII name, referred to as <loopname> in this manual.
