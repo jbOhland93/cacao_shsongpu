@@ -56,11 +56,6 @@ static long   fpi_turbwangle;
 static float *turbampl;
 static long   fpi_turbampl;
 
-// autpmatically adjust amplitude to match turbampl
-static uint64_t *autoampl;
-static long      fpi_autoampl;
-
-
 
 // number of time samples in turbulence cube
 //static uint32_t *NBsamples;
@@ -174,15 +169,6 @@ static CLICMDARGDEF farg[] =
     },
     {
         CLIARG_ONOFF,
-        ".autoampl",
-        "automatic WF amplitude match to ampl",
-        "ON",
-        CLIARG_HIDDEN_DEFAULT,
-        (void **) &autoampl,
-        &fpi_autoampl
-    },
-    {
-        CLIARG_ONOFF,
         ".turbseed.comp",
         "(re)compute turbulence seed screen (../conf/turbseedX.fits)",
         "0",
@@ -241,7 +227,6 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_turbON].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_turbZERO].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_seedZERO].fpflag |= FPFLAG_WRITERUN;
-        data.fpsptr->parray[fpi_autoampl].fpflag |= FPFLAG_WRITERUN;
 
         data.fpsptr->parray[fpi_dmstream].fpflag |=
             FPFLAG_STREAM_RUN_REQUIRED | FPFLAG_CHECKSTREAM;
@@ -249,9 +234,6 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_turbwspeed].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_turbwangle].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_turbampl].fpflag |= FPFLAG_WRITERUN;
-
-        // set ON by default
-        data.fpsptr->parray[fpi_autoampl].fpflag |= FPFLAG_ONOFF;
     }
 
     return RETURN_SUCCESS;
@@ -662,20 +644,22 @@ static errno_t compute_function()
             processinfo_WriteMessage_fmt(processinfo, "pht %.3lf s (+ %.0f us) RMS %.3f", phystime, 1e6 * dt, RMSval);
 
             // tweak amplcoeff to match desired RMS
-            // large discrepancy lead ot large correction
+            // large discrepancy leads to large correction
             //
             double coeffstep = (*turbampl) / RMSval;
             double logdiff = log10(coeffstep);
             double logdiff3abs = pow(fabs(logdiff), 3.0);
             double amplloopgain = 1.0e-4 + logdiff3abs / (logdiff3abs + 1.0);
 
-            if( *autoampl == 1)
-            {
-                amplcoeff *= pow(10.0, amplloopgain * logdiff);
-            }
 
-            printf("RMS= %6.3f / %6.3f  logdiff = %6.3f  factor = %6.3f\n", RMSval, (*turbampl), logdiff, pow(10.0, logdiff));
+            amplcoeff *= pow(10.0, amplloopgain * logdiff);
 
+
+            /*printf("RMS= %6.3f / %6.3f  amplcoeff = %6.3f  logdiff = %6.3f  factor = %9.6f  amplloopgain = %g\n",
+                   RMSval, (*turbampl),
+                   amplcoeff,
+                   logdiff, pow(10.0, logdiff), amplloopgain);
+            */
 
 
 
