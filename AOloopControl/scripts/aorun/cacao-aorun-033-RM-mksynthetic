@@ -6,7 +6,23 @@
 
 MSdescr="make synthetic DM modes for RM"
 
-MSextdescr="Assemble a Zernike + Fourier DM modes"
+MSextdescr="
+Computes modal response matrix (RM) from zonal RM.
+
+Input: conf/RMmodesWFS/zrespM-H.fits
+Zonal response matrix, one actuator poke response per slice
+
+Ouput: conf/RMmodesDM/RMsyn_modesDM.fits
+synthetic DM modes, one mode per slice
+
+Output: conf/RMmodesWFS/RMsyn_modesWFS.fits
+synthetic WFS modes, one mode per slice
+
+Upon completion, set RM to output of this sctipt:
+  ln -s $(pwd)/conf/RMmodesDM/RMsyn_modesDM.fits ./conf/RMmodesDM/RMmodesDM.fits
+  ln -s $(pwd)/conf/RMmodesWFS/RMsyn_modesWFS.fits ./conf/RMmodesWFS/RMmodesWFS.fits
+
+"
 
 source milk-script-std-config
 source cacao-check-cacaovars
