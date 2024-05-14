@@ -84,7 +84,7 @@ function set_radmaskfact()
 
 
 MSopt+=( "ea:edgeapo:setedgeapo:edgeapo[float]:Set edge apodization strength [1.0]" )
-blurralpha="1.0"
+edgeapo="1.0"
 function setedgeapo()
 {
 	edgeapo=$1
