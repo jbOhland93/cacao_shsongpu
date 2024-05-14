@@ -32,6 +32,9 @@ static char *outmodeC;
 static long  fpi_outmodeC;
 
 
+static float *edgeapo;
+
+
 static CLICMDARGDEF farg[] =
 {
     {
@@ -69,6 +72,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_VISIBLE_DEFAULT,
         (void **) &outmodeC,
         &fpi_outmodeC
+    },
+    {
+        CLIARG_FLOAT32,
+        ".edgeapo",
+        "edge apodization strength",
+        "1.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &edgeapo,
+        NULL
     }
 };
 
@@ -150,12 +162,14 @@ static errno_t compute_function()
     fflush(stdout);
     list_image_ID();
 
+
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
 
         // allocate nearest pixels array
         double *npix_dist2 = (double*) malloc(sizeof(double) * xysize);
-        long *npix_index = (long*) malloc(sizeof(long)*xysize);
+        double *npix_coeff = (double*) malloc(sizeof(double) * xysize);
+        long   *npix_index = (long*) malloc(sizeof(long)*xysize);
 
         for(uint32_t ii = 0; ii < xsize; ii++)
         {
@@ -195,7 +209,7 @@ static errno_t compute_function()
                     }
 
                     // Kernel radius
-                    int kradint = (int) (sqrt(nearest_dist2)+1.0);
+                    int kradint = (int) (sqrt(nearest_dist2) + 3.0);
 
                     int iimin = ii - kradint;
                     if(iimin < 0)
@@ -222,6 +236,8 @@ static errno_t compute_function()
                     // find nearest pixels
                     //
                     long npixcnt = 0;
+                    double coefftotal = 0.0;
+                    double alpha1 = 1.0 / (*edgeapo * nearest_dist2);
                     for(int ii1=iimin; ii1<iimax; ii1++)
                     {
                         for(int jj1=jjmin; jj1<jjmax; jj1++)
@@ -229,12 +245,15 @@ static errno_t compute_function()
                             float dx = 1.0*ii - ii1;
                             float dy = 1.0*jj - jj1;
                             double dr2 = dx*dx + dy*dy;
-                            if(dr2 < nearest_dist2+0.2)
-                            {
-                                npix_dist2[npixcnt] = dr2;
-                                npix_index[npixcnt] = jj1*xsize + ii1;
-                                npixcnt ++;
-                            }
+
+                            //if(dr2 < nearest_dist2 + 0.2) // only consider nearest pixels
+                            //{
+                            npix_dist2[npixcnt] = dr2;
+                            npix_index[npixcnt] = jj1*xsize + ii1;
+                            npix_coeff[npixcnt] = exp(-alpha1*dr2);
+                            coefftotal += npix_coeff[npixcnt];
+                            npixcnt ++;
+                            //}
                         }
                     }
 
@@ -246,9 +265,9 @@ static errno_t compute_function()
                         for(long npixi=0; npixi < npixcnt; npixi++)
                         {
                             imgoutmoudeC.im->array.F[xysize*mi + jj*xsize + ii] +=
-                                imginmodeC.im->array.F[xysize*mi + npix_index[npixi]];
+                                imginmodeC.im->array.F[xysize*mi + npix_index[npixi]] * npix_coeff[npixi];
                         }
-                        imgoutmoudeC.im->array.F[xysize*mi + jj*xsize + ii] /= npixcnt;
+                        imgoutmoudeC.im->array.F[xysize*mi + jj*xsize + ii] /= coefftotal;
                     }
 
                 }
@@ -257,6 +276,7 @@ static errno_t compute_function()
         }
 
         free(npix_dist2);
+        free(npix_coeff);
         free(npix_index);
 
     }

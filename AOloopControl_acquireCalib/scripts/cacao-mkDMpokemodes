@@ -6,7 +6,10 @@
 
 MSdescr="make DM poke modes"
 
-MSextdescr="Make DM poke modes for response matrix acquisition"
+MSextdescr="Make DM poke modes for response matrix acquisition
+
+Writes DM poke matrices to ./conf/RMmodesDM/ directory
+"
 
 source milk-script-std-config
 source cacao-check-cacaovars

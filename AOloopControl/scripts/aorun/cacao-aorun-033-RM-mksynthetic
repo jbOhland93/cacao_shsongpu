@@ -29,6 +29,16 @@ To control a donut:
 -c0 5 -c1 10 -c 20
 Note that if rCPAmin=0, the first 5 Zernike will be added (TTF+Astig).
 
+Parameter radmaskfact sets the radial extension factor beyond the beam radius CACAO_DM_beam_rad.
+Zernike and Fourier modes are computed over this extended domain before edge blurring.
+
+The scripts main steps are:
+[1] Compute DM-space Fourier modes: conf/RMmodesDM/RMsyn_modesDM0.fits, over disk 
+defined by (CACAO_DM_beam_xcent, CACAO_DM_beam_ycent, CACAO_DM_beam_rad).
+[2] Edge blurring, preserving response for actuators within ./conf/dmmask.fits,
+and blurring actuators within  CACAO_DM_beam_rad*radmaskfact outside of dmmask.fits
+
+
 Upon completion, set RM to output of this sctipt:
   ln -s $(pwd)/conf/RMmodesDM/RMsyn_modesDM.fits ./conf/RMmodesDM/RMmodesDM.fits
   ln -s $(pwd)/conf/RMmodesWFS/RMsyn_modesWFS.fits ./conf/RMmodesWFS/RMmodesWFS.fits
@@ -56,15 +66,31 @@ function setrCPAmax()
 	rCPAmax=$1
 }
 
-
-
-
 MSopt+=( "c:CPAmax:setCPAmax:cpamax[float]:Set maximum cycles per aperture (CPA) [8]" )
 CPAmax="8"
 function setCPAmax()
 {
 	CPAmax=$1
 }
+
+
+radmaskfact="1.1"
+MSopt+=( "rfact:radmaskfact:set_radmaskfact:radmaskfact[float]:Set proportional radius extension factor [${radmaskfact}]" )
+function set_radmaskfact()
+{
+	radmaskfact=$1
+}
+
+
+
+MSopt+=( "ea:edgeapo:setedgeapo:edgeapo[float]:Set edge apodization strength [1.0]" )
+blurralpha="1.0"
+function setedgeapo()
+{
+	edgeapo=$1
+}
+
+
 
 
 
@@ -136,7 +162,6 @@ saveFITS dmmask2D "conf/dmmask2D.fits"
 exitCLI
 EOF
 
-
 fi
 
 
@@ -160,11 +185,11 @@ cacaomsglog "using alpha = ${alpha}"
 
 deltaCPA="0.8"
 
-radmaskfact="1.1"
+
 
 
 # Create synthetic DM modes
-#
+# These modes are NOT extrapolated and extend beyond beam size by factor radmaskfact
 
 if [[ $rCPAmin -eq 0 ]]; then
 
@@ -207,7 +232,7 @@ fi
 
 
 
-# mask-extrapolate
+# Edge apodization
 
 if [ $CACAO_DMysize -eq 1 ]; then
 	# 1D case
@@ -225,6 +250,7 @@ radext=${DMr0}*${radmaskfact}
 imgen.mkdisk dmmaskext ${DMsizex} ${DMsizey} ${DMx0} ${DMy0} radext
 loadfits "conf/RMmodesDM/RMsyn_modesDM0.fits" RMsyn_modesDM
 loadfits "conf/dmmask-syn.fits" dmmask
+cacaocc.maskextrapolate .edgeapo ${edgeapo}
 cacaocc.maskextrapolate RMsyn_modesDM dmmask dmmaskext RMsyn_modesDMm
 
 #RMsyn_modesDMm=RMsyn_modesDM*dmmask
@@ -238,10 +264,10 @@ echo "OUTPUT : conf/RMmodesDM/RMsyn_modesDM.fits"
 
 
 if [ $CACAO_DMysize -eq 1 ]; then
-	# Project 2D modes to 1D actuators
+  # Project 2D modes to 1D actuators
+  # link to 2D pos file
+  ln -sf $(pwd)/data/act2Dpos.txt mapcoord2D.txt
 
-	# link to 2D pos file
-	ln -sf $(pwd)/data/act2Dpos.txt mapcoord2D.txt
 cacao << EOF
 loadfits "conf/RMmodesDM/RMsyn_modesDM2D.fits" RMsyn_modesDM2D
 cacaocc.sample2DWF RMsyn_modesDM2D map2D RMsyn_modesDM1D
