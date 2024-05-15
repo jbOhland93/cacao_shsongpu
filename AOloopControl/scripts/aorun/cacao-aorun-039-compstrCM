@@ -89,6 +89,9 @@ echo "MERGING BLOCKS ${modeblockmerge}"
 
 blockcnt=0
 
+
+CMmDMname="NULL"
+CMmWFSname="NULL"
 export IFS=":"
 blockloopinit=0
 blocksrc="NULL"
@@ -102,6 +105,7 @@ for block in $modeblockmerge; do
   mbA="${mergesrc}"
   mbB="${block}"
   mbC="m${blockcnt}"
+
 milk << EOF
 loadfits "./conf/CMmodesDM/CMmodesDM.${mbA}.fits" mA
 loadfits "./conf/CMmodesDM/CMmodesDM.${mbB}.fits" mB
@@ -109,12 +113,46 @@ immerge mA mB mC 2
 saveFITS mC "./conf/CMmodesDM/CMmodesDM.${mbC}.fits"
 exitCLI
 EOF
+  CMmDMname="./conf/CMmodesDM/CMmodesDM.${mbC}.fits"
+cp ${CMmDMname} "./conf/CMmodesDM/CMmodesDM.fits"
+
+milk << EOF
+loadfits "./conf/CMmodesWFS/CMmodesWFS.${mbA}.fits" mA
+loadfits "./conf/CMmodesWFS/CMmodesWFS.${mbB}.fits" mB
+immerge mA mB mC 2
+saveFITS mC "./conf/CMmodesWFS/CMmodesWFS.${mbC}.fits"
+exitCLI
+EOF
+  CMmWFSname="./conf/CMmodesDM/CMmodesWFS.${mbC}.fits"
+cp ${CMmWFSname} "./conf/CMmodesWFS/CMmodesWFS.fits"
   
   mergesrc="m${blockcnt}"
   fi
   blockloopinit=1
   blockcnt=$((blockcnt+1))
 done
+
+
+# Load CM DM to shared memory
+milk-FITS2shm "conf/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
+cp $(pwd)/conf/CMmodesWFS/CMmodesWFS.fits ./conf/CMmodesWFS.fits
+
+
+# Load CM WFS to shared memory
+milk-FITS2shm "conf/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_DMmodes
+cp $(pwd)/conf/CMmodesDM/CMmodesDM.fits ./conf/CMmodesDM.fits
+
+source cacaofuncs-log
+cacao-calib-logFITSfile CMmodesDM
+cacao-calib-logFITSfile CMmodesWFS
+
+
+
+
+
+
+
+
 
 else
 
