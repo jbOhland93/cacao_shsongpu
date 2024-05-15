@@ -123,7 +123,7 @@ immerge mA mB mC 2
 saveFITS mC "./conf/CMmodesWFS/CMmodesWFS.${mbC}.fits"
 exitCLI
 EOF
-  CMmWFSname="./conf/CMmodesDM/CMmodesWFS.${mbC}.fits"
+  CMmWFSname="./conf/CMmodesWFS/CMmodesWFS.${mbC}.fits"
 cp ${CMmWFSname} "./conf/CMmodesWFS/CMmodesWFS.fits"
   
   mergesrc="m${blockcnt}"
