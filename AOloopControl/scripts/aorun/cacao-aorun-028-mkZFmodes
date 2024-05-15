@@ -202,22 +202,12 @@ fi
 
 # Edge apodization
 
-if [ $CACAO_DMysize -eq 1 ]; then
-	# 1D case
-	ln -sf $(pwd)/conf/dmmask2D.fits ./conf/dmmask-syn.fits
-else
-	# 2D case
-	ln -sf $(pwd)/conf/dmmask.fits ./conf/dmmask-syn.fits
-fi
-
-
-
 milk-all << EOF
 mload cacaocomputeCalib
 radext=${DMr0}*${radmaskfact}
 imgen.mkdisk dmmaskext ${DMsizex} ${DMsizey} ${DMx0} ${DMy0} radext
 loadfits "conf/RMmodesDM/modesZF0.fits" modesZF0
-loadfits "conf/dmmask-syn.fits" dmmask
+loadfits "conf/dmmask.fits" dmmask
 cacaocc.maskextrapolate .edgeapo ${edgeapo}
 cacaocc.maskextrapolate modesZF0 dmmask dmmaskext modesZF
 
