@@ -109,6 +109,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-021-mlatshow
 	scripts/aorun/cacao-aorun-025-acqWFS
 	scripts/aorun/cacao-aorun-026-takeref
+	scripts/aorun/cacao-aorun-028-mkZFmodes
 	scripts/aorun/cacao-aorun-030-acqlinResp
 	scripts/aorun/cacao-aorun-031-RMHdecode
 	scripts/aorun/cacao-aorun-032-RMmkmask
