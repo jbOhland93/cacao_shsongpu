@@ -1289,7 +1289,8 @@ static errno_t compute_function()
 
             if(*astrogrid == 1)
             {
-                // exclude astrogridchan
+                // exclude astrogridchan from cntsum
+                //
                 for(uint32_t ch = 0; ch < *NBchannel; ch++)
                 {
                     //printf("[astrogridON] ZPO ch %u = %d \n", ch, zpoffset_channel[ch]);
@@ -1328,7 +1329,7 @@ static errno_t compute_function()
             }
 
 
-            printf("%5d  %9ld  %9ld\n", __LINE__, cnt0sum, cntsumref);
+            //printf("%5d  %9ld  %9ld\n", __LINE__, cnt0sum, cntsumref);
             if(cnt0sum != cntsumref)
             {
                 //printf("cnt0sum = %ld\n", cnt0sum);
@@ -1413,10 +1414,11 @@ static errno_t compute_function()
                 //
                 update_dmdisp(imgdisp, imgch, dmdisptmp);
                 processinfo_update_output_stream(processinfo, imgdisp.ID);
-                // take into account update to astrogrid channel
 
-                cntsumref++;
-                printf("%5d    ->    %9ld\n", __LINE__, cntsumref);
+                // NOT NEEDED AS ASTROGRID CHANNEL EXCLUDED FROM COUNTING
+                // take into account update to astrogrid channel
+                //cntsumref++;
+                //printf("%5d    ->    %9ld\n", __LINE__, cntsumref);
 
                 if(*voltmode == 1)
                 {
