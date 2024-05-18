@@ -1103,7 +1103,11 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
 
 
 
-static errno_t update_dmdisp(IMGID imgdisp, IMGID *imgch, float *dmdisptmp)
+static errno_t update_dmdisp(
+    IMGID imgdisp,
+    IMGID *imgch,
+    float *dmdisptmp
+)
 {
     memcpy(dmdisptmp,
            imgch[0].im->array.F,
@@ -1323,6 +1327,8 @@ static errno_t compute_function()
                             }*/
             }
 
+
+            printf("%5d  %9ld  %9ld\n", __LINE__, cnt0sum, cntsumref);
             if(cnt0sum != cntsumref)
             {
                 //printf("cnt0sum = %ld\n", cnt0sum);
@@ -1360,7 +1366,7 @@ static errno_t compute_function()
             }
 
 
-            // Sum all channels
+            // Update astrogrid channel if needed
             //
             if(((*astrogrid) == 1) && ((*astrogridtdelay) == 0))
             {
@@ -1368,6 +1374,8 @@ static errno_t compute_function()
                 processinfo_update_output_stream(processinfo,
                                                  imgch[(*astrogridchan)].ID);
             }
+
+            // Sum all channels
             update_dmdisp(imgdisp, imgch, dmdisptmp);
             processinfo_update_output_stream(processinfo, imgdisp.ID);
 
@@ -1382,9 +1390,6 @@ static errno_t compute_function()
 
             if(((*astrogrid) == 1) && ((*astrogridtdelay) != 0))
             {
-                DMdisp_add_disp_from_circular_buffer(imgch[(*astrogridchan)]);
-                processinfo_update_output_stream(processinfo,
-                                                 imgch[(*astrogridchan)].ID);
 
                 // Add time delay
                 {
@@ -1400,10 +1405,18 @@ static errno_t compute_function()
                     nanosleep(&timesleep, NULL);
                 }
 
+                DMdisp_add_disp_from_circular_buffer(imgch[(*astrogridchan)]);
+                processinfo_update_output_stream(processinfo,
+                                                 imgch[(*astrogridchan)].ID);
+
+                // Sum all channels
+                //
                 update_dmdisp(imgdisp, imgch, dmdisptmp);
                 processinfo_update_output_stream(processinfo, imgdisp.ID);
                 // take into account update to astrogrid channel
+
                 cntsumref++;
+                printf("%5d    ->    %9ld\n", __LINE__, cntsumref);
 
                 if(*voltmode == 1)
                 {
