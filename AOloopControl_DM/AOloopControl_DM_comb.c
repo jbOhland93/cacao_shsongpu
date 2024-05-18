@@ -1311,25 +1311,15 @@ static errno_t compute_function()
                 for(uint32_t ch = 0; ch < *NBchannel; ch++)
                 {
                     cnt0sum += imgch[ch].md->cnt0;
-                    /*if (*zpoffsetenable == 1)
-                    {
-                        printf(" %d", zpoffset_channel[ch]);
-                    }*/
 
-                    //printf("ZPO ch %u = %d \n", ch, zpoffset_channel[ch]);
                     if((*zpoffsetenable == 1) && (zpoffset_channel[ch] == 1))
                     {
                         cnt0sumzpo += imgch[ch].md->cnt0;
                     }
                 }
-                /*            if (*zpoffsetenable == 1)
-                            {
-                                printf("\n");
-                            }*/
             }
 
 
-            //printf("%5d  %9ld  %9ld\n", __LINE__, cnt0sum, cntsumref);
             if(cnt0sum != cntsumref)
             {
                 //printf("cnt0sum = %ld\n", cnt0sum);
@@ -1359,7 +1349,6 @@ static errno_t compute_function()
         if(DMupdate == 1)
         {
             // Update DM disp
-            //printf("Updating dmdisp\n\n");
 
             if((*astrogrid) == 0)
             {
@@ -1414,11 +1403,6 @@ static errno_t compute_function()
                 //
                 update_dmdisp(imgdisp, imgch, dmdisptmp);
                 processinfo_update_output_stream(processinfo, imgdisp.ID);
-
-                // NOT NEEDED AS ASTROGRID CHANNEL EXCLUDED FROM COUNTING
-                // take into account update to astrogrid channel
-                //cntsumref++;
-                //printf("%5d    ->    %9ld\n", __LINE__, cntsumref);
 
                 if(*voltmode == 1)
                 {
