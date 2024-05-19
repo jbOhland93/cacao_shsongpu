@@ -118,8 +118,8 @@ mkdir -p ${DMMODEDIR}
 
 
 
-x0default=$(echo "scale=3; $CACAO_DMxsize/2" | bc)
-y0default=$(echo "scale=3; $CACAO_DMysize/2" | bc)
+x0default=$(echo "scale=3; $CACAO_DMxsize/2-0.5" | bc)
+y0default=$(echo "scale=3; $CACAO_DMysize/2-0.5" | bc)
 r0default=$(echo "scale=3; 0.450*$CACAO_DMxsize" | bc)
 
 
