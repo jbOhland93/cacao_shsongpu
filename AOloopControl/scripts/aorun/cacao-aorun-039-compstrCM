@@ -61,12 +61,32 @@ function setmodeblockmerge()
 }
 
 
-MSopt+=( "marg:modeblockmarginalize:setmmodeblockmarginalize:mergestring[string]:Marginalize against mode blocks, sep by col" )
-modeblockmarginalize=""
-function setmmodeblockmarginalize()
+MSopt+=( "marg:modeblockmarginalizeWFS:setmmodeblockmarginalizeWFS:mergestring[string]:Marginalize against mode blocks in WFS space, sep by col" )
+modeblockmarginalizeWFS=""
+function setmmodeblockmarginalizeWFS()
 {
-	modeblockmarginalize="$1"
+	modeblockmarginalizeWFS="$1"
 }
+
+
+MSopt+=( "margDM:modeblockmarginalizeDM:setmmodeblockmarginalizeDM:mergestring[string]:Marginalize against mode blocks in DM space, sep by col" )
+modeblockmarginalizeDM=""
+function setmmodeblockmarginalizeDM()
+{
+	modeblockmarginalizeDM="$1"
+}
+
+
+
+
+MSopt+=( "l:loadonly:setLOADONLY::Load CM modes to shared memory (do not recompute)" )
+LOADONLY=0
+function setLOADONLY()
+{
+	LOADONLY="1"
+}
+
+
 
 
 
@@ -97,7 +117,7 @@ fi
 # input: mAWFSfile, mADMfile, mBWFSfile, mBDMfile
 # output saved as $1 (WFS) and $2 (DM)
 #
-function modes_marginalize()
+function modes_marginalizeWFS()
 {
 milk-all << EOF
 loadfits "./conf/wfsmask.fits" wfsmask
@@ -137,8 +157,85 @@ exitCLI
 EOF
 }
 
+# marginalize input DM modes (mB) against previous mode blocks CM(s) DM (mA)
+# remove modes block mA from modes block mB
+# input: mADMfile, mAWFSfile, mBDMfile, mBWFSfile
+# output saved as $1 (DM) and $2 (WFS)
+#
+function modes_marginalizeDM()
+{
+milk-all << EOF
+loadfits "./conf/dmmask.fits" dmmask
+loadfits "${mADMfile}" mADM
+loadfits "${mAWFSfile}" mAWFSn
+normalizeslice .auxin mAWFSn
+normalizeslice mADM dmmask mADMn 2
+loadfits "${mBDMfile}" mBDM
+loadfits "${mBWFSfile}" mBWFS
+
+# measure mADM content in mBDM -> xp
+linalg.sgemm .GPUdevice 0
+linalg.sgemm .transpA 1
+linalg.sgemm mADMn mBDM xp
+#saveFITS xp "tmp_xp.fits"
+#listim
+
+# expand
+linalg.sgemm .transpA 0
+linalg.sgemm mADMn xp imexpDM
+linalg.sgemm mAWFSn xp imexpWFS
+#saveFITS imexp "tmp_imexpDM.fits"
+#listim
+
+mCDM=mBDM-imexpDM
+mCWFS=mBWFS-imexpWFS
+
+#linalg.sgemm .transpA 1
+#linalg.sgemm mADMn mC xp2
+#saveFITS xp2 "tmp_xp2.fits"
+#listim
+
+saveFITS mCDM "$1"
+saveFITS mCWFS "$2"
+
+exitCLI
+EOF
+}
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+if [[ $LOADONLY -eq 1 ]]; then
+# load CM to shared memory
+
+# Load CM DM to shared memory
+milk-FITS2shm "conf/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
+cp $(pwd)/conf/CMmodesWFS/CMmodesWFS.fits ./conf/CMmodesWFS.fits
+
+
+# Load CM WFS to shared memory
+milk-FITS2shm "conf/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_DMmodes
+cp $(pwd)/conf/CMmodesDM/CMmodesDM.fits ./conf/CMmodesDM.fits
+
+source cacaofuncs-log
+cacao-calib-logFITSfile CMmodesDM
+cacao-calib-logFITSfile CMmodesWFS
+
+cacaomsglog "END"
+exit
+
+fi
 
 
 
@@ -253,6 +350,7 @@ EOF
     inputRMWFSfname="conf/RMmodesWFS/RMmodesWFS.${modeblock}.fits"
   fi
   
+  
 
   # marginalize input WFS modes against previous mode blocks CM(s) WFS
   #
@@ -260,21 +358,42 @@ EOF
   mBWFSfile="./conf/RMmodesWFS/RMmodesWFS.${mB}.fits"
   mBDMfile="./conf/RMmodesDM/RMmodesDM.${mB}.fits"
   export IFS=":"    
-  for block in $modeblockmarginalize; do
-    marginalize=1
+  for block in $modeblockmarginalizeWFS; do
+    marginalizeWFS=1
     mA="${block}"
   
     mAWFSfile="./conf/CMmodesWFS/CMmodesWFS.${mA}.fits"
     mADMfile="./conf/CMmodesDM/CMmodesDM.${mA}.fits"
 
-    inputRMWFSfname="${inputRMWFSfname}.m${block}"
-    inputRMDMfname="${inputRMDMfname}.m${block}"
+    inputRMWFSfname="${inputRMWFSfname}.mW${block}"
+    inputRMDMfname="${inputRMDMfname}.mW${block}"
 
-    modes_marginalize "${inputRMWFSfname}" "${inputRMDMfname}"
+    modes_marginalizeWFS "${inputRMWFSfname}" "${inputRMDMfname}"
     mBWFSfile="${inputRMWFSfname}"
     mBDMfile="${inputRMDMfname}"
   done
 
+
+  # marginalize input DM modes against previous mode blocks CM(s) DM
+  #
+  mB="${modeblock}"
+  mBDMfile="./conf/RMmodesDM/RMmodesDM.${mB}.fits"
+  mBWFSfile="./conf/RMmodesWFS/RMmodesWFS.${mB}.fits"
+  export IFS=":"    
+  for block in $modeblockmarginalizeDM; do
+    marginalizeDM=1
+    mA="${block}"
+  
+    mADMfile="./conf/CMmodesDM/CMmodesDM.${mA}.fits"
+    mAWFSfile="./conf/CMmodesWFS/CMmodesWFS.${mA}.fits"
+
+    inputRMDMfname="${inputRMDMfname}.mD${block}"
+    inputRMWFSfname="${inputRMWFSfname}.mD${block}"
+
+    modes_marginalizeDM "${inputRMDMfname}" "${inputRMWFSfname}"
+    mBDMfile="${inputRMDMfname}"
+    mBWFSfile="${inputRMWFSfname}"
+  done
 
 
 
