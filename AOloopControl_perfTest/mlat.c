@@ -304,7 +304,7 @@ static errno_t compute_function()
     // Prepare output diff cube sequence
     // if saveraw = ON
     //
-    long diffseqsize = 50; // number of slices
+    long diffseqsize = 60; // number of slices
     float diffseqdtframe = 0.1; // time increment per slice [frame]
     float *  diffseqkkcnt = (float *) malloc(sizeof(float)*diffseqsize); // count how many frames go in each slice
     for ( int diffseqkk=0; diffseqkk<diffseqsize; diffseqkk++)
