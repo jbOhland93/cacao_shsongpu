@@ -300,7 +300,24 @@ static errno_t compute_function()
         abort();
     }
 
-    // Create DM patterns
+
+    // Prepare output diff cube sequence
+    // if saveraw = ON
+    //
+    long diffseqsize = 100; // number of slices
+    float diffseqdtframe = 0.1; // time increment per slice [frame]
+    float *  diffseqkkcnt = (float *) malloc(sizeof(float)*diffseqsize); // count how many frames go in each slice
+    IMGID imgdiffseq;
+    imgdiffseq = makeIMGID_3D("CMmodesWFS",
+                              imgwfs.md->size[0],
+                              imgwfs.md->size[1],
+                              diffseqsize);
+    createimagefromIMGID(&imgdiffseq);
+
+
+
+
+// Create DM patterns
     imageID IDdm0 = -1;
     imageID IDdm1 = -1;
     {
@@ -630,7 +647,7 @@ static errno_t compute_function()
                     //
                     char ffnameC[STRINGMAXLEN_FULLFILENAME];
                     WRITE_FULLFILENAME(ffnameC,
-                                       "mlat-testC-%04d.fits", iter);
+                                       "mlat-testC-%04d", iter);
                     fps_write_RUNoutput_image(data.fpsptr, "_testwfsc", ffnameC);
                 }
 
@@ -648,7 +665,7 @@ static errno_t compute_function()
                 double valmaxdt = 0.0;
 
 
-
+                float * diffseqvalarray = (float *) malloc(sizeof(float) * wfssize);
                 // Measure latency from stored image cube
                 // For each time step (= slice in cube), measure magnitude of change
                 // between current and previous frame.
@@ -664,8 +681,10 @@ static errno_t compute_function()
                 1.0*data.image[IDwfsc].array.IMG_PTR_ID[kk * wfssize + ii] -       \
                 1.0*data.image[IDwfsc].array.IMG_PTR_ID[(kk - 1) * wfssize + ii];  \
             valarray[kk] += 1.0 * tmp * tmp;                                       \
+            diffseqvalarray[ii] = tmp;                                             \
         }                                                                          \
     }
+
 
                 for(long kk = 1; kk < NBwfsframe; kk++)
                 {
@@ -673,38 +692,51 @@ static errno_t compute_function()
 
                     switch(imgwfs.datatype)
                     {
-                        case _DATATYPE_FLOAT:
-                            IMAGE_SUMMING_CASE(F);
-                            break;
-                        case _DATATYPE_DOUBLE:
-                            IMAGE_SUMMING_CASE(D);
-                            break;
-                        case _DATATYPE_UINT16:
-                            IMAGE_SUMMING_CASE(UI16);
-                            break;
-                        case _DATATYPE_INT16:
-                            IMAGE_SUMMING_CASE(SI16);
-                            break;
-                        case _DATATYPE_UINT32:
-                            IMAGE_SUMMING_CASE(UI32);
-                            break;
-                        case _DATATYPE_INT32:
-                            IMAGE_SUMMING_CASE(SI32);
-                            break;
-                        case _DATATYPE_UINT64:
-                            IMAGE_SUMMING_CASE(UI64);
-                            break;
-                        case _DATATYPE_INT64:
-                            IMAGE_SUMMING_CASE(SI64);
-                            break;
-                        case _DATATYPE_COMPLEX_FLOAT:
-                        case _DATATYPE_COMPLEX_DOUBLE:
-                        default:
-                            PRINT_ERROR("COMPLEX TYPES UNSUPPORTED");
-                            return RETURN_FAILURE;
+                    case _DATATYPE_FLOAT:
+                        IMAGE_SUMMING_CASE(F);
+                        break;
+                    case _DATATYPE_DOUBLE:
+                        IMAGE_SUMMING_CASE(D);
+                        break;
+                    case _DATATYPE_UINT16:
+                        IMAGE_SUMMING_CASE(UI16);
+                        break;
+                    case _DATATYPE_INT16:
+                        IMAGE_SUMMING_CASE(SI16);
+                        break;
+                    case _DATATYPE_UINT32:
+                        IMAGE_SUMMING_CASE(UI32);
+                        break;
+                    case _DATATYPE_INT32:
+                        IMAGE_SUMMING_CASE(SI32);
+                        break;
+                    case _DATATYPE_UINT64:
+                        IMAGE_SUMMING_CASE(UI64);
+                        break;
+                    case _DATATYPE_INT64:
+                        IMAGE_SUMMING_CASE(SI64);
+                        break;
+                    case _DATATYPE_COMPLEX_FLOAT:
+                    case _DATATYPE_COMPLEX_DOUBLE:
+                    default:
+                        PRINT_ERROR("COMPLEX TYPES UNSUPPORTED");
+                        return RETURN_FAILURE;
                     }
 
                     valarray[kk] = sqrt(valarray[kk] / wfssize / 2);
+
+                    {
+                        float timeoffset = (0.5 * (dtarray[wfsframe] + dtarray[wfsframe - 1]) - *dtoffset) * (*framerateHz);
+                        int diffseqkk = timeoffset * diffseqdtframe;
+                        if( (diffseqkk >= 0 ) && (diffseqkk < diffseqsize) )
+                        {
+                            for (uint64_t ii = 0; ii < wfssize; ii++)
+                            {
+                                imgdiffseq.im->array.F[diffseqkk*wfssize + ii] += diffseqvalarray[ii];
+                            }
+                            diffseqkkcnt[diffseqkk] += 1.0;
+                        }
+                    }
 
 
 
@@ -720,6 +752,8 @@ static errno_t compute_function()
                         kkmax    = kk - kkoffset;
                     }
                 }
+
+                free(diffseqvalarray);
 
                 //
                 //
@@ -779,6 +813,29 @@ static errno_t compute_function()
             //
             processinfo_WriteMessage_fmt(processinfo, "Processing Data (%u iterations)",
                                          (*NBiter));
+
+
+            // normalize imgdiffseq
+            {
+                uint64_t wfssize = imgwfs.md->size[0] * imgwfs.md->size[1];
+                for ( int diffseqkk = 0; diffseqkk < diffseqsize; diffseqkk++)
+                {
+                    for (uint64_t ii = 0; ii < wfssize; ii++)
+                    {
+                        imgdiffseq.im->array.F[diffseqkk*wfssize + ii] /= diffseqkkcnt[diffseqkk];
+                    }
+                }
+            }
+            // Save imgdiffseq
+            //
+            {
+                char ffnameC[STRINGMAXLEN_FULLFILENAME];
+                WRITE_FULLFILENAME(ffnameC,
+                                   "mlat-diffseq");
+                fps_write_RUNoutput_image(data.fpsptr, imgdiffseq.name, ffnameC);
+            }
+
+
 
 
             copy_image_ID("_testdm0", dmstream, 1);
@@ -936,6 +993,8 @@ static errno_t compute_function()
 
     free(latencyarray);
     free(latencysteparray);
+
+    free(diffseqkkcnt);
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;
