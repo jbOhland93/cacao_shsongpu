@@ -307,6 +307,10 @@ static errno_t compute_function()
     long diffseqsize = 100; // number of slices
     float diffseqdtframe = 0.1; // time increment per slice [frame]
     float *  diffseqkkcnt = (float *) malloc(sizeof(float)*diffseqsize); // count how many frames go in each slice
+    for ( int diffseqkk=0; diffseqkk<diffseqsize; diffseqkk++)
+    {
+        diffseqkkcnt[diffseqkk] = 0.0;
+    }
     IMGID imgdiffseq;
     imgdiffseq = makeIMGID_3D("CMmodesWFS",
                               imgwfs.md->size[0],
@@ -820,7 +824,7 @@ static errno_t compute_function()
                 uint64_t wfssize = imgwfs.md->size[0] * imgwfs.md->size[1];
                 for ( int diffseqkk = 0; diffseqkk < diffseqsize; diffseqkk++)
                 {
-                    if ( diffseqkkcnt[diffseqkk] > 0.0001 )
+                    if ( diffseqkkcnt[diffseqkk] > 0.5 )
                     {
                         for (uint64_t ii = 0; ii < wfssize; ii++)
                         {
