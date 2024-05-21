@@ -726,7 +726,7 @@ static errno_t compute_function()
                     valarray[kk] = sqrt(valarray[kk] / wfssize / 2);
 
                     {
-                        float timeoffset = (0.5 * (dtarray[wfsframe] + dtarray[wfsframe - 1]) - *dtoffset) * (*framerateHz);
+                        float timeoffset = (0.5 * (dtarray[kk] + dtarray[kk - 1]) - *dtoffset) * (*framerateHz);
                         int diffseqkk = timeoffset / diffseqdtframe;
                         if( (diffseqkk >= 0 ) && (diffseqkk < diffseqsize) )
                         {
