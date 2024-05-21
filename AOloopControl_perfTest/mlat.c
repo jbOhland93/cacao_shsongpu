@@ -727,7 +727,7 @@ static errno_t compute_function()
 
                     {
                         float timeoffset = (0.5 * (dtarray[wfsframe] + dtarray[wfsframe - 1]) - *dtoffset) * (*framerateHz);
-                        int diffseqkk = timeoffset * diffseqdtframe;
+                        int diffseqkk = timeoffset / diffseqdtframe;
                         if( (diffseqkk >= 0 ) && (diffseqkk < diffseqsize) )
                         {
                             for (uint64_t ii = 0; ii < wfssize; ii++)
@@ -820,9 +820,12 @@ static errno_t compute_function()
                 uint64_t wfssize = imgwfs.md->size[0] * imgwfs.md->size[1];
                 for ( int diffseqkk = 0; diffseqkk < diffseqsize; diffseqkk++)
                 {
-                    for (uint64_t ii = 0; ii < wfssize; ii++)
+                    if ( diffseqkkcnt[diffseqkk] > 0.0001 )
                     {
-                        imgdiffseq.im->array.F[diffseqkk*wfssize + ii] /= diffseqkkcnt[diffseqkk];
+                        for (uint64_t ii = 0; ii < wfssize; ii++)
+                        {
+                            imgdiffseq.im->array.F[diffseqkk*wfssize + ii] /= diffseqkkcnt[diffseqkk];
+                        }
                     }
                 }
             }
