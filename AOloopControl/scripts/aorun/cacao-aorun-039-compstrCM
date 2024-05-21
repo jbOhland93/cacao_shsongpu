@@ -119,14 +119,26 @@ fi
 #
 function modes_marginalizeWFS()
 {
+echo "margWFS ================================="	
+echo "margWFS INPUT  : ${mAWFSfile}"
+echo "margWFS INPUT  : ${mADMfile}"
+echo "margWFS INPUT  : ${mBWFSfile}"
+echo "margWFS INPUT  : ${mBDMfile}"
+	
+# required to handle long file names
+cp "${mAWFSfile}" _mAWFS.fits
+cp "${mADMfile}" _mADM.fits
+cp "${mBWFSfile}" _mBWFS.fits
+cp "${mBDMfile}" _mBDM.fits
+	
 milk-all << EOF
 loadfits "./conf/wfsmask.fits" wfsmask
-loadfits "${mAWFSfile}" mAWFS
-loadfits "${mADMfile}" mADMn
+loadfits "_mAWFS.fits" mAWFS
+loadfits "_mADM.fits" mADMn
 normalizeslice .auxin mADMn
 normalizeslice mAWFS wfsmask mAWFSn 2
-loadfits "${mBWFSfile}" mBWFS
-loadfits "${mBDMfile}" mBDM
+loadfits "_mBWFS.fits" mBWFS
+loadfits "_mBDM.fits" mBDM
 
 # measure mAWFS content in mBWFS -> xp
 linalg.sgemm .GPUdevice 0
@@ -150,12 +162,25 @@ mCDM=mBDM-imexpDM
 #saveFITS xp2 "tmp_xp2.fits"
 #listim
 
-saveFITS mCWFS "$1"
-saveFITS mCDM "$2"
+saveFITS mCWFS "_tmpoutCWFS.fits"
+saveFITS mCDM "_tmpoutCM.fits"
 
 exitCLI
 EOF
+
+# cleamup
+rm _mAWFS.fits
+rm _mADM.fits
+rm _mBWFS.fits
+rm _mBDM.fits
+
+mv _tmpoutCWFS.fits "$1"
+mv _tmpoutCM.fits "$2"
+
+echo "margWFS OUTPUT : $1"
+echo "margWFS OUTPUT : $2"
 }
+
 
 # marginalize input DM modes (mB) against previous mode blocks CM(s) DM (mA)
 # remove modes block mA from modes block mB
@@ -164,6 +189,19 @@ EOF
 #
 function modes_marginalizeDM()
 {
+	
+echo "margDM  ================================="	
+echo "margDM  INPUT  : ${mADMfile}"
+echo "margDM  INPUT  : ${mAWFSfile}"
+echo "margDM  INPUT  : ${mBDMfile}"
+echo "margDM  INPUT  : ${mBWFSfile}"
+
+# required to handle long file names
+cp "${mADMfile}" _mADM.fits
+cp "${mAWFSfile}" _mAWFS.fits
+cp "${mBDMfile}" _mBDM.fits
+cp "${mBWFSfile}" _mBWFS.fits
+	
 milk-all << EOF
 loadfits "./conf/dmmask.fits" dmmask
 loadfits "${mADMfile}" mADM
@@ -195,11 +233,24 @@ mCWFS=mBWFS-imexpWFS
 #saveFITS xp2 "tmp_xp2.fits"
 #listim
 
-saveFITS mCDM "$1"
-saveFITS mCWFS "$2"
+saveFITS mCDM "_tmpoutCM.fits"
+saveFITS mCWFS "_tmpoutCWFS.fits"
 
 exitCLI
 EOF
+
+# cleamup
+rm _mADM.fits
+rm _mAWFS.fits
+rm _mBDM.fits
+rm _mBWFS.fits
+
+mv _tmpoutCM.fits "$1"
+mv _tmpoutCWFS.fits "$2"
+
+echo "margDM  OUTPUT : $1"
+echo "margDM  OUTPUT : $2"
+
 }
 
 
@@ -350,35 +401,15 @@ EOF
     inputRMWFSfname="conf/RMmodesWFS/RMmodesWFS.${modeblock}.fits"
   fi
   
-  
 
-  # marginalize input WFS modes against previous mode blocks CM(s) WFS
-  #
+
   mB="${modeblock}"
   mBWFSfile="./conf/RMmodesWFS/RMmodesWFS.${mB}.fits"
-  mBDMfile="./conf/RMmodesDM/RMmodesDM.${mB}.fits"
-  export IFS=":"    
-  for block in $modeblockmarginalizeWFS; do
-    marginalizeWFS=1
-    mA="${block}"
-  
-    mAWFSfile="./conf/CMmodesWFS/CMmodesWFS.${mA}.fits"
-    mADMfile="./conf/CMmodesDM/CMmodesDM.${mA}.fits"
-
-    inputRMWFSfname="${inputRMWFSfname}.mW${block}"
-    inputRMDMfname="${inputRMDMfname}.mW${block}"
-
-    modes_marginalizeWFS "${inputRMWFSfname}" "${inputRMDMfname}"
-    mBWFSfile="${inputRMWFSfname}"
-    mBDMfile="${inputRMDMfname}"
-  done
+  mBDMfile="./conf/RMmodesDM/RMmodesDM.${mB}.fits"  
 
 
   # marginalize input DM modes against previous mode blocks CM(s) DM
   #
-  mB="${modeblock}"
-  mBDMfile="./conf/RMmodesDM/RMmodesDM.${mB}.fits"
-  mBWFSfile="./conf/RMmodesWFS/RMmodesWFS.${mB}.fits"
   export IFS=":"    
   for block in $modeblockmarginalizeDM; do
     marginalizeDM=1
@@ -396,11 +427,38 @@ EOF
   done
 
 
+  # marginalize input WFS modes against previous mode blocks CM(s) WFS
+  #
+  export IFS=":"    
+  for block in $modeblockmarginalizeWFS; do
+    marginalizeWFS=1
+    mA="${block}"
+  
+	# input for script
+    mAWFSfile="./conf/CMmodesWFS/CMmodesWFS.${mA}.fits"
+    mADMfile="./conf/CMmodesDM/CMmodesDM.${mA}.fits"
+
+    inputRMWFSfname="${inputRMWFSfname}.mW${block}"
+    inputRMDMfname="${inputRMDMfname}.mW${block}"
+   
+    modes_marginalizeWFS "${inputRMWFSfname}" "${inputRMDMfname}"
+    
+    # input for next iteration of script
+    mBWFSfile="${inputRMWFSfname}"
+    mBDMfile="${inputRMDMfname}"
+  done
+
+  echo "post-marg RMDM  : ${inputRMDMfname}"
+  echo "post-marg RMWFS : ${inputRMWFSfname}"
+  inputRMDMmargfname="conf/RMmodesDM/RMmodesDM.${mB}.marg.fits"
+  cp ${inputRMDMfname} ${inputRMDMmargfname}
+  inputRMWFSmargfname="conf/RMmodesWFS/RMmodesWFS.${mB}.marg.fits"
+  cp ${inputRMWFSfname} ${inputRMWFSmargfname}
 
 
   # Set Input
-  sendFPScmd "setval compstrCM-${CACAO_LOOPNUMBER}.RMmodesDM ../${inputRMDMfname}"
-  sendFPScmd "setval compstrCM-${CACAO_LOOPNUMBER}.RMmodesWFS ../${inputRMWFSfname}"
+  sendFPScmd "setval compstrCM-${CACAO_LOOPNUMBER}.RMmodesDM ../${inputRMDMmargfname}"
+  sendFPScmd "setval compstrCM-${CACAO_LOOPNUMBER}.RMmodesWFS ../${inputRMWFSmargfname}"
 
 
   # set ouput files
@@ -492,5 +550,37 @@ EOF
 
 fi #end of if merge
 
+
+
+# TEST
+if [[ "$modeblock" == "ALL" ]]; then
+
+milk-all << EOF
+loadfits "./conf/dmmask.fits" dmmask
+loadfits "./conf/CMmodesDM.fits" mDM
+mDMm=mDM*dmmask
+
+linalg.sgemm .GPUdevice 0
+linalg.sgemm .transpA 1
+linalg.sgemm mDMm mDMm xp
+saveFITS xp "conf/CMmodesDM_xp.fits"
+
+exitCLI
+EOF
+
+
+milk-all << EOF
+loadfits "./conf/wfsmask.fits" wfsmask
+loadfits "./conf/CMmodesWFS.fits" mWFS
+mWFSm=mWFS*wfsmask
+
+linalg.sgemm .GPUdevice 0
+linalg.sgemm .transpA 1
+linalg.sgemm mWFSm mWFSm xp
+saveFITS xp "conf/CMmodesWFS_xp.fits"
+
+exitCLI
+EOF
+fi
 
 cacaomsglog "END"
