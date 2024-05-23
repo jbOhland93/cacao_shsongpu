@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+
+MSdescr="Compute modal response from zonal RM"
+
+MSextdescr="
+Computes modal response matrix (RM) from zonal RM.
+
+Arg: Zonal response matrix name
+File name is conf/RMmodesDM/<MODESNAME>.fits
+
+Input: conf/RMmodesWFS/zrespM-H.fits
+Zonal response matrix, one actuator poke response per slice
+
+Ouput: conf/RMmodesDM/<MODESNAME>.fits
+Computed DM modes, one mode per slice
+
+Output: conf/RMmodesWFS/<MODESNAME>.fits
+Computed WFS modes, one mode per slice
+
+Upon completion, set RM to output of this sctipt:
+  ln -s $(pwd)/conf/RMmodesDM/RMsyn_modesDM.fits ./conf/RMmodesDM/RMmodesDM.fits
+  ln -s $(pwd)/conf/RMmodesWFS/RMsyn_modesWFS.fits ./conf/RMmodesWFS/RMmodesWFS.fits
+
+"
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+MSarg+=( "DMmodes:string:DM modes cube FITS file" )
+
+
+# SCRIPT OPTIONS
+# syntax: "short:long:functioncall:args[types]:description"
+
+
+
+source milk-argparse
+
+DMmodeCname="${inputMSargARRAY[0]}"
+DMmCfname="conf/RMmodesDM/${DMmodeCname}.fits"
+
+
+checkFile ${DMmCfname}
+
+
+
+cacaomsglog "START"
+
+
+
+
+# Compute WFS response of synthetic modes
+#
+
+cacao << EOF
+loadfits "conf/RMmodesWFS/zrespM-H.fits" zrespM
+loadfits "conf/RMmodesDM/${DMmodeCname}.fits" dmC
+cacaocc.generateRMWFS zrespM dmC wfsC
+saveFITS wfsC "conf/RMmodesWFS/${DMmodeCname}.fits"
+listim
+exitCLI
+EOF
+
+
+
+echo "Set default to ${DMmodeCname} files"
+
+rm -f ./conf/RMmodesDM/RMmodesDM.fits
+ln -s $(pwd)/conf/RMmodesDM/${DMmodeCname}.fits ./conf/RMmodesDM/RMmodesDM.fits
+echo "ln -s $(pwd)/conf/RMmodesDM/${DMmodeCname}.fits ./conf/RMmodesDM/RMmodesDM.fits"
+cacaomsglog "USING ${DMmodeCname} as RMmodesDM"
+
+rm -f ./conf/RMmodesWFS/RMmodesWFS.fits
+ln -s $(pwd)/conf/RMmodesWFS/${DMmodeCname}.fits ./conf/RMmodesWFS/RMmodesWFS.fits
+echo "ln -s $(pwd)/conf/RMmodesWFS/${DMmodeCname}.fits ./conf/RMmodesWFS/RMmodesWFS.fits"
+cacaomsglog "USING ${DMmodeCname} as RMmodesWFS"
+
+
+
+# LOGGING
+# see cacaofuncs-log for conventions
+#
+source cacaofuncs-log
+cacao-calib-logFITSfile RMmodesDM
+cacao-calib-logFITSfile RMmodesWFS
+
+
+
+cacaomsglog "END"

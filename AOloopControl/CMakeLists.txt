@@ -114,6 +114,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-031-RMHdecode
 	scripts/aorun/cacao-aorun-032-RMmkmask
 	scripts/aorun/cacao-aorun-033-RM-mksynthetic
+	scripts/aorun/cacao-aorun-034-RMzonal2modal
 	scripts/aorun/cacao-aorun-039-compstrCM
 	scripts/aorun/cacao-aorun-040-compfCM
 	scripts/aorun/cacao-aorun-041-loadCM

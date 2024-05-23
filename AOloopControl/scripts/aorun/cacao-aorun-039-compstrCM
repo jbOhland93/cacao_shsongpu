@@ -552,18 +552,30 @@ fi #end of if merge
 
 
 
-# TEST
+# Compute cross-products in WFS and DM spaces
+#
 if [[ "$modeblock" == "ALL" ]]; then
+xpCMDMinput="conf/CMmodesDM.fits"
+xpCMWFSinput="conf/CMmodesWFS.fits"
+xpDMoutput="conf/CMmodesDM.xp.fits"
+xpWFSoutput="conf/CMmodesWFS.xp.fits"
+else
+xpCMDMinput="conf/CMmodesDM/CMmodesDM.${modeblock}.fits"
+xpCMWFSinput="conf/CMmodesWFS/CMmodesWFS.${modeblock}.fits"
+xpDMoutput="conf/CMmodesDM.${modeblock}.xp.fits"
+xpWFSoutput="conf/CMmodesWFS.${modeblock}.xp.fits"
+fi
+
 
 milk-all << EOF
 loadfits "./conf/dmmask.fits" dmmask
-loadfits "./conf/CMmodesDM.fits" mDM
+loadfits "${xpCMDMinput}" mDM
 mDMm=mDM*dmmask
 
 linalg.sgemm .GPUdevice 0
 linalg.sgemm .transpA 1
 linalg.sgemm mDMm mDMm xp
-saveFITS xp "conf/CMmodesDM_xp.fits"
+saveFITS xp "${xpDMoutput}"
 
 exitCLI
 EOF
@@ -571,16 +583,16 @@ EOF
 
 milk-all << EOF
 loadfits "./conf/wfsmask.fits" wfsmask
-loadfits "./conf/CMmodesWFS.fits" mWFS
+loadfits "${xpCMWFSinput}" mWFS
 mWFSm=mWFS*wfsmask
 
 linalg.sgemm .GPUdevice 0
 linalg.sgemm .transpA 1
 linalg.sgemm mWFSm mWFSm xp
-saveFITS xp "conf/CMmodesWFS_xp.fits"
+saveFITS xp "${xpWFSoutput}"
 
 exitCLI
 EOF
-fi
+
 
 cacaomsglog "END"
