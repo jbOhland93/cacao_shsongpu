@@ -84,9 +84,9 @@ cacaomsglog "USING ${DMmodeCname} as RMmodesWFS"
 # LOGGING
 # see cacaofuncs-log for conventions
 #
-source cacaofuncs-log
-cacao-calib-logFITSfile RMmodesDM
-cacao-calib-logFITSfile RMmodesWFS
+#source cacaofuncs-log
+#cacao-calib-logFITSfile RMmodesDM
+#cacao-calib-logFITSfile RMmodesWFS
 
 
 
