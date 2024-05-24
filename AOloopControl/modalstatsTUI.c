@@ -16,6 +16,12 @@
 static short unsigned int wrow, wcol;
 
 
+// Display options
+//
+static int MODALTUI_PF = 0;
+static int MODALTUI_DMfilt = 0;
+
+
 
 typedef struct
 {
@@ -141,6 +147,23 @@ static int modalstats_TUI_process_user_key(
         mstatstruct->pscale = pow(10.0, mstatstruct->pscaleindex);
         break;
 
+    case 'P':
+        MODALTUI_PF = 1;
+        break;
+
+    case 'p':
+        MODALTUI_PF = 0;
+        break;
+
+    case 'F':
+        MODALTUI_DMfilt = 1;
+        break;
+
+    case 'f':
+        MODALTUI_DMfilt = 0;
+        break;
+
+
     }
 
     DEBUG_TRACE_FEXIT();
@@ -240,6 +263,14 @@ errno_t AOloopControl_modalstatsTUI(
         WRITE_IMAGENAME(name, "aol%d_modevalDM", loopindex);
         imgmodevalDM = mkIMGID_from_name(name);
         resolveIMGID(&imgmodevalDM, ERRMODE_ABORT);
+    }
+
+    IMGID imgmodevalDMf;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%d_modevalDMf", loopindex);
+        imgmodevalDMf = mkIMGID_from_name(name);
+        resolveIMGID(&imgmodevalDMf, ERRMODE_ABORT);
     }
 
     IMGID imgmodevalOL;
@@ -492,6 +523,8 @@ errno_t AOloopControl_modalstatsTUI(
 
         TUI_printfw(" PRESS x to exit, +/- change display scale, UP/DOWN PGUP PGDOWN");
         TUI_newline();
+        TUI_printfw(" [P/p] Predictive filter [F/f] DM filtering");
+        TUI_newline();
         TUI_printfw("Loop %ld  -  Mode %5ld / %5ld [%5ld-%5ld] - loopcnt %ld",
                     loopindex,
                     mstatstruct.modeindex,
@@ -507,9 +540,17 @@ errno_t AOloopControl_modalstatsTUI(
 
 
 
-        TUI_printfw("MODE [ gain  mult  lim ]           WFS       |          DM       |          OL       | LIMTRUC WFS/OL  DM/OL");
+        TUI_printfw("MODE [ gain  mult  lim ]           WFS       |          DM       |");
+        if ( MODALTUI_DMfilt )
+        {
+            TUI_printfw("    DMf       |");
+        }
+        TUI_printfw("          OL       | LIMTRUC WFS/OL  DM/OL");
 
-        TUI_printfw(" [ mPFmix ] ");
+        if ( MODALTUI_PF )
+        {
+            TUI_printfw(" [ mPFmix ] ");
+        }
 
         TUI_newline();
 
@@ -571,7 +612,8 @@ errno_t AOloopControl_modalstatsTUI(
 
 
 
-
+            // WFS telemetry
+            //
             printfixedlen(imgmodevalWFS.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
             TUI_printfw(" ");
 
@@ -593,6 +635,9 @@ errno_t AOloopControl_modalstatsTUI(
 
 
 
+
+            // DM telemetry
+            //
             printfixedlen(imgmodevalDM.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
             TUI_printfw(" ");
             {
@@ -610,6 +655,26 @@ errno_t AOloopControl_modalstatsTUI(
             printfixedlen_unsigned(DMrms[mi]*DMmodenorm[mi], &mstatstruct);
             TUI_printfw(" | ");
 
+
+
+            if ( MODALTUI_DMfilt )
+            {
+                // DMf telemetry
+                //
+                printfixedlen(imgmodevalDMf.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
+                TUI_printfw(" ");
+
+                printfixedlen((imgmodevalDMf.im->array.F[mi] - imgmodevalDM.im->array.F[mi])*DMmodenorm[mi], &mstatstruct);
+                TUI_printfw(" ");
+
+                TUI_printfw(" | ");
+            }
+
+
+
+
+            // Open loop telemetry
+            //
             printfixedlen(imgmodevalOL.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
             TUI_printfw(" ");
             {
@@ -681,23 +746,25 @@ errno_t AOloopControl_modalstatsTUI(
             screenprint_unsetcolor(color);
 
 
+            if ( MODALTUI_PF )
+            {
 
-            // Predictive Filter
-            //
-            TUI_printfw("  [ %5.3f ]",
-                        imgmPFmix.im->array.F[mi]
-                       );
+                // Predictive Filter
+                //
+                TUI_printfw("  [ %5.3f ]",
+                            imgmPFmix.im->array.F[mi]
+                           );
 
-            TUI_printfw("   %6.4f ",
-                        imgmvalPFresrms.im->array.F[mi]
-                       );
-            TUI_printfw("  %5.3f ",
-                        imgmvalPFresrms.im->array.F[mi]/imgmvalWFSrms.im->array.F[mi]
-                       );
-            TUI_printfw("  %8.6f ",
-                        imgmvalPFresrms.im->array.F[mi]/imgmvalOLrms.im->array.F[mi]
-                       );
-
+                TUI_printfw("   %6.4f ",
+                            imgmvalPFresrms.im->array.F[mi]
+                           );
+                TUI_printfw("  %5.3f ",
+                            imgmvalPFresrms.im->array.F[mi]/imgmvalWFSrms.im->array.F[mi]
+                           );
+                TUI_printfw("  %8.6f ",
+                            imgmvalPFresrms.im->array.F[mi]/imgmvalOLrms.im->array.F[mi]
+                           );
+            }
 
 
 

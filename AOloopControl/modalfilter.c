@@ -940,6 +940,22 @@ static errno_t compute_function()
         ImageStreamIO_UpdateIm(imgout.im);
     }
 
+    // connect/create externally filtered DM mode coeffs
+    //
+    IMGID imgmodevalDMf;
+    {
+        char name[STRINGMAXLEN_STREAMNAME];
+        WRITE_IMAGENAME(name, "aol%lu_modevalDMf", *AOloopindex);
+        imgmodevalDMf = stream_connect_create_2Df32(name, NBmode, 1);
+        for(uint32_t mi = 0; mi < NBmode; mi++)
+        {
+            data.image[imgmodevalDMf.ID].array.F[mi] = 0.0;
+        }
+        ImageStreamIO_UpdateIm(imgmodevalDMf.im);
+    }
+
+
+
     // connect/create aux DM control mode coeffs
     //
     IMGID imgauxmDM;

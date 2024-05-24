@@ -690,7 +690,6 @@ fi
 
 
 
-
 # Write in this file FPS-compatible processes that will be used
 # col1: FPS name as it should appear in FPS
 # col2: function to be called in cacao to launch process
