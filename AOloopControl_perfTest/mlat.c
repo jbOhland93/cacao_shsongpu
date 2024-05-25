@@ -31,6 +31,9 @@ long          fpi_frameratewait;
 static float *OPDamp;
 long          fpi_OPDamp;
 
+static char *pokemap;
+long         fpi_pokemap;
+
 static float *CPA;
 long          fpi_CPA;
 
@@ -61,6 +64,16 @@ long          fpi_latencyfr;
 static int64_t *saveraw;
 long            fpi_saveraw;
 
+static int64_t *saveseq;
+long            fpi_saveseq;
+
+static uint32_t *seqNBframe;
+long             fpi_seqNBframe;
+
+static float *seqdtframe;
+long          fpi_seqdtframe;
+
+
 
 static CLICMDARGDEF farg[] = {{
         CLIARG_STREAM,
@@ -88,6 +101,15 @@ static CLICMDARGDEF farg[] = {{
         CLIARG_VISIBLE_DEFAULT,
         (void **) &OPDamp,
         &fpi_OPDamp
+    },
+    {
+        CLIARG_STREAM,
+        ".pokemap",
+        "optional DM poke map, use if exists",
+        "null",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &pokemap,
+        &fpi_pokemap
     },
     {
         CLIARG_FLOAT32,
@@ -188,6 +210,33 @@ static CLICMDARGDEF farg[] = {{
         (void **) &saveraw,
         &fpi_saveraw
     },
+    {
+        CLIARG_ONOFF,
+        ".option.saveseq",
+        "Save sequence image cube",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &saveseq,
+        &fpi_saveseq
+    },
+    {
+        CLIARG_UINT32,
+        ".option.seqNBframe",
+        "Number of frames in seq cube",
+        "100",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &seqNBframe,
+        &fpi_seqNBframe
+    },
+        {
+        CLIARG_FLOAT32,
+        ".option.seqdtfr",
+        "seq cube time resolution [fr]",
+        "0.1",
+        CLIARG_OUTPUT_DEFAULT,
+        (void **) &seqdtframe,
+        &fpi_seqdtframe
+    }
 };
 
 
@@ -255,18 +304,23 @@ static errno_t compute_function()
 {
     DEBUG_TRACE_FSTART();
 
-    // uint32_t dmxsize;
-    // uint32_t dmysize;
-
     // connect to DM
     IMGID imgdm = mkIMGID_from_name(dmstream);
     resolveIMGID(&imgdm, ERRMODE_ABORT);
     printf("DM size : %u %u\n", imgdm.md->size[0], imgdm.md->size[1]);
+    uint32_t dmxsize = imgdm.md->size[0];
+    uint32_t dmysize = imgdm.md->size[1];
 
     // connect to WFS
     IMGID imgwfs = mkIMGID_from_name(wfsstream);
     resolveIMGID(&imgwfs, ERRMODE_ABORT);
     printf("WFS size : %u %u\n", imgwfs.md->size[0], imgwfs.md->size[1]);
+
+    // connect to optional pokemap
+    IMGID imgpokemap = mkIMGID_from_name(pokemap);
+    resolveIMGID(&imgpokemap, ERRMODE_WARN);
+    printf("pokemap size : %u %u\n", imgpokemap.md->size[0], imgpokemap.md->size[1]);
+
 
     // create wfs image cube for storage
     imageID IDwfsc;
@@ -304,8 +358,8 @@ static errno_t compute_function()
     // Prepare output diff cube sequence
     // if saveraw = ON
     //
-    long diffseqsize = 60; // number of slices
-    float diffseqdtframe = 0.1; // time increment per slice [frame]
+    long diffseqsize = *seqNBframe; // number of slices
+    float diffseqdtframe = *seqdtframe; // time increment per slice [frame]
     float *  diffseqkkcnt = (float *) malloc(sizeof(float)*diffseqsize); // count how many frames go in each slice
     for ( int diffseqkk=0; diffseqkk<diffseqsize; diffseqkk++)
     {
@@ -321,15 +375,12 @@ static errno_t compute_function()
 
 
 
-// Create DM patterns
+    // Create DM patterns
     imageID IDdm0 = -1;
     imageID IDdm1 = -1;
     {
-        uint32_t dmxsize = imgdm.md->size[0];
-        uint32_t dmysize = imgdm.md->size[1];
-
-        create_2Dimage_ID("_testdm0", dmxsize, dmysize, &IDdm0);
-        create_2Dimage_ID("_testdm1", dmxsize, dmysize, &IDdm1);
+        create_2Dimage_ID("_mlattestdm0", dmxsize, dmysize, &IDdm0);
+        create_2Dimage_ID("_mlattestdm", dmxsize, dmysize, &IDdm1);
 
         float RMStot = 0.0;
         for(uint32_t ii = 0; ii < dmxsize; ii++)
@@ -355,9 +406,12 @@ static errno_t compute_function()
             }
 
         // save output
-        fps_write_RUNoutput_image(data.fpsptr, "_testdm0", "pokeDM0");
-        fps_write_RUNoutput_image(data.fpsptr, "_testdm1", "pokeDM1");
+        fps_write_RUNoutput_image(data.fpsptr, "_mlattestdm", "mlatpokeDM");
     }
+
+
+
+
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
@@ -507,7 +561,22 @@ static errno_t compute_function()
                                              *NBiter);
 
 
-                copy_image_ID("_testdm0", dmstream, 1);
+                if( imgpokemap.ID == -1 )
+                {
+                    copy_image_ID("_mlattestdm", dmstream, 1);
+                }
+                else
+                {
+                    for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                    {
+                        imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
+                    }
+                }
+
+
+
+
+
 
                 unsigned int dmstate = 0;
 
@@ -629,7 +698,17 @@ static errno_t compute_function()
                         kkoffset = wfsframe;
 
                         dmstate = 1;
-                        copy_image_ID("_testdm1", dmstream, 1);
+                        if( imgpokemap.ID == -1 )
+                        {
+                            copy_image_ID("_mlattestdm", dmstream, 1);
+                        }
+                        else
+                        {
+                            for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                            {
+                                imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
+                            }
+                        }
 
                         // Record time at which DM command is sent
                         //
@@ -641,7 +720,18 @@ static errno_t compute_function()
                     wfsframe++;
                 }
 
-                copy_image_ID("_testdm0", dmstream, 1);
+
+                if( imgpokemap.ID == -1 )
+                {
+                    copy_image_ID("_mlattestdm", dmstream, 1);
+                }
+                else
+                {
+                    for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                    {
+                        imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
+                    }
+                }
                 dmstate = 0;
 
 
@@ -835,6 +925,7 @@ static errno_t compute_function()
             }
             // Save imgdiffseq
             //
+            if( data.fpsptr->parray[fpi_saveseq].fpflag & FPFLAG_ONOFF )
             {
                 char ffnameC[STRINGMAXLEN_FULLFILENAME];
                 WRITE_FULLFILENAME(ffnameC,
@@ -845,7 +936,7 @@ static errno_t compute_function()
 
 
 
-            copy_image_ID("_testdm0", dmstream, 1);
+            copy_image_ID("_mlattestdm0", dmstream, 1);
 
             float latencyave     = 0.0;
             float latencystepave = 0.0;
