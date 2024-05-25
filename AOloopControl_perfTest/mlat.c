@@ -573,6 +573,7 @@ static errno_t compute_function()
                 {
                     imgdm.im->array.F[ii] = 0.0; //S (*OPDamp) * imgpokemap.im->array.F[ii];
                 }
+                processinfo_update_output_stream(processinfo, imgdm.ID);
                 //}
 
 
@@ -710,6 +711,7 @@ static errno_t compute_function()
                             {
                                 imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
                             }
+                            processinfo_update_output_stream(processinfo, imgdm.ID);
                         }
 
                         // Record time at which DM command is sent
@@ -733,6 +735,7 @@ static errno_t compute_function()
                     {
                         imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
                     }
+                    processinfo_update_output_stream(processinfo, imgdm.ID);
                 }
                 dmstate = 0;
 
