@@ -228,7 +228,7 @@ static CLICMDARGDEF farg[] = {{
         (void **) &seqNBframe,
         &fpi_seqNBframe
     },
-        {
+    {
         CLIARG_FLOAT32,
         ".option.seqdtfr",
         "seq cube time resolution [fr]",
@@ -319,8 +319,10 @@ static errno_t compute_function()
     // connect to optional pokemap
     IMGID imgpokemap = mkIMGID_from_name(pokemap);
     resolveIMGID(&imgpokemap, ERRMODE_WARN);
-    printf("pokemap size : %u %u\n", imgpokemap.md->size[0], imgpokemap.md->size[1]);
-
+    if(imgpokemap.ID != -1)
+    {
+        printf("pokemap size : %u %u\n", imgpokemap.md->size[0], imgpokemap.md->size[1]);
+    }
 
     // create wfs image cube for storage
     imageID IDwfsc;
