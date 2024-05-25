@@ -563,17 +563,17 @@ static errno_t compute_function()
                                              *NBiter);
 
 
-                if( imgpokemap.ID == -1 )
+                //if( imgpokemap.ID == -1 )
+                //{
+                //    copy_image_ID("_mlattestdm0", dmstream, 1);
+                //}
+                //else
+                //{
+                for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
                 {
-                    copy_image_ID("_mlattestdm", dmstream, 1);
+                    imgdm.im->array.F[ii] = 0.0; //S (*OPDamp) * imgpokemap.im->array.F[ii];
                 }
-                else
-                {
-                    for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
-                    {
-                        imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
-                    }
-                }
+                //}
 
 
 
