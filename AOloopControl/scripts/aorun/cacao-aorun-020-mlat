@@ -27,6 +27,14 @@ function set_WaitForCompletion() {
 	WaitForCompletion=1
 }
 
+ACTUATOR="NULL"
+MSopt+=( "a:actuator:set_actuator:actuator[int]:single actuator measurement" )
+function set_actuator() {
+	ACTUATOR=$1
+}
+
+
+
 DisplayGraph=0
 MSopt+=( "d:displayresults:set_DisplayGraph::run the gnuplot dislay routine" )
 function set_DisplayGraph() {
@@ -70,6 +78,19 @@ fi
 
 
 cacaomsglog "START"
+
+
+if [[ ${ACTUATOR} == NULL ]]; then
+sendFPScmd "setval mlat-${CACAO_LOOPNUMBER}.pokemap null"
+else
+## prepare pokemap
+milk-all << EOF
+mk2Dim "s>aol${CACAO_LOOPNUMBER}_pokemap" ${CACAO_DMxsize} ${CACAO_DMysize}
+setpix aol${CACAO_LOOPNUMBER}_pokemap 1.0 ${actX} ${acty}
+exitCLI
+EOF
+fi
+
 
 
 
