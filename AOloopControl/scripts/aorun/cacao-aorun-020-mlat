@@ -27,11 +27,24 @@ function set_WaitForCompletion() {
 	WaitForCompletion=1
 }
 
-ACTUATOR="NULL"
-MSopt+=( "a:actuator:set_actuator:actuator[int]:single actuator measurement" )
+ACTUATORPOKE=0
+MSopt+=( "a:actuator:set_actuator::single actuator measurement" )
 function set_actuator() {
-	ACTUATOR=$1
+	ACTUATORPOKE=1
 }
+
+actX=0
+MSopt+=( "ax:actuatorX:set_actX:actuatorX[int]:poke actuator X coord" )
+function set_actX() {
+	actX=$1
+}
+
+actY=0
+MSopt+=( "ay:actuatorY:set_actY:actuatorY[int]:poke actuator Y coord" )
+function set_actY() {
+	actY=$1
+}
+
 
 
 
@@ -79,16 +92,20 @@ fi
 
 cacaomsglog "START"
 
+# Save poke response time sequence cube
+sendFPScmd "setval mlat-${CACAO_LOOPNUMBER}.option.saveseq ON"
 
-if [[ ${ACTUATOR} == NULL ]]; then
+
+if [[ ${ACTUATORPOKE} -eq 0 ]]; then
 sendFPScmd "setval mlat-${CACAO_LOOPNUMBER}.pokemap null"
 else
 ## prepare pokemap
 milk-all << EOF
 mk2Dim "s>aol${CACAO_LOOPNUMBER}_pokemap" ${CACAO_DMxsize} ${CACAO_DMysize}
-setpix aol${CACAO_LOOPNUMBER}_pokemap 1.0 ${actX} ${acty}
+setpix aol${CACAO_LOOPNUMBER}_pokemap 1.0 ${actX} ${actY}
 exitCLI
 EOF
+sendFPScmd "setval mlat-${CACAO_LOOPNUMBER}.pokemap aol${CACAO_LOOPNUMBER}_pokemap"
 fi
 
 

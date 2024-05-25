@@ -563,18 +563,13 @@ static errno_t compute_function()
                                              *NBiter);
 
 
-                //if( imgpokemap.ID == -1 )
-                //{
-                //    copy_image_ID("_mlattestdm0", dmstream, 1);
-                //}
-                //else
-                //{
+
                 for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
                 {
-                    imgdm.im->array.F[ii] = 0.0; //S (*OPDamp) * imgpokemap.im->array.F[ii];
+                    imgdm.im->array.F[ii] = 0.0;
                 }
                 processinfo_update_output_stream(processinfo, imgdm.ID);
-                //}
+
 
 
 
