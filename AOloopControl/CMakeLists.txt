@@ -18,7 +18,9 @@ add_library(${LIBNAME} SHARED ${SRCNAME}.c
 	modalCTRL_stats.h
 	modalstatsTUI.c
 	modalstatsTUI.h
-)
+	zonalfilter.c
+	zonalfilter.h
+	)
 
 
 #if(USE_CUDA)
