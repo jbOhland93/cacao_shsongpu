@@ -2,8 +2,8 @@
 # This file will be sourced by cacao-setup and high-level cacao scripts
 
 
-export CACAO_LOOPNAME="nir188"
-export CACAO_LOOPNUMBER="7"
+export CACAO_LOOPNAME="apd3k"
+export CACAO_LOOPNUMBER="5"
 
 # ====== DEFORMABLE MIRROR ==========
 
@@ -14,6 +14,11 @@ export CACAO_DMINDEX="64"    # Hardware DM - connected to physical DM
 export CACAO_DMSIMINDEX="65" # Simulation DM
 export CACAO_DMxsize="64" # + TT
 export CACAO_DMysize="64"
+
+export CACAO_DM_beam_xcent="31.5"
+export CACAO_DM_beam_ycent="31.5"
+export CACAO_DM_beam_rad="32.001" # 32 + eps
+
 
 # 1 if DM actuators are on a coordinate grid
 # This informs processes if a spatial relationship exists
@@ -33,12 +38,12 @@ export CACAO_LOOPRUNDIR="${CACAO_LOOPNAME}-rundir"
 
 
 # input WFS stream
-export CACAO_WFSSTREAM="iiwi"    # Hardware stream, connected to physical camera
-export CACAO_WFSSTREAMSIM="iiwisim" # Simulation camera stream
+export CACAO_WFSSTREAM="curv_1kdouble"    # Hardware stream, connected to physical camera
+export CACAO_WFSSTREAMSIM="curv_sim" # Simulation camera stream
 
 # Specify that WFS stream is not raw image, but processed WFS signal
 # If set to ON, this turns off intensity scaling
-export CACAO_WFSSTREAM_PROCESSED="OFF"
+export CACAO_WFSSTREAM_PROCESSED="ON"
 
 export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 
@@ -49,10 +54,11 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 # ========================================
 
 # DM combination
-# Manages mutipe DM channels
+# Manages multiple DM channels
 #
-export CACAO_FPSPROC_DMCH2DISP="ON"
-export CACAO_FPSPROC_DMCH2DISPSIM="ON"
+# We wanna avoid a double-deploy with nir188 loop
+export CACAO_FPSPROC_DMCH2DISP="OFF"
+export CACAO_FPSPROC_DMCH2DISPSIM="OFF"
 
 # DM turbulence simulator
 export CACAO_FPSPROC_DMATMTURB="OFF"
@@ -60,15 +66,15 @@ export CACAO_FPSPROC_DMATMTURB="OFF"
 # Delay stream: emulates time lag in hardware
 # Used to simulate a time lag
 #
-export CACAO_FPSPROC_DMSIMDELAY="ON"
+export CACAO_FPSPROC_DMSIMDELAY="OFF"
 
 # MVM lop on GPU: used to simulate hardware
 #
-export CACAO_FPSPROC_SIMMVMGPU="ON"
+export CACAO_FPSPROC_SIMMVMGPU="OFF"
 
 # Camera simulator
 #
-export CACAO_FPSPROC_WFSCAMSIM="ON"
+export CACAO_FPSPROC_WFSCAMSIM="OFF"
 export CACAO_FPS_wfscamsim_fluxtotal="1000000"
 
 

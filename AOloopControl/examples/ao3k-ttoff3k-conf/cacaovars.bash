@@ -2,23 +2,23 @@
 # This file will be sourced by cacao-setup and high-level cacao scripts
 
 
-export CACAO_LOOPNAME="nir188"
-export CACAO_LOOPNUMBER="7"
+export CACAO_LOOPNAME="ttoff3k"
+export CACAO_LOOPNUMBER="8"
 
 # ====== DEFORMABLE MIRROR ==========
 
 # Deformable mirror (DM) size
 # If DM is single dimension, enter "1" for DMsize
 #
-export CACAO_DMINDEX="64"    # Hardware DM - connected to physical DM
-export CACAO_DMSIMINDEX="65" # Simulation DM
-export CACAO_DMxsize="64" # + TT
-export CACAO_DMysize="64"
+export CACAO_DMINDEX="01"    # Hardware DM - connected to physical DM
+export CACAO_DMSIMINDEX="11" # Simulation DM
+export CACAO_DMxsize="2" #
+export CACAO_DMysize="1"
 
 # 1 if DM actuators are on a coordinate grid
 # This informs processes if a spatial relationship exists
 # between DM actuators
-export CACAO_DMSPATIAL="1"
+export CACAO_DMSPATIAL="0"
 
 
 
@@ -33,12 +33,13 @@ export CACAO_LOOPRUNDIR="${CACAO_LOOPNAME}-rundir"
 
 
 # input WFS stream
-export CACAO_WFSSTREAM="iiwi"    # Hardware stream, connected to physical camera
-export CACAO_WFSSTREAMSIM="iiwisim" # Simulation camera stream
+# Simulating or not is irrelevant
+export CACAO_WFSSTREAM="dm64out"    # Hardware stream, connected to physical camera
+export CACAO_WFSSTREAMSIM="dm64out" # Simulation camera stream
 
 # Specify that WFS stream is not raw image, but processed WFS signal
 # If set to ON, this turns off intensity scaling
-export CACAO_WFSSTREAM_PROCESSED="OFF"
+export CACAO_WFSSTREAM_PROCESSED="ON"
 
 export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 
@@ -64,11 +65,13 @@ export CACAO_FPSPROC_DMSIMDELAY="ON"
 
 # MVM lop on GPU: used to simulate hardware
 #
-export CACAO_FPSPROC_SIMMVMGPU="ON"
+# that's too tricky here because we actually need to feed TT back to the CRED1 sim which
+# is part of ANOTHER loop.
+export CACAO_FPSPROC_SIMMVMGPU="OFF"
 
 # Camera simulator
 #
-export CACAO_FPSPROC_WFSCAMSIM="ON"
+export CACAO_FPSPROC_WFSCAMSIM="OFF"
 export CACAO_FPS_wfscamsim_fluxtotal="1000000"
 
 

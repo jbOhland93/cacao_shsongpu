@@ -2,8 +2,8 @@
 # This file will be sourced by cacao-setup and high-level cacao scripts
 
 
-export CACAO_LOOPNAME="nir188"
-export CACAO_LOOPNUMBER="7"
+export CACAO_LOOPNAME="lowfs3k"
+export CACAO_LOOPNUMBER="6"
 
 # ====== DEFORMABLE MIRROR ==========
 
@@ -33,12 +33,12 @@ export CACAO_LOOPRUNDIR="${CACAO_LOOPNAME}-rundir"
 
 
 # input WFS stream
-export CACAO_WFSSTREAM="iiwi"    # Hardware stream, connected to physical camera
-export CACAO_WFSSTREAMSIM="iiwisim" # Simulation camera stream
+export CACAO_WFSSTREAM="lowfs_data"    # Hardware stream, connected to physical camera
+export CACAO_WFSSTREAMSIM="lowfs_sim" # Simulation camera stream
 
 # Specify that WFS stream is not raw image, but processed WFS signal
 # If set to ON, this turns off intensity scaling
-export CACAO_WFSSTREAM_PROCESSED="OFF"
+export CACAO_WFSSTREAM_PROCESSED="ON"
 
 export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 
@@ -51,8 +51,8 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 # DM combination
 # Manages mutipe DM channels
 #
-export CACAO_FPSPROC_DMCH2DISP="ON"
-export CACAO_FPSPROC_DMCH2DISPSIM="ON"
+export CACAO_FPSPROC_DMCH2DISP="OFF"
+export CACAO_FPSPROC_DMCH2DISPSIM="OFF"
 
 # DM turbulence simulator
 export CACAO_FPSPROC_DMATMTURB="OFF"
@@ -60,15 +60,15 @@ export CACAO_FPSPROC_DMATMTURB="OFF"
 # Delay stream: emulates time lag in hardware
 # Used to simulate a time lag
 #
-export CACAO_FPSPROC_DMSIMDELAY="ON"
+export CACAO_FPSPROC_DMSIMDELAY="OFF"
 
 # MVM lop on GPU: used to simulate hardware
 #
-export CACAO_FPSPROC_SIMMVMGPU="ON"
+export CACAO_FPSPROC_SIMMVMGPU="OFF"
 
 # Camera simulator
 #
-export CACAO_FPSPROC_WFSCAMSIM="ON"
+export CACAO_FPSPROC_WFSCAMSIM="OFF"
 export CACAO_FPS_wfscamsim_fluxtotal="1000000"
 
 

@@ -2,7 +2,7 @@
 # This file will be sourced by cacao-setup and high-level cacao scripts
 
 
-export CACAO_LOOPNAME="nir188"
+export CACAO_LOOPNAME="nir3k"
 export CACAO_LOOPNUMBER="7"
 
 # ====== DEFORMABLE MIRROR ==========

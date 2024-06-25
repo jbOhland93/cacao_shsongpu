@@ -2,8 +2,8 @@
 # This file will be sourced by cacao-setup and high-level cacao scripts
 
 
-export CACAO_LOOPNAME="nir188"
-export CACAO_LOOPNUMBER="7"
+export CACAO_LOOPNAME="bimdm3kpt"
+export CACAO_LOOPNUMBER="9"
 
 # ====== DEFORMABLE MIRROR ==========
 
@@ -33,12 +33,12 @@ export CACAO_LOOPRUNDIR="${CACAO_LOOPNAME}-rundir"
 
 
 # input WFS stream
-export CACAO_WFSSTREAM="iiwi"    # Hardware stream, connected to physical camera
-export CACAO_WFSSTREAMSIM="iiwisim" # Simulation camera stream
+export CACAO_WFSSTREAM="curv_1kdouble"    # Hardware stream, connected to physical camera
+export CACAO_WFSSTREAMSIM="curv_sim" # Simulation camera stream
 
 # Specify that WFS stream is not raw image, but processed WFS signal
 # If set to ON, this turns off intensity scaling
-export CACAO_WFSSTREAM_PROCESSED="OFF"
+export CACAO_WFSSTREAM_PROCESSED="ON"
 
 export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 
@@ -49,10 +49,11 @@ export CACAO_LOOPDATALOGDIR="$(pwd)/datalogdir"
 # ========================================
 
 # DM combination
-# Manages mutipe DM channels
+# Manages multiple DM channels
 #
-export CACAO_FPSPROC_DMCH2DISP="ON"
-export CACAO_FPSPROC_DMCH2DISPSIM="ON"
+# We wanna avoid a double-deploy with nir188 loop
+export CACAO_FPSPROC_DMCH2DISP="OFF"
+export CACAO_FPSPROC_DMCH2DISPSIM="OFF"
 
 # DM turbulence simulator
 export CACAO_FPSPROC_DMATMTURB="OFF"
@@ -60,15 +61,15 @@ export CACAO_FPSPROC_DMATMTURB="OFF"
 # Delay stream: emulates time lag in hardware
 # Used to simulate a time lag
 #
-export CACAO_FPSPROC_DMSIMDELAY="ON"
+export CACAO_FPSPROC_DMSIMDELAY="OFF"
 
 # MVM lop on GPU: used to simulate hardware
 #
-export CACAO_FPSPROC_SIMMVMGPU="ON"
+export CACAO_FPSPROC_SIMMVMGPU="OFF"
 
 # Camera simulator
 #
-export CACAO_FPSPROC_WFSCAMSIM="ON"
+export CACAO_FPSPROC_WFSCAMSIM="OFF"
 export CACAO_FPS_wfscamsim_fluxtotal="1000000"
 
 
@@ -81,11 +82,11 @@ export CACAO_FPS_wfscamsim_fluxtotal="1000000"
 
 # Measure hardware latency
 #
-export CACAO_FPSPROC_MLAT="ON"
+export CACAO_FPSPROC_MLAT="OFF"
 
 # Acquire WFS stream
 #
-export CACAO_FPSPROC_ACQUWFS="ON"
+export CACAO_FPSPROC_ACQUWFS="OFF"
 
 
 
@@ -93,17 +94,17 @@ export CACAO_FPSPROC_ACQUWFS="ON"
 # Acquire linear RM (zonal)
 
 
-export CACAO_FPSPROC_MEASURELINRESP="ON"
+export CACAO_FPSPROC_MEASURELINRESP="OFF"
 
 
-export CACAO_FPSPROC_COMPSTRCM="ON"
+export CACAO_FPSPROC_COMPSTRCM="OFF"
 
 # Extract control modes from WFS using MVM
 #
-export CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL="ON"
+export CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL="OFF"
 
 # Modal control filtering
-export CACAO_FPSPROC_MODALFILTERING="ON"
+export CACAO_FPSPROC_MODALFILTERING="OFF"
 
 # Compute DM command from control mode values
 export CACAO_FPSPROC_MVMGPU_CMODEVAL2DM="ON"
