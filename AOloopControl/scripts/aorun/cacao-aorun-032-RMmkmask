@@ -160,7 +160,6 @@ EOF
 
 
 
-if [[ "$nomask" -eq 0 ]]; then
 # LOGGING
 # see cacaofuncs-log for conventions
 #
