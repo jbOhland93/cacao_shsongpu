@@ -29,6 +29,13 @@ function set_RMfname() {
 	RMfname="$1"
 }
 
+noload=0
+MSopt+=( "nl:noload:set_noload::do not load to shared memory" )
+function set_noload() {
+	noload=1
+}
+
+
 
 DMmaskRMp0="0.2"
 DMmaskRMc0="0.5"
@@ -153,7 +160,7 @@ EOF
 
 
 
-
+if [[ "$nomask" -eq 0 ]]; then
 # LOGGING
 # see cacaofuncs-log for conventions
 #
