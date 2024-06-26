@@ -68,6 +68,7 @@
 
 #include "compRMsensitivity.h"
 #include "mlat.h"
+#include "mlat_decode.h"
 
 
 
@@ -104,6 +105,7 @@ static errno_t init_module_CLI()
 
     CLIADDCMD_AOloopControl_perfTest__compRMsensitivity();
     CLIADDCMD_AOloopControl_perfTest__mlat();
+    CLIADDCMD_AOloopControl_perfTest__mlat_decode();
 
     return RETURN_SUCCESS;
 }

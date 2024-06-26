@@ -5,11 +5,13 @@ set(SOURCEFILES
 	AOloopControl_perfTest_LinSim.c
 	compRMsensitivity.c
 	mlat.c
+	mlat_decode.c
 )
 
 # list include files (.h) that should be installed on system
 set(INCLUDEFILES
 	mlat.h
+	mlat_decode.h
 )
 
 # list scripts that should be installed on system
