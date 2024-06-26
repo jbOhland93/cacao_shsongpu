@@ -118,7 +118,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_FLOAT32,
         ".loopgain",
-        "loop gain",
+        "loop gain (speed)",
         "0.01",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &loopgain,
@@ -127,7 +127,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_FLOAT32,
         ".loopmult",
-        "loop mult",
+        "loop mult (attenuation)",
         "0.95",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &loopmult,
@@ -415,13 +415,11 @@ static errno_t compute_function()
         // zero loop
         if(data.fpsptr->parray[fpi_loopZERO].fpflag & FPFLAG_ONOFF)
         {
-
             for(uint32_t act = 0; act < dmxysize; act++)
             {
                 // set goal position to zero
                 zvalDMc[act] = 0.0;
             }
-
             memcpy(imgout.im->array.F, zvalDMc, sizeof(float) * dmxysize);
             processinfo_update_output_stream(processinfo, imgout.ID);
 
@@ -430,6 +428,7 @@ static errno_t compute_function()
         }
 
 
+        int act0 = 1000;
 
         if((*loopON) == 1)
         {
@@ -455,19 +454,15 @@ static errno_t compute_function()
             //
             for(uint32_t act = 0; act < dmxysize; act++)
             {
+                // grab input value, relative to zeropt
+                zvalin = imginDM.im->array.F[act] - imgzzeropoint.im->array.F[act];
 
-                // grab input value
-                zvalin = imginDM.im->array.F[act];
-
-                // offset from mval to zero point
-                // this is the input zero point
-                zvalout = imgzzeropoint.im->array.F[act] - zvalin;
-
-                // multiply by GAIN
-                zvalout *= imgzgain.im->array.F[act];
 
                 //add the new delta command to the integrated command with leak: this is the goal position
-                zvalDMc[act] = zvalout + zvalDMc[act]*imgzmult.im->array.F[act];
+                zvalDMc[act] = (1.0 - imgzgain.im->array.F[act]) * zvalDMc[act] + imgzgain.im->array.F[act] * zvalin;
+
+                // Apply mult coeff
+                zvalDMc[act]  *= imgzmult.im->array.F[act];
 
                 // apply LIMIT
                 limit = imgzlimit.im->array.F[act];
@@ -481,13 +476,12 @@ static errno_t compute_function()
                     zvalDMc[act] = -limit;
                     zlimitcntarray[act] ++;
                 }
-
             }
 
 
             for(uint32_t act = 0; act < dmxysize; act++)
             {
-                data.image[imgout.ID].array.F[act] = zvalDMc[act];
+                data.image[imgout.ID].array.F[act] = zvalDMc[act] + imgzzeropoint.im->array.F[act];
             }
             ImageStreamIO_UpdateIm(imgout.im);
 

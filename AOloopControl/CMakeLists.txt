@@ -77,7 +77,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/cacao-fpslistadd-MAPWFS
 	scripts/cacao-fpslistadd-MVMGPU_CMODEVAL2DM
 	scripts/cacao-fpslistadd-MVMGPU_CMODEVALOFFLOAD2DM
-	scripts/cacao-fpslistadd-MVMGPU_DM2CMODEVAL
+	scripts/cacao-fpslistadd-MVMGPU_DM2MVAL
 	scripts/cacao-fpslistadd-MVMGPU_WFS2CMODEVAL
 	scripts/cacao-fpslistadd-MVMGPU_ZPO
 	scripts/cacao-fpslistadd-MODALCTRL_STATS
@@ -87,6 +87,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/cacao-fpslistadd-SIMMVMGPU
 	scripts/cacao-fpslistadd-WFSMODEVAL2DM
 	scripts/cacao-fpslistadd-WFSCAMSIM
+	scripts/cacao-fpslistadd-ZONALFILTERING
 	scripts/cacao-modalstatsTUI
 	scripts/cacao-takedark
 	scripts/cacao-task-manager
@@ -127,6 +128,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-061-setmgains
 	scripts/aorun/cacao-aorun-062-setmmults
 	scripts/aorun/cacao-aorun-063-setmlimits
+	scripts/aorun/cacao-aorun-065-zonalfiltering
 	scripts/aorun/cacao-aorun-070-cmval2dm
 	scripts/aorun/cacao-aorun-071-zpo
 	scripts/aorun/cacao-aorun-080-testOL
