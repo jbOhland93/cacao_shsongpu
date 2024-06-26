@@ -839,6 +839,8 @@ static errno_t compute_function()
     {
         selfRM_NBmode = NBmode;
     }
+
+
     // selfRM initialization
     //
     int      blockcnt         = 0;
@@ -1350,6 +1352,9 @@ static errno_t compute_function()
     // initialization for testOL
     *testOLcnt = 0;
 
+    // modalDMf counter0, used to detect updates to modalDMf
+    uint64_t imgmodevalDMfcnt0 = 0;
+    uint64_t imgmodevalDMfcnt0old = 0;
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
@@ -1413,7 +1418,27 @@ static errno_t compute_function()
                 //printf("%7.5f  auxDMfact = %7.5f\n", modpha, auxDMfact);
             }
 
+
+            // Has the modal state of the DM been externally updated ?
+            // (This is usually done by zonal filtering)
+            // If so, update modal state
+            //
+            imgmodevalDMfcnt0 = imgmodevalDMf.md->cnt0;
+            if ( imgmodevalDMfcnt0 != imgmodevalDMfcnt0old )
+            {
+                //printf("modalDMf chnaged   %lu -> %lu\n", imgmodevalDMfcnt0old, imgmodevalDMfcnt0);
+                imgmodevalDMfcnt0old = imgmodevalDMfcnt0;
+
+                for(uint32_t mi = 0; mi < NBmode; mi++)
+                {
+                    mvalDMc[mi] = imgmodevalDMf.im->array.F[mi];
+                }
+            }
+
+
+
             // Apply modal control filtering
+            // mvalDMc is the current modal state of DM
             //
             for(uint32_t mi = 0; mi < NBmode; mi++)
             {
@@ -1428,8 +1453,8 @@ static errno_t compute_function()
                 // multiply by GAIN
                 dmval *= imgmgain.im->array.F[mi];
 
-                //add the new delta command to the integrated command with leak: this is the goal position
-                mvalDMc[mi] = dmval + mvalDMc[mi]*imgmmult.im->array.F[mi];
+                // add the new delta command to the integrated command with leak: this is the goal position
+                mvalDMc[mi] = dmval + mvalDMc[mi] * imgmmult.im->array.F[mi];
 
                 // apply LIMIT
                 limit = imgmlimit.im->array.F[mi];
@@ -2091,6 +2116,54 @@ static errno_t compute_function()
 
         if(*selfRMenable == 1)
         {
+            // variables increment as follows (nested from outer to inner loops)
+            //
+            // selfRMiter: Iteration
+            // Note: selfRMpokeparity toggles at each increment of selfRMiter
+            //
+            //
+            // selfRM_pokemode : mode currently poked
+            // when reaching selfRM_NBmode, increment selfRMiter
+            //
+            // selfRM_pokecnt : counter within each poke
+            // when reaching  (*selfRMzsize) + (*selfRMnbsettlestep),
+            // set selfRM_pokecnt to 0
+            //
+
+            // Poke signs
+            //
+            // sigmult toggles between - and +
+            // if selfRMpokeparity = 0
+            // signmult : + + + + + + ....
+            // else
+            // sigmult : - + - + - + - + ....
+            //
+            // blockcnt toggles between 0 and 1 within single mode pokes
+            //
+            // selfRMpokesign function of seflRMiter, set at blockcnt=0
+            // seflRMiter  selfRMpokeparity  (selfRMpokesign block0 / block1, sigmult)[poke0,poke1]
+            //       0          0            (+-,+)[+-] -> (+-,+)[+-] -> (+-,+)[+-]
+            //       1          1            (+-,-)[-+] -> (+-,+)[+-] -> (+-,-)[-+]
+            //       2          0            (++,+)[++] -> (++,+)[++] -> (++,+)[++]
+            //       3          1            (++,-)[--] -> (++,+)[++] -> (++,-)[--]
+            //       4          0            (--,+)[--] -> (--,+)[--] -> (--,+)[--]
+            //       5          1            (--,-)[++] -> (--,+)[--] -> (--,-)[++]
+            //       6          0            (-+,+)[-+] -> (-+,+)[-+] -> (-+,+)[-+]
+            //       7          1            (-+,-)[+-] -> (-+,+)[-+] -> (-+,-)[+-]
+            //
+            // end result sequences:
+            // seflRMiter  m0 m1 m2 m3 m4 ...
+            //     0       +- +- +- +- +- ...
+            //     1       -+ +- -+ +- -+ ...
+            //     2       ++ ++ ++ ++ ++ ...
+            //     3       -- ++ -- ++ -- ...
+            //     4       -- -- -- -- -- ...
+            //     5       ++ -- ++ -- ++ ...
+            //     6       -+ -+ -+ -+ -+ ...
+            //     7       +- -+ +- -+ +- ...
+
+
+
             // initialization
             if((selfRM_pokecnt == 0) && (selfRM_pokemode == 0) &&
                     (blockcnt == 0) && (selfRMiter == 0))
@@ -2108,6 +2181,7 @@ static errno_t compute_function()
                 if(blockcnt == 0)
                 {
                     // start poke sign
+                    // + + + + - - - - + + + + - - - - ....
                     selfRMpokesign = 1.0 - 2.0 * ((selfRMiter / 4) % 2);
                 }
 
@@ -2174,6 +2248,7 @@ static errno_t compute_function()
                 blockcnt++;
                 if(blockcnt == 2)
                 {
+                    // this runs one time out of 2
                     selfRM_pokemode++;
                     blockcnt = 0;
                 }

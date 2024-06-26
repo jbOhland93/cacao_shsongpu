@@ -44,7 +44,7 @@
 #include "modalCTRL_stats.h"
 #include "modalstatsTUI.h"
 
-
+#include "zonalfilter.h"
 
 
 INIT_MODULE_LIB(AOloopControl)
@@ -56,13 +56,11 @@ INIT_MODULE_LIB(AOloopControl)
 
 static errno_t init_module_CLI()
 {
-
-
     CLIADDCMD_AOloopControl__modalfilter();
     CLIADDCMD_AOloopControl__modalCTRL_stats();
     CLIADDCMD_AOloopControl__modalstatsTUI();
 
-
+    CLIADDCMD_AOloopControl__zonalfilter();
 
     return RETURN_SUCCESS;
 }
