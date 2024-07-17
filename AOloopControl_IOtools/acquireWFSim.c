@@ -4,6 +4,9 @@
  *
  */
 
+
+#include <math.h>
+
 #include "CommandLineInterface/CLIcore.h"
 
 // Local variables pointers
@@ -47,6 +50,9 @@ static long     fpi_compWFSsubdark;
 static int64_t *compWFSnormalize;
 static long     fpi_compWFSnormalize;
 
+static int64_t *compWFSmask;
+static long     fpi_compWFSmask;
+
 static int64_t *compWFSrefsub;
 static long     fpi_compWFSrefsub;
 
@@ -56,6 +62,11 @@ static long     fpi_compWFSsigav;
 // compute corrected WFS reference
 static int64_t *compWFSrefc;
 static long     fpi_compWFSrefc;
+
+// reset aolX_wfsrefc to aolX_wfsref
+static int64_t *resetWFSrefc;
+static long     fpi_resetWFSrefc;
+
 
 static char *wfszposname;
 static long  fpi_wfszposname;
@@ -166,7 +177,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_ONOFF,
         ".comp.darksub",
-        "sub aolX_wfsdark mult aolX_wfsgain -> imWFS0",
+        "- aolX_wfsdark,  x aolX_wfsmult -> imWFS0",
         "1",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &compWFSsubdark,
@@ -175,11 +186,20 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_ONOFF,
         ".comp.WFSnormalize",
-        "normalize WFS frames -> imWFS1",
+        "normalize over wfsmask, x wfsmask -> imWFS1",
         "1",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &compWFSnormalize,
         &fpi_compWFSnormalize
+    },
+    {
+        CLIARG_ONOFF,
+        ".comp.compWFSmask",
+        " x wfsmask ?",
+        "1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &compWFSmask,
+        &fpi_compWFSmask
     },
     {
         CLIARG_ONOFF,
@@ -207,6 +227,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &compWFSrefc,
         &fpi_compWFSrefc
+    },
+    {
+        CLIARG_ONOFF,
+        ".comp.resetWFSrefc",
+        "reset WFS reference correction",
+        "1",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &resetWFSrefc,
+        &fpi_resetWFSrefc
     },
     {
         CLIARG_STREAM,
@@ -237,11 +266,16 @@ static errno_t customCONFsetup()
         data.fpsptr->parray[fpi_WFSnormfloor].fpflag     |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSsubdark].fpflag   |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSnormalize].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_compWFSmask].fpflag      |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSrefsub].fpflag    |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSsigav].fpflag     |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_compWFSrefc].fpflag      |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_resetWFSrefc].fpflag     |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_WFSrefcgain].fpflag      |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_WFSrefcmult].fpflag      |= FPFLAG_WRITERUN;
+
+        // reset WFS ave at startup
+        data.fpsptr->parray[fpi_resetWFSrefc].fpflag |= FPFLAG_ONOFF;
     }
 
     return RETURN_SUCCESS;
@@ -342,39 +376,16 @@ static errno_t compute_function()
     }
 
     // initialize camera averaging arrays if not already done
-    float           *__restrict arrayftmp;
-    unsigned short *__restrict arrayutmp;
-    signed short    *__restrict arraystmp;
-    if(WFSatype == _DATATYPE_FLOAT)
+    void *__restrict array_tmp;
+    array_tmp = malloc(sizeof(float) * sizeWFS);
+    if(array_tmp == NULL)
     {
-        arrayftmp = (float *) malloc(sizeof(float) * sizeWFS);
-        if(arrayftmp == NULL)
-        {
-            PRINT_ERROR("malloc returns NULL pointer");
-            abort();
-        }
+        PRINT_ERROR("malloc returns NULL pointer");
+        abort();
     }
-
-    if(WFSatype == _DATATYPE_UINT16)
-    {
-        arrayutmp = (unsigned short *) malloc(sizeof(unsigned short) * sizeWFS);
-        if(arrayutmp == NULL)
-        {
-            PRINT_ERROR("malloc returns NULL pointer");
-            abort();
-        }
-    }
-
-    if(WFSatype == _DATATYPE_INT16)
-    {
-        arraystmp = (signed short *) malloc(sizeof(signed short) * sizeWFS);
-        if(arraystmp == NULL)
-        {
-            PRINT_ERROR("malloc returns NULL pointer");
-            abort();
-        }
-    }
-
+    float *__restrict arrayftmp = (float *) array_tmp;
+    uint16_t *__restrict arrayutmp = (uint16_t *) array_tmp;
+    int16_t *__restrict arraystmp = (int16_t *) array_tmp;
 
     // LOAD DARK
     IMGID imgwfsdark;
@@ -420,36 +431,32 @@ static errno_t compute_function()
 
         DEBUG_TRACEPOINT(" ");
 
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
-
-        void* ptrv = NULL;
-        switch(WFSatype)
+        if(processinfo->loopcnt % n_print_timings == 0)
         {
-        case _DATATYPE_FLOAT:
-            ptrv = (char *) imgwfsim.im->array.F;
-            ptrv += sizeof(float) * slice * sizeWFS;
-            memcpy(arrayftmp, ptrv, sizeof(float) * sizeWFS);
-            break;
-
-        case _DATATYPE_UINT16:
-            ptrv = (char *) imgwfsim.im->array.UI16;
-            ptrv += sizeof(unsigned short) * slice * sizeWFS;
-            memcpy(arrayutmp, ptrv, sizeof(unsigned short) * sizeWFS);
-            break;
-
-        case _DATATYPE_INT16:
-            ptrv = (char *) imgwfsim.im->array.SI16;
-            ptrv += sizeof(signed short) * slice * sizeWFS;
-            memcpy(arraystmp, ptrv, sizeof(signed short) * sizeWFS);
-            break;
-
-        default:
-            PRINT_ERROR("DATA TYPE NOT SUPPORTED");
-            abort();
-            break;
+            clock_gettime(CLOCK_MILK, &time1);
         }
 
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        void *ptrv = NULL;
+        switch(WFSatype)
+        {
+            case _DATATYPE_FLOAT:
+            case _DATATYPE_UINT16:
+            case _DATATYPE_INT16:
+            {
+                int ts = ImageStreamIO_typesize(imgwfsim.md->datatype);
+                ptrv = imgwfsim.im->array.raw + ts * slice * sizeWFS;
+                memcpy(array_tmp, ptrv, ts * sizeWFS);
+            }
+            break;
+
+            default:
+                PRINT_ERROR("DATA TYPE NOT SUPPORTED");
+                abort();
+                break;
+        }
+
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("Pre-copy time: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
@@ -468,85 +475,88 @@ static errno_t compute_function()
         //int status_wfsmult = 0;
 
         if(data.fpsptr->parray[fpi_compWFSsubdark].fpflag & FPFLAG_ONOFF &&
-            imgwfsdark.ID != -1)
+                imgwfsdark.ID != -1)
         {
             status_darksub = 1;
         }
 
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
-        
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
+
         imgimWFS0.md->write = 1;
 
         switch(WFSatype)
         {
-        case _DATATYPE_UINT16:
-            if(status_darksub == 0)
-            {
-                // no dark subtraction, convert data to float
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+            case _DATATYPE_UINT16:
+                if(status_darksub == 0)
                 {
-                    imgimWFS0.im->array.F[ii] = ((float) arrayutmp[ii]);
+                    // no dark subtraction, convert data to float
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] = ((float) arrayutmp[ii]);
+                    }
                 }
-            }
-            else
-            {
-                // dark subtraction
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                else
                 {
-                    imgimWFS0.im->array.F[ii] =
-                        ((float) arrayutmp[ii]) -
-                        imgwfsdark.im->array.F[ii];
+                    // dark subtraction
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] =
+                            ((float) arrayutmp[ii]) -
+                            imgwfsdark.im->array.F[ii];
+                    }
                 }
-            }
-            break;
+                break;
 
-        case _DATATYPE_INT16:
-            if(status_darksub == 0)
-            {
-                // no dark subtraction, convert data to float
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+            case _DATATYPE_INT16:
+                if(status_darksub == 0)
                 {
-                    imgimWFS0.im->array.F[ii] = ((float) arraystmp[ii]);
+                    // no dark subtraction, convert data to float
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] = ((float) arraystmp[ii]);
+                    }
                 }
-            }
-            else
-            {
-                // dark subtraction
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                else
                 {
-                    imgimWFS0.im->array.F[ii] =
-                        ((float) arraystmp[ii]) -
-                        imgwfsdark.im->array.F[ii];
+                    // dark subtraction
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] =
+                            ((float) arraystmp[ii]) -
+                            imgwfsdark.im->array.F[ii];
+                    }
                 }
-            }
-            break;
+                break;
 
-        case _DATATYPE_FLOAT:
-            if(status_darksub == 0)
-            {
-                // no dark subtraction, copy data to imWFS0
-                memcpy(imgimWFS0.im->array.F,
-                       arrayftmp,
-                       sizeof(float) * sizeWFS);
-            }
-            else
-            {
-                // dark subtraction
-                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+            case _DATATYPE_FLOAT:
+                if(status_darksub == 0)
                 {
-                    imgimWFS0.im->array.F[ii] =
-                        arrayftmp[ii] - imgwfsdark.im->array.F[ii];
+                    // no dark subtraction, copy data to imWFS0
+                    memcpy(imgimWFS0.im->array.F,
+                           arrayftmp,
+                           sizeof(float) * sizeWFS);
                 }
-            }
-            break;
+                else
+                {
+                    // dark subtraction
+                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
+                    {
+                        imgimWFS0.im->array.F[ii] =
+                            arrayftmp[ii] - imgwfsdark.im->array.F[ii];
+                    }
+                }
+                break;
 
-        default:
-            printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
-                   __FILE__,
-                   __LINE__);
-            printf("datatype = %d\n", WFSatype);
-            exit(0);
-            break;
+            default:
+                printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
+                       __FILE__,
+                       __LINE__);
+                printf("datatype = %d\n", WFSatype);
+                exit(0);
+                break;
         }
 
         if(status_darksub == 1)
@@ -561,9 +571,10 @@ static errno_t compute_function()
         }
 
         processinfo_update_output_stream(processinfo, imgimWFS0.ID);
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
-            printf("Dark sub to imWFS0: %f us\n", timespec_diff_double(time1, time2)*1e6);
+            printf("Dark sub to imWFS0: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
 
 
@@ -575,18 +586,22 @@ static errno_t compute_function()
 
 
         // ===========================================
-        // NORMALIZE -> imWFS1
+        // NORMALIZE imWFS0 -> imWFS1
         // ===========================================
         int status_normalize = 0;
 
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
         imgimWFS1.md->write = 1;
 
         if(data.fpsptr->parray[fpi_compWFSnormalize].fpflag & FPFLAG_ONOFF)
         {
             status_normalize = 1;
 
-            // Compute image total
+            // Compute image total over wfsmask
+            //
             double imtotal = 0.0;
             uint64_t nelem = imgimWFS0.md->size[0] *
                              imgimWFS0.md->size[1];
@@ -618,7 +633,11 @@ static errno_t compute_function()
             }
             double totalinv       = 1.0 / (*fluxtotal + *WFSnormfloor * sizeWFS);
 
-            if(imgwfsmask.ID != -1)
+
+
+
+            if((imgwfsmask.ID != -1)
+                    && (data.fpsptr->parray[fpi_compWFSmask].fpflag & FPFLAG_ONOFF))
             {
                 for(uint64_t ii = 0; ii < sizeWFS; ii++)
                 {
@@ -657,19 +676,23 @@ static errno_t compute_function()
             }
         }
         processinfo_update_output_stream(processinfo, imgimWFS1.ID);
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
-            printf("Renorm to imWFS1: %f us\n", timespec_diff_double(time1, time2)*1e6);
+            printf("Renorm to imWFS1: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
 
 
 
         // ===========================================
-        // REFERENCE SUBTRACT -> imWFS2
+        // REFERENCE SUBTRACT imWFS2 -> imWFS2
         // ===========================================
 
         int status_refsub = 0;
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
         if(data.fpsptr->parray[fpi_compWFSrefsub].fpflag & FPFLAG_ONOFF)
         {
             // subtract reference
@@ -698,7 +721,8 @@ static errno_t compute_function()
 
             processinfo_update_output_stream(processinfo, imgimWFS2.ID);
         }
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("Refsub to imWFS2: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
@@ -709,7 +733,10 @@ static errno_t compute_function()
         // ===========================================
 
         int status_ave = 0;
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
         if(data.fpsptr->parray[fpi_compWFSsigav].fpflag & FPFLAG_ONOFF)
         {
             status_ave = 1;
@@ -718,14 +745,25 @@ static errno_t compute_function()
             float tave_mult = *WFStaveragemult;
             for(uint64_t ii = 0; ii < sizeWFS; ii++)
             {
-                imgimWFS3.im->array.F[ii] =
+                float valf =
                     tave_mult *
                     ((1.0 - tave_gain) * imgimWFS3.im->array.F[ii] +
                      tave_gain * imgimWFS2.im->array.F[ii]);
+
+                // clean any NaN or inf, as they would loop back to wfsrefc
+                if(isnormal(valf))
+                {
+                    imgimWFS3.im->array.F[ii] = valf;
+                }
+                else
+                {
+                    imgimWFS3.im->array.F[ii] = 0.0;
+                }
             }
             processinfo_update_output_stream(processinfo, imgimWFS3.ID);
         }
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("Av to imWFS3: %f us\n", timespec_diff_double(time1, time2) * 1e6);
         }
@@ -735,7 +773,27 @@ static errno_t compute_function()
         // ===========================================
 
         int status_wfsrefc = 0;
-        if (processinfo->loopcnt % n_print_timings == 0) clock_gettime(CLOCK_MILK, &time1);
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
+            clock_gettime(CLOCK_MILK, &time1);
+        }
+
+
+        // Reset imWFS3, wfsrefc and wfszpo to zero
+        //
+        if(data.fpsptr->parray[fpi_resetWFSrefc].fpflag & FPFLAG_ONOFF)
+        {
+            for(uint64_t ii = 0; ii < sizeWFS; ii++)
+            {
+                imgwfsrefc.im->array.F[ii] = imgwfsref.im->array.F[ii];
+                imgdispzpo.im->array.F[ii] = 0.0;
+                imgimWFS3.im->array.F[ii] = 0.0;
+            }
+
+            // toggle back to OFF
+            data.fpsptr->parray[fpi_resetWFSrefc].fpflag &= ~FPFLAG_ONOFF;
+        }
+
         if(data.fpsptr->parray[fpi_compWFSrefc].fpflag & FPFLAG_ONOFF)
         {
             status_wfsrefc = 1;
@@ -749,11 +807,13 @@ static errno_t compute_function()
                 for(uint64_t ii = 0; ii < sizeWFS; ii++)
                 {
                     imgwfsrefc.im->array.F[ii] =
+                        imgwfsmask.im->array.F[ii] *
                         refcmult * (imgwfsref.im->array.F[ii] +
                                     imgdispzpo.im->array.F[ii]) +
                         (1.0 - refcmult) * imgwfsrefc.im->array.F[ii];
                 }
             }
+
             for(uint64_t ii = 0; ii < sizeWFS; ii++)
             {
                 // refcgain is zeroing residual
@@ -763,9 +823,54 @@ static errno_t compute_function()
                     refcgain * imgimWFS3.im->array.F[ii];
             }
 
+            // normalize
+            if(data.fpsptr->parray[fpi_compWFSnormalize].fpflag & FPFLAG_ONOFF)
+            {
+                // Compute image total
+                double imtotal = 0.0;
+                uint64_t nelem = imgwfsrefc.md->size[0] *
+                                 imgwfsrefc.md->size[1];
+
+                for(uint64_t ii = 0; ii < nelem; ii++)
+                {
+                    imtotal +=  imgwfsrefc.im->array.F[ii];
+                }
+                for(uint64_t ii = 0; ii < nelem; ii++)
+                {
+                    float valf = imgwfsrefc.im->array.F[ii];
+                    valf /= imtotal;
+
+                    if(isnormal(valf))
+                    {
+                        imgwfsrefc.im->array.F[ii] = valf;
+                    }
+                    else
+                    {
+                        imgwfsrefc.im->array.F[ii] = 0.0;
+                    }
+                }
+            }
+
+            // clean any NaN or inf, as they would loop back to wfsrefc
+            for(uint64_t ii = 0; ii < imgwfsrefc.md->size[0] *
+                    imgwfsrefc.md->size[1]; ii++)
+            {
+                float valf = imgwfsrefc.im->array.F[ii];
+                if(isnormal(valf))
+                {
+                    imgwfsrefc.im->array.F[ii] = valf;
+                }
+                else
+                {
+                    imgwfsrefc.im->array.F[ii] = 0.0;
+                }
+            }
+
+
             processinfo_update_output_stream(processinfo, imgwfsrefc.ID);
         }
-        if (processinfo->loopcnt % n_print_timings == 0) {
+        if(processinfo->loopcnt % n_print_timings == 0)
+        {
             clock_gettime(CLOCK_MILK, &time2);
             printf("refc to imgwfsrefc: %f us\n", timespec_diff_double(time1, time2) * 1e6);
             fflush(stdout);

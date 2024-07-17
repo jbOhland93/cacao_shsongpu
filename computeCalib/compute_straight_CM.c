@@ -718,6 +718,10 @@ static errno_t compute_function()
         clock_gettime(CLOCK_MILK, &t9);
 
 
+
+        //
+        // Modes are normalized to RMS=1 in DM space
+        //
         for(int CMmode = 0; CMmode < ecnt; CMmode ++)
         {
             // index in WFSall and CMall cubes
@@ -728,17 +732,64 @@ static errno_t compute_function()
 
             for(int ii = 0; ii < nbwfspix; ii++)
             {
-                imgCMWFS.im->array.F[CMmode * nbwfspix + ii] = imgCMWFSall.im->array.F[mi *
-                        nbwfspix + ii] / n2cmDM[mi];
+                imgCMWFS.im->array.F[CMmode * nbwfspix + ii] =
+                imgCMWFSall.im->array.F[mi * nbwfspix + ii] / n2cmDM[mi];
             }
 
             for(int ii = 0; ii < nbact; ii++)
             {
-                imgCMDM.im->array.F[CMmode * nbact + ii] = imgCMDMall.im->array.F[mi * nbact +
-                        ii] / n2cmDM[mi];
+                imgCMDM.im->array.F[CMmode * nbact + ii] =
+                    imgCMDMall.im->array.F[mi * nbact + ii] / n2cmDM[mi];
             }
 
         }
+
+
+
+        {
+            // measure norm of modes in DM and WFS space
+            //
+            FILE *fp = fopen("mkmodestmp/mode_norm_1.txt", "w");
+            for(int CMmode = 0; CMmode < ecnt; CMmode++)
+            {
+
+                {
+                    double WFSnorm = 0.0;
+                    double WFSnormcnt = 0.0;
+
+                    for(int ii = 0; ii < nbwfspix; ii++)
+                    {
+                        double val = imgCMWFS.im->array.F[CMmode * nbwfspix + ii];
+                        double valm = imgWFSmask.im->array.F[ii];
+                        WFSnorm += val*val*valm;
+                        WFSnormcnt += valm;
+                    }
+                    n2cmWFS[CMmode] = sqrt( WFSnorm/WFSnormcnt);
+                }
+
+
+                {
+                    double DMnorm = 0.0;
+                    double DMnormcnt = 0.0;
+
+                    for(int ii = 0; ii < nbact; ii++)
+                    {
+                        double val = imgCMDM.im->array.F[CMmode * nbact + ii];
+                        double valm = imgDMmask.im->array.F[ii];
+                        DMnorm += val*val*valm;
+                        DMnormcnt += valm;
+                    }
+                    n2cmDM[CMmode] = sqrt( DMnorm/DMnormcnt);
+                }
+
+
+                fprintf(fp, "%4d    %20g    %20g \n", CMmode, n2cmDM[CMmode], n2cmWFS[CMmode]);
+
+            }
+            fclose(fp);
+        }
+
+
 
 
 

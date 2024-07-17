@@ -6,7 +6,44 @@
 
 MSdescr="make synthetic DM modes for RM"
 
-MSextdescr="Assemble a Zernike + Fourier DM modes"
+MSextdescr="
+Computes modal response matrix (RM) from zonal RM.
+
+Input: conf/RMmodesWFS/zrespM-H.fits
+Zonal response matrix, one actuator poke response per slice
+
+Ouput: conf/RMmodesDM/RMsyn_modesDM.fits
+synthetic DM modes, one mode per slice
+
+Output: conf/RMmodesWFS/RMsyn_modesWFS.fits
+synthetic WFS modes, one mode per slice
+
+Spatial frequency range specified in cycles per aperture (CPA).
+The radial CPA range goes from rCPAmin (-c0 option) to rCPAmax (-c1 option).
+Max CPA per single axis is CPAmax (-c option). To control a square with
+maximum CPA=10 in the (u,v) plane, use:
+-c0 0 -c1 20 -c 10
+To control a disk of radius 10 CPA in the (u,v) plane, use:
+-c0 0 -c1 10 -c 20
+To control a donut:
+-c0 5 -c1 10 -c 20
+Note that if rCPAmin=0, the first 5 Zernike will be added (TTF+Astig).
+
+Parameter radmaskfact sets the radial extension factor beyond the beam radius CACAO_DM_beam_rad.
+Zernike and Fourier modes are computed over this extended domain before edge blurring.
+
+The scripts main steps are:
+[1] Compute DM-space Fourier modes: conf/RMmodesDM/RMsyn_modesDM0.fits, over disk 
+defined by (CACAO_DM_beam_xcent, CACAO_DM_beam_ycent, CACAO_DM_beam_rad).
+[2] Edge blurring, preserving response for actuators within ./conf/dmmask.fits,
+and blurring actuators within  CACAO_DM_beam_rad*radmaskfact outside of dmmask.fits
+
+
+Upon completion, set RM to output of this sctipt:
+  ln -s $(pwd)/conf/RMmodesDM/RMsyn_modesDM.fits ./conf/RMmodesDM/RMmodesDM.fits
+  ln -s $(pwd)/conf/RMmodesWFS/RMsyn_modesWFS.fits ./conf/RMmodesWFS/RMmodesWFS.fits
+
+"
 
 source milk-script-std-config
 source cacao-check-cacaovars
@@ -15,12 +52,47 @@ source cacao-check-cacaovars
 # SCRIPT OPTIONS
 # syntax: "short:long:functioncall:args[types]:description"
 
+MSopt+=( "c0:rCPAmin:setrCPAmin:rcpamin[float]:Set radial minimum cycles per aperture (rCPA) [0]" )
+rCPAmin="0"
+function setrCPAmin()
+{
+	rCPAmin=$1
+}
+
+MSopt+=( "c1:rCPAmax:setrCPAmax:rcpamax[float]:Set radial maximum cycles per aperture (rCPA) [100]" )
+rCPAmax="100"
+function setrCPAmax()
+{
+	rCPAmax=$1
+}
+
 MSopt+=( "c:CPAmax:setCPAmax:cpamax[float]:Set maximum cycles per aperture (CPA) [8]" )
 CPAmax="8"
 function setCPAmax()
 {
 	CPAmax=$1
 }
+
+
+radmaskfact="1.1"
+MSopt+=( "rfact:radmaskfact:set_radmaskfact:radmaskfact[float]:Set proportional radius extension factor [${radmaskfact}]" )
+function set_radmaskfact()
+{
+	radmaskfact=$1
+}
+
+
+
+MSopt+=( "ea:edgeapo:setedgeapo:edgeapo[float]:Set edge apodization strength [1.0]" )
+edgeapo="1.0"
+function setedgeapo()
+{
+	edgeapo=$1
+}
+
+
+
+
 
 MSopt+=( "z:NBzer:setNBzer:NBzer[int]:Set number of Zernike polynomials [5]" )
 NBzer=5
@@ -90,7 +162,6 @@ saveFITS dmmask2D "conf/dmmask2D.fits"
 exitCLI
 EOF
 
-
 fi
 
 
@@ -114,11 +185,13 @@ cacaomsglog "using alpha = ${alpha}"
 
 deltaCPA="0.8"
 
-radmaskfact="1.1"
+
 
 
 # Create synthetic DM modes
-#
+# These modes are NOT extrapolated and extend beyond beam size by factor radmaskfact
+
+if [[ $rCPAmin -eq 0 ]]; then
 
 milk-all << EOF
 mload cacaocomputeCalib
@@ -130,14 +203,36 @@ lintools.mkFouriermodes .fpowerlaw -${alpha}
 lintools.mkFouriermodes .fpowerlaw_minf 1.0
 lintools.mkFouriermodes .fpowerlaw_maxf 100.0
 lintools.mkFouriermodes ?
-lintools.mkFouriermodes .CPAmin 0.0
+lintools.mkFouriermodes .rCPAmin 0.0
+lintools.mkFouriermodes .rCPAmax ${rCPAmax}
 lintools.mkFouriermodes Fmodes ${DMsizex} ${DMsizey} ${CPAmax} ${deltaCPA} ${DMr0} ${radmaskfact} 0
 immerge zerc Fmodes RMsyn_modesDM 2
+listim
 saveFITS RMsyn_modesDM "conf/RMmodesDM/RMsyn_modesDM0.fits"
 exitCLI
 EOF
 
-# mask-extrapolate
+else
+
+milk-all << EOF
+mload cacaocomputeCalib
+lintools.mkFouriermodes .fpowerlaw -${alpha}
+lintools.mkFouriermodes .fpowerlaw_minf 1.0
+lintools.mkFouriermodes .fpowerlaw_maxf 100.0
+lintools.mkFouriermodes .rCPAmin ${rCPAmin}
+lintools.mkFouriermodes .rCPAmax ${rCPAmax}
+lintools.mkFouriermodes Fmodes ${DMsizex} ${DMsizey} ${CPAmax} ${deltaCPA} ${DMr0} ${radmaskfact} 0
+saveFITS Fmodes "conf/RMmodesDM/RMsyn_modesDM0.fits"
+exitCLI
+EOF
+
+fi
+
+
+
+
+
+# Edge apodization
 
 if [ $CACAO_DMysize -eq 1 ]; then
 	# 1D case
@@ -149,13 +244,13 @@ fi
 
 
 
-
 milk-all << EOF
 mload cacaocomputeCalib
 radext=${DMr0}*${radmaskfact}
 imgen.mkdisk dmmaskext ${DMsizex} ${DMsizey} ${DMx0} ${DMy0} radext
 loadfits "conf/RMmodesDM/RMsyn_modesDM0.fits" RMsyn_modesDM
 loadfits "conf/dmmask-syn.fits" dmmask
+cacaocc.maskextrapolate .edgeapo ${edgeapo}
 cacaocc.maskextrapolate RMsyn_modesDM dmmask dmmaskext RMsyn_modesDMm
 
 #RMsyn_modesDMm=RMsyn_modesDM*dmmask
@@ -169,10 +264,10 @@ echo "OUTPUT : conf/RMmodesDM/RMsyn_modesDM.fits"
 
 
 if [ $CACAO_DMysize -eq 1 ]; then
-	# Project 2D modes to 1D actuators
+  # Project 2D modes to 1D actuators
+  # link to 2D pos file
+  ln -sf $(pwd)/data/act2Dpos.txt mapcoord2D.txt
 
-	# link to 2D pos file
-	ln -sf $(pwd)/data/act2Dpos.txt mapcoord2D.txt
 cacao << EOF
 loadfits "conf/RMmodesDM/RMsyn_modesDM2D.fits" RMsyn_modesDM2D
 cacaocc.sample2DWF RMsyn_modesDM2D map2D RMsyn_modesDM1D

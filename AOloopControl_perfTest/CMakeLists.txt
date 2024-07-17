@@ -5,6 +5,7 @@ set(SOURCEFILES
 	AOloopControl_perfTest_LinSim.c
 	compRMsensitivity.c
 	mlat.c
+	mlat_decode.c
 	mlatSlowDM.c
 	mlatSlowRecorder/MLS_DMmanager.cpp
 	mlatSlowRecorder/MLS_Recorder_interface.cpp
@@ -16,6 +17,7 @@ set(SOURCEFILES
 # list include files (.h) that should be installed on system
 set(INCLUDEFILES
 	mlat.h
+	mlat_decode.h
 	mlatSlowDM.h
 	mlatSlowRecorder/MLS_PokePattern.hpp
 	mlatSlowRecorder/MLS_DMmanager.hpp
@@ -31,6 +33,8 @@ set(SCRIPTFILES
 	scripts/cacao-selectWFSframes
 	scripts/cacao-syncStreams
 	scripts/cacao-WFSrefTunePSFloop
+	scripts/cacao-fpslistadd-MLAT
+	scripts/cacao-fpslistadd-MLAT_SLOWDM
 )
 
 

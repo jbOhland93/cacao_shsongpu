@@ -187,7 +187,7 @@ Note: we are not going to apply the masks in this example, so OK if not net prop
 ### 6.4. Create synthetic (Fourier) response matrix
 
 ```bash
-cacao-aorun-033-RM-mksynthetic -c 25 -a 2.0
+cacao-aorun-033-RM-mksynthetic -c 25 -a 1.0
 ```
 
 
@@ -428,13 +428,13 @@ cacao-aorun-140-applyPF 1 start
 
 To setup processes for logging AO telemetry streams:
 ```bash
-cacao-logstreamsFITS pstart
+milk-streamFITSlog sname pstart
 ```
 
 To start/stop logging:
 ```bash
-cacao-logstreamsFITS on
-cacao-logstreamsFITS off
+milk-streamFITSlog sname on
+milk-streamFITSlog sname off
 ```
 
 # 12. Cleanup

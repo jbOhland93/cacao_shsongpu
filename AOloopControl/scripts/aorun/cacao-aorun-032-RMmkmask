@@ -29,6 +29,13 @@ function set_RMfname() {
 	RMfname="$1"
 }
 
+noload=0
+MSopt+=( "nl:noload:set_noload::do not load to shared memory" )
+function set_noload() {
+	noload=1
+}
+
+
 
 DMmaskRMp0="0.2"
 DMmaskRMc0="0.5"
@@ -83,6 +90,11 @@ function set_WFSc1() {
 }
 
 
+nomask=0
+MSopt+=( "nm:nomask:set_nomask::compute map only, no mask" )
+function set_nomask() {
+	nomask=1
+}
 
 
 
@@ -135,13 +147,18 @@ cacaocc.compmasksWFSDM .wfsmask.perc1 ${WFSmaskRMp1}
 cacaocc.compmasksWFSDM .wfsmask.coeff1 ${WFSmaskRMc1}
 
 cacaocc.compmasksWFSDM zrespM ${CACAO_DMxsize} ${CACAO_DMysize}
+
 saveFITS dmmap "conf/dmmap.fits"
-saveFITS dmmask "conf/dmmask.fits"
 saveFITS wfsmap "conf/wfsmap.fits"
-saveFITS wfsmask "conf/wfsmask.fits"
+
+saveFITS dmmask "conf/dmmask.tmp.fits"
+saveFITS wfsmask "conf/wfsmask.tmp.fits"
+
 listim
 exitCLI
 EOF
+
+
 
 # LOGGING
 # see cacaofuncs-log for conventions
@@ -151,13 +168,23 @@ source cacaofuncs-log
 cacao-calib-logFITSfile dmmap
 cacao-calib-loadFITSfile dmmap ${LOGFILEOUT}
 
-cacao-calib-logFITSfile dmmask
-cacao-calib-loadFITSfile dmmask ${LOGFILEOUT}
-
 cacao-calib-logFITSfile wfsmap
 cacao-calib-loadFITSfile wfsmap ${LOGFILEOUT}
 
+
+if [[ "$nomask" -eq 0 ]]; then
+mv conf/dmmask.tmp.fits conf/dmmask.fits 
+mv conf/wfsmask.tmp.fits conf/wfsmask.fits 
+
+cacao-calib-logFITSfile dmmask
+cacao-calib-loadFITSfile dmmask ${LOGFILEOUT}
+
 cacao-calib-logFITSfile wfsmask
 cacao-calib-loadFITSfile wfsmask ${LOGFILEOUT}
+else
+rm conf/dmmask.tmp.fits
+rm conf/wfsmask.tmp.fits
+fi
+
 
 cacaomsglog "END"

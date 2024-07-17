@@ -68,8 +68,8 @@
 
 #include "compRMsensitivity.h"
 #include "mlat.h"
+#include "mlat_decode.h"
 #include "mlatSlowDM.h"
-
 
 
 #ifdef _OPENMP
@@ -105,8 +105,8 @@ static errno_t init_module_CLI()
 
     CLIADDCMD_AOloopControl_perfTest__compRMsensitivity();
     CLIADDCMD_AOloopControl_perfTest__mlat();
+    CLIADDCMD_AOloopControl_perfTest__mlat_decode();
     CLIADDCMD_AOloopControl_perfTest__mlat_slow_dm();
-
     return RETURN_SUCCESS;
 }
 

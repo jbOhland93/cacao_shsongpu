@@ -16,7 +16,7 @@ source cacao-check-cacaovars
 # SCRIPT OPTIONS
 # syntax: "short:long:functioncall:args[types]:description"
 
-MSopt+=( "t:tag:setfiletag:tag[string]:Set file tag [bak]" )
+MSopt+=( "t:tag:setfiletag:tag[string]:Set file tag [bak], empty by default, gets prepended with a period [.]" )
 filetag="bak"
 UpdateFiles=0 # 1 if using tag
 function setfiletag()
@@ -34,6 +34,10 @@ RMDMfname0="conf/RMmodesDM/RMmodesDM.fits"
 RMWFSfname0="conf/RMmodesWFS/RMmodesWFS.fits"
 CMDMfname0="conf/CMmodesDM/CMmodesDM.fits"
 CMWFSfname0="conf/CMmodesWFS/CMmodesWFS.fits"
+dmmapfname0="conf/dmmap.fits"
+dmmaskfname0="conf/dmmask.fits"
+wfsmapfname0="conf/wfsmap.fits"
+wfsmaskfname0="conf/wfsmask.fits"
 
 RMDMfname="conf/RMmodesDM/RMmodesDM${filetag}.fits"
 RMWFSfname="conf/RMmodesWFS/RMmodesWFS${filetag}.fits"

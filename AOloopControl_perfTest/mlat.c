@@ -32,6 +32,12 @@ long          fpi_frameratewait;
 static float *OPDamp;
 long          fpi_OPDamp;
 
+static char *pokemap;
+long         fpi_pokemap;
+
+static float *CPA;
+long          fpi_CPA;
+
 static uint32_t *NBiter;
 long             fpi_NBiter;
 
@@ -58,6 +64,16 @@ long          fpi_latencyfr;
 
 static int64_t *saveraw;
 long            fpi_saveraw;
+
+static int64_t *saveseq;
+long            fpi_saveseq;
+
+static uint32_t *seqNBframe;
+long             fpi_seqNBframe;
+
+static float *seqdtframe;
+long          fpi_seqdtframe;
+
 
 
 static CLICMDARGDEF farg[] = {{
@@ -86,6 +102,24 @@ static CLICMDARGDEF farg[] = {{
         CLIARG_VISIBLE_DEFAULT,
         (void **) &OPDamp,
         &fpi_OPDamp
+    },
+    {
+        CLIARG_STREAM,
+        ".pokemap",
+        "optional DM poke map, use if exists",
+        "null",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &pokemap,
+        &fpi_pokemap
+    },
+    {
+        CLIARG_FLOAT32,
+        ".CPA",
+        "Cycles/aperture [float]",
+        "20",
+        CLIARG_VISIBLE_DEFAULT,
+        (void **) &CPA,
+        &fpi_CPA
     },
     {
         CLIARG_FLOAT32,
@@ -177,6 +211,33 @@ static CLICMDARGDEF farg[] = {{
         (void **) &saveraw,
         &fpi_saveraw
     },
+    {
+        CLIARG_ONOFF,
+        ".option.saveseq",
+        "Save sequence image cube",
+        "0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &saveseq,
+        &fpi_saveseq
+    },
+    {
+        CLIARG_UINT32,
+        ".option.seqNBframe",
+        "Number of frames in seq cube",
+        "100",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &seqNBframe,
+        &fpi_seqNBframe
+    },
+    {
+        CLIARG_FLOAT32,
+        ".option.seqdtfr",
+        "seq cube time resolution [fr]",
+        "0.1",
+        CLIARG_OUTPUT_DEFAULT,
+        (void **) &seqdtframe,
+        &fpi_seqdtframe
+    }
 };
 
 
@@ -244,18 +305,25 @@ static errno_t compute_function()
 {
     DEBUG_TRACE_FSTART();
 
-    // uint32_t dmxsize;
-    // uint32_t dmysize;
-
     // connect to DM
     IMGID imgdm = mkIMGID_from_name(dmstream);
     resolveIMGID(&imgdm, ERRMODE_ABORT);
     printf("DM size : %u %u\n", imgdm.md->size[0], imgdm.md->size[1]);
+    uint32_t dmxsize = imgdm.md->size[0];
+    uint32_t dmysize = imgdm.md->size[1];
 
     // connect to WFS
     IMGID imgwfs = mkIMGID_from_name(wfsstream);
     resolveIMGID(&imgwfs, ERRMODE_ABORT);
     printf("WFS size : %u %u\n", imgwfs.md->size[0], imgwfs.md->size[1]);
+
+    // connect to optional pokemap
+    IMGID imgpokemap = mkIMGID_from_name(pokemap);
+    resolveIMGID(&imgpokemap, ERRMODE_WARN);
+    if(imgpokemap.ID != -1)
+    {
+        printf("pokemap size : %u %u\n", imgpokemap.md->size[0], imgpokemap.md->size[1]);
+    }
 
     // create wfs image cube for storage
     imageID IDwfsc;
@@ -289,15 +357,33 @@ static errno_t compute_function()
         abort();
     }
 
+
+    // Prepare output diff cube sequence
+    // if saveraw = ON
+    //
+    long diffseqsize = *seqNBframe; // number of slices
+    float diffseqdtframe = *seqdtframe; // time increment per slice [frame]
+    float *  diffseqkkcnt = (float *) malloc(sizeof(float)*diffseqsize); // count how many frames go in each slice
+    for ( int diffseqkk=0; diffseqkk<diffseqsize; diffseqkk++)
+    {
+        diffseqkkcnt[diffseqkk] = 0.0;
+    }
+    IMGID imgdiffseq;
+    imgdiffseq = makeIMGID_3D("CMmodesWFS",
+                              imgwfs.md->size[0],
+                              imgwfs.md->size[1],
+                              diffseqsize);
+    createimagefromIMGID(&imgdiffseq);
+
+
+
+
     // Create DM patterns
     imageID IDdm0 = -1;
     imageID IDdm1 = -1;
     {
-        uint32_t dmxsize = imgdm.md->size[0];
-        uint32_t dmysize = imgdm.md->size[1];
-
-        create_2Dimage_ID("_testdm0", dmxsize, dmysize, &IDdm0);
-        create_2Dimage_ID("_testdm1", dmxsize, dmysize, &IDdm1);
+        create_2Dimage_ID("_mlattestdm0", dmxsize, dmysize, &IDdm0);
+        create_2Dimage_ID("_mlattestdm", dmxsize, dmysize, &IDdm1);
 
         float RMStot = 0.0;
         for(uint32_t ii = 0; ii < dmxsize; ii++)
@@ -307,7 +393,7 @@ static errno_t compute_function()
                 float y = (2.0 * jj - 1.0 * dmxsize) / dmysize;
                 data.image[IDdm0].array.F[jj * dmxsize + ii] = 0.0;
                 data.image[IDdm1].array.F[jj * dmxsize + ii] =
-                    (*OPDamp) * (sin(20.0 * x) * sin(20.0 * y));
+                    (*OPDamp) * (sin(*CPA * x) * sin(*CPA * y));
                 RMStot += data.image[IDdm1].array.F[jj * dmxsize + ii] *
                           data.image[IDdm1].array.F[jj * dmxsize + ii];
             }
@@ -323,9 +409,12 @@ static errno_t compute_function()
             }
 
         // save output
-        fps_write_RUNoutput_image(data.fpsptr, "_testdm0", "pokeDM0");
-        fps_write_RUNoutput_image(data.fpsptr, "_testdm1", "pokeDM1");
+        fps_write_RUNoutput_image(data.fpsptr, "_mlattestdm", "mlatpokeDM");
     }
+
+
+
+
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
@@ -403,8 +492,10 @@ static errno_t compute_function()
         {
             // store all raw measurements in these arrays
             //
-            double *valarrayall = (double *) malloc(sizeof(double) * (*wfsNBframemax) * (*NBiter) );
-            double *dtarrayall  = (double *) malloc(sizeof(double) * (*wfsNBframemax) * (*NBiter) );
+            double *valarrayall = (double *) malloc(sizeof(double) * (*wfsNBframemax) *
+                                                    (*NBiter));
+            double *dtarrayall  = (double *) malloc(sizeof(double) * (*wfsNBframemax) *
+                                                    (*NBiter));
 
             // number of raw measurements
             int NBrawmeas = 0;
@@ -475,7 +566,18 @@ static errno_t compute_function()
                                              *NBiter);
 
 
-                copy_image_ID("_testdm0", dmstream, 1);
+
+                for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                {
+                    imgdm.im->array.F[ii] = 0.0;
+                }
+                processinfo_update_output_stream(processinfo, imgdm.ID);
+
+
+
+
+
+
 
                 unsigned int dmstate = 0;
 
@@ -598,7 +700,18 @@ static errno_t compute_function()
                         kkoffset = wfsframe;
 
                         dmstate = 1;
-                        copy_image_ID("_testdm1", dmstream, 1);
+                        if( imgpokemap.ID == -1 )
+                        {
+                            copy_image_ID("_mlattestdm", dmstream, 1);
+                        }
+                        else
+                        {
+                            for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                            {
+                                imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
+                            }
+                            processinfo_update_output_stream(processinfo, imgdm.ID);
+                        }
 
                         // Record time at which DM command is sent
                         //
@@ -608,9 +721,21 @@ static errno_t compute_function()
                         *dtoffset = dt; // time at which DM command is sent
                     }
                     wfsframe++;
-                } // RECORD FRAMES OF A SEQUENCE END
+                }
 
-                copy_image_ID("_testdm0", dmstream, 1);
+
+                if( imgpokemap.ID == -1 )
+                {
+                    copy_image_ID("_mlattestdm", dmstream, 1);
+                }
+                else
+                {
+                    for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                    {
+                        imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
+                    }
+                    processinfo_update_output_stream(processinfo, imgdm.ID);
+                }
                 dmstate = 0;
 
 
@@ -639,7 +764,7 @@ static errno_t compute_function()
                 double valmin = DBL_MAX;
 
 
-
+                float * diffseqvalarray = (float *) malloc(sizeof(float) * wfssize);
                 // Measure latency from stored image cube
                 // For each time step (= slice in cube), measure magnitude of change
                 // between current and previous frame.
@@ -655,10 +780,11 @@ static errno_t compute_function()
                 1.0*data.image[IDwfsc].array.IMG_PTR_ID[kk * wfssize + ii] -       \
                 1.0*data.image[IDwfsc].array.IMG_PTR_ID[(kk - 1) * wfssize + ii];  \
             valarray[kk] += 1.0 * tmp * tmp;                                       \
+            diffseqvalarray[ii] = tmp;                                             \
         }                                                                          \
     }
 
-                // GET FRAME-2-FRAME DIFFERENCES START
+
                 for(long kk = 1; kk < NBwfsframe; kk++)
                 {
                     valarray[kk] = 0.0;
@@ -698,6 +824,19 @@ static errno_t compute_function()
 
                     valarray[kk] = sqrt(valarray[kk] / wfssize / 2);
 
+                    {
+                        float timeoffset = (0.5 * (dtarray[kk] + dtarray[kk - 1]) - *dtoffset) * (*framerateHz);
+                        int diffseqkk = timeoffset / diffseqdtframe;
+                        if( (diffseqkk >= 0 ) && (diffseqkk < diffseqsize) )
+                        {
+                            for (uint64_t ii = 0; ii < wfssize; ii++)
+                            {
+                                imgdiffseq.im->array.F[diffseqkk*wfssize + ii] += diffseqvalarray[ii];
+                            }
+                            diffseqkkcnt[diffseqkk] += 1.0;
+                        }
+                    }
+
 
 
                     // Look for maximum change between frames
@@ -711,8 +850,9 @@ static errno_t compute_function()
                         valmaxdt = 0.5 * (dtarray[kk - 1] + dtarray[kk]);
                         kkmax    = kk - kkoffset;
                     }
-                    valmin = valarray[kk] < valmin ? valarray[kk] : valmin;
-                } // GET FRAME-2-FRAME DIFFERENCES END
+                }
+
+                free(diffseqvalarray);
 
                 //
                 //
@@ -775,7 +915,34 @@ static errno_t compute_function()
                                          (*NBiter));
 
 
-            copy_image_ID("_testdm0", dmstream, 1);
+            // normalize imgdiffseq
+            {
+                uint64_t wfssize = imgwfs.md->size[0] * imgwfs.md->size[1];
+                for ( int diffseqkk = 0; diffseqkk < diffseqsize; diffseqkk++)
+                {
+                    if ( diffseqkkcnt[diffseqkk] > 0.5 )
+                    {
+                        for (uint64_t ii = 0; ii < wfssize; ii++)
+                        {
+                            imgdiffseq.im->array.F[diffseqkk*wfssize + ii] /= diffseqkkcnt[diffseqkk];
+                        }
+                    }
+                }
+            }
+            // Save imgdiffseq
+            //
+            if( data.fpsptr->parray[fpi_saveseq].fpflag & FPFLAG_ONOFF )
+            {
+                char ffnameC[STRINGMAXLEN_FULLFILENAME];
+                WRITE_FULLFILENAME(ffnameC,
+                                   "mlat-diffseq");
+                fps_write_RUNoutput_image(data.fpsptr, imgdiffseq.name, ffnameC);
+            }
+
+
+
+
+            copy_image_ID("_mlattestdm0", dmstream, 1);
 
             float latencyave     = 0.0;
             float latencystepave = 0.0;
@@ -821,41 +988,41 @@ static errno_t compute_function()
                 int iimin = 0;
                 int iimax = 0;
                 float dtrange = 0.5 / (*framerateHz); // in sec
-                for( int ii=0; ii<NBrawmeas; ii++)
+                for(int ii = 0; ii < NBrawmeas; ii++)
                 {
-                    while ( (dtarrayall[iimax] < dtarrayall[ii]+dtrange) && (iimax<NBrawmeas-1) )
+                    while((dtarrayall[iimax] < dtarrayall[ii] + dtrange) && (iimax < NBrawmeas - 1))
                     {
                         iimax ++;
                     }
-                    while ( (dtarrayall[iimin] < dtarrayall[ii]-dtrange) && (iimax<NBrawmeas-1) )
+                    while((dtarrayall[iimin] < dtarrayall[ii] - dtrange) && (iimax < NBrawmeas - 1))
                     {
                         iimin ++;
                     }
 
-                    long nbpts = iimax-iimin;
+                    long nbpts = iimax - iimin;
                     double dtmedian = dtarrayall[ii];
                     double valmedian = valarrayall[ii];
-                    if(nbpts>0)
+                    if(nbpts > 0)
                     {
                         // Take average of median 1/3 values
 
-                        double *ptsval = (double*) malloc(sizeof(double)*nbpts);
-                        double *ptsdt = (double*) malloc(sizeof(double)*nbpts);
-                        for(int jj=0; jj<nbpts; jj++)
+                        double *ptsval = (double *) malloc(sizeof(double) * nbpts);
+                        double *ptsdt = (double *) malloc(sizeof(double) * nbpts);
+                        for(int jj = 0; jj < nbpts; jj++)
                         {
-                            ptsval[jj] = valarrayall[iimin+jj];
-                            ptsdt[jj] = dtarrayall[iimin+jj];
+                            ptsval[jj] = valarrayall[iimin + jj];
+                            ptsdt[jj] = dtarrayall[iimin + jj];
                         }
                         quick_sort2(ptsval, ptsdt, nbpts);
                         double dtave = 0.0;
                         double valave = 0.0;
                         double cave = 0.0;
 
-                        for(int jj=nbpts/3; jj<2*nbpts/3; jj++)
+                        for(int jj = nbpts / 3; jj < 2 * nbpts / 3; jj++)
                         {
                             double coeff = 1.0;
-                            dtave += coeff*ptsdt[jj];
-                            valave += coeff*ptsval[jj];
+                            dtave += coeff * ptsdt[jj];
+                            valave += coeff * ptsval[jj];
                             cave += coeff;
                         }
                         dtave /= cave;
@@ -868,14 +1035,15 @@ static errno_t compute_function()
                         free(ptsdt);
                     }
 
-                    if( valmedian > latencymeaspeakval )
+                    if(valmedian > latencymeaspeakval)
                     {
                         latencymeaspeakval = valmedian;
                         latencymeaspeakdt = dtmedian;
                     }
 
                     fprintf(fpout, "%d %g %g %d %d %g %g  %g %g %ld\n",
-                            ii, dtarrayall[ii], valarrayall[ii], iimin, iimax, dtarrayall[iimin], dtarrayall[iimax],
+                            ii, dtarrayall[ii], valarrayall[ii], iimin, iimax, dtarrayall[iimin],
+                            dtarrayall[iimax],
                             dtmedian, valmedian, nbpts);
 
                 }
@@ -893,7 +1061,7 @@ static errno_t compute_function()
 
 
             *latencyfr = latencymeaspeakdt * (*framerateHz);
-            printf("latency = %f frame\n", *latencyfr );
+            printf("latency = %f frame\n", *latencyfr);
             functionparameter_SaveParam2disk(data.fpsptr, ".out.latencyfr");
 
             {
@@ -929,6 +1097,8 @@ static errno_t compute_function()
 
     free(latencyarray);
     free(latencysteparray);
+
+    free(diffseqkkcnt);
 
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;

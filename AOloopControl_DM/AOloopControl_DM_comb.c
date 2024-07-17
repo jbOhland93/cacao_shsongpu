@@ -68,8 +68,47 @@ static uint32_t *volttype = NULL;
 static float *stroke100 = NULL; // stroke [um] for 100V
 static long   fpi_stroke100;
 
+
+
+
+
+// ouput voltage format type
+static char *outv_ftype = NULL;
+long         fpi_outv_ftype;
+
+// output voltage power exponent
+static float *outv_exp = NULL;
+long         fpi_outv_exp;
+
+
+// input range
+static float *outv_inrange_min = NULL;
+long         fpi_outv_inrange_min;
+
+static float *outv_inrange_max = NULL;
+long         fpi_outv_inrange_max;
+
+// output range
+static float *outv_outrange_min = NULL;
+long         fpi_outv_outrange_min;
+
+static float *outv_outrange_max = NULL;
+long         fpi_outv_outrange_max;
+
+
+
+
+
+
+
+
+
 static char *voltname = NULL;
 long         fpi_voltname;
+
+
+
+
 
 static float *DClevel = NULL;
 static long   fpi_DClevel;
@@ -209,7 +248,7 @@ static CLICMDARGDEF farg[] =
     {
         CLIARG_UINT32,
         ".AveMode",
-        "Averaging mode",
+        "Piston (mean) subtract",
         "0",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &AveMode,
@@ -304,6 +343,60 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &voltname,
         &fpi_voltname
+    },
+    {
+        CLIARG_STR,
+        ".option.outv_ftype",
+        "output volt type",
+        "outv_ftype",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &outv_ftype,
+        &fpi_outv_ftype
+    },
+    {
+        CLIARG_FLOAT32,
+        ".option.outv_exp",
+        "output volt power exponent",
+        "1.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &outv_exp,
+        &fpi_outv_exp
+    },
+    {
+        CLIARG_FLOAT32,
+        ".option.outv_inrange_min",
+        "output volt input range min",
+        "-1.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &outv_inrange_min,
+        &fpi_outv_inrange_min
+    },
+    {
+        CLIARG_FLOAT32,
+        ".option.outv_inrange_max",
+        "output volt input range max",
+        "1.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &outv_inrange_max,
+        &fpi_outv_inrange_max
+    },
+    {
+        CLIARG_FLOAT32,
+        ".option.outv_outrange_min",
+        "output volt output range min",
+        "-1.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &outv_outrange_min,
+        &fpi_outv_outrange_min
+    },
+    {
+        CLIARG_FLOAT32,
+        ".option.outv_outrange_max",
+        "output volt output range max",
+        "1.0",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &outv_outrange_max,
+        &fpi_outv_outrange_max
     },
     {
         CLIARG_FLOAT32,
@@ -770,9 +863,90 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
     //    USER SHOULD UPDATE THIS MAP WHEN REQUIRED
 
 
+    // output choices :
+    //
+    // output type:  float32, float64, uint32, uint64, int32 ... etc...
+    //     (default is float32)
+    // mapping:      1.0 linear, 0.5 sqrt
+    // input range:  [ mindisp, maxdisp ]
+    // output range: [ minv, maxv ]
+
+
 
     if((*volttype) == 1)
     {
+        float inrange = (*maxvolt) * (*stroke100)/100.0;
+
+        strcpy(outv_ftype, "float32");
+        *outv_exp = 1.0;
+        *outv_inrange_min = -inrange;
+        *outv_inrange_max = inrange;
+        *outv_outrange_min = -(*maxvolt);
+        *outv_outrange_max = -(*maxvolt);
+    }
+    else if((*volttype) == 2)
+    {
+        // quadratic unipolar, output is UI16
+        //
+
+        float inrange = (*maxvolt) * (*stroke100)/100.0;
+
+        strcpy(outv_ftype, "uint16");
+        *outv_exp = 0.5;
+        *outv_inrange_min = -inrange;
+        *outv_inrange_max = inrange;
+        *outv_outrange_min = 0.0;
+        *outv_outrange_max = (*maxvolt) / 300.0 * 16384.0;
+    }
+
+
+
+    // Generic mapping code
+    //
+    // First, we map input range to output range
+    // output is stored in valarray, in range [outv_outrange_min,outv_outrange_max]
+    //
+    double *valarray = (double *) malloc(sizeof(double) * (*DMxsize) * (*DMysize));
+    for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+    {
+        // map input to [0.0 - 1.0]
+        float inval = imgdisp.im->array.F[ii];
+        double x = inval - (*outv_inrange_min);
+        x = x / ( *outv_inrange_max - *outv_inrange_min );
+        if ( x < 0.0 )
+        {
+            x = 0.0;
+        }
+        if ( x > 1.0 )
+        {
+            x = 1.0;
+        }
+
+        // apply mapping exponent
+        valarray[ii] = pow(x, *outv_exp);
+
+        // remap to output range
+        valarray[ii] = (*outv_outrange_min) + valarray[ii] * ( *outv_outrange_max - *outv_outrange_min );
+    }
+
+
+
+
+
+
+
+    // SPECIAL CASES
+    //
+    if((*volttype) == 1)
+    {
+        // format: float
+        // mapping: 1.0
+        // input range  [ -inrange, +inrange]
+        // output range [ -maxvolt, maxvolt ]
+        //
+        // maxvolt = 100.0 x inrange / stroke100
+        // inrange = maxvolt * stroke100/100.0
+        //
         // linear bipolar, output is float
         for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
         {
@@ -791,6 +965,12 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
     else if((*volttype) == 2)
     {
         // quadratic unipolar, output is UI16
+        //
+        // format: UI16
+        // mapping: 0.5
+        // input range   [ , ]
+        // output range  [ 0, maxvolt ]
+        //
         for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
         {
             float volt = 100.0 * sqrt(imgdisp.im->array.F[ii] / (*stroke100));
@@ -803,6 +983,119 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
                 (unsigned short int)(volt / 300.0 * 16384.0);
         }
     }
+    else if((*volttype) == 3)
+        // Volt type == 3 -> SLM mode
+    {
+        // linear unipolar, output is UT16
+        for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+        {
+            float volt = (imgdisp.im->array.F[ii] / (*stroke100)) + 0.5; // DC offest = 0.5
+            // wrapping the command
+            // assuming maxvolt = 1, minvolt = 0
+            if(volt > (*maxvolt))
+            {
+                volt = remainder(volt, 1);
+            }
+            if(volt < 0)
+            {
+                volt = remainder(volt, 1);
+            }
+            // TODO add quantization code
+            imgvolt.im->array.UI16[ii] =
+                (unsigned short int)((volt) * 65535.0);
+        }
+    }
+
+
+
+
+    if((*volttype) == 0)
+    {
+
+        // type conversion
+        //
+        int typeOK = 0; // toggles to 1 when type conversion done
+
+        if (strcmp(outv_ftype, "float64") == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.D[ii] = valarray[ii];
+            }
+            typeOK = 1;
+        }
+
+
+        if (strcmp(outv_ftype, "uint16") == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.UI16[ii] =  ( uint16_t ) (valarray[ii]);;
+            }
+            typeOK = 1;
+        }
+
+        if (strcmp(outv_ftype, "uint32") == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.UI32[ii] =  ( uint32_t ) (valarray[ii]);;
+            }
+            typeOK = 1;
+        }
+
+        if (strcmp(outv_ftype, "uint64") == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.UI64[ii] =  ( uint64_t ) (valarray[ii]);;
+            }
+            typeOK = 1;
+        }
+
+
+        if (strcmp(outv_ftype, "int16") == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.SI16[ii] =  ( int16_t ) (valarray[ii]);;
+            }
+            typeOK = 1;
+        }
+
+        if (strcmp(outv_ftype, "int32") == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.SI32[ii] =  ( int32_t ) (valarray[ii]);;
+            }
+            typeOK = 1;
+        }
+
+        if (strcmp(outv_ftype, "int64") == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.SI64[ii] =  ( int64_t ) (valarray[ii]);;
+            }
+            typeOK = 1;
+        }
+
+
+        // default if none of the above types match
+        if( typeOK == 0)
+        {
+            for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
+            {
+                imgvolt.im->array.F[ii] = valarray[ii];
+            }
+        }
+
+    }
+
+    free(valarray);
+
+
 
     return RETURN_SUCCESS;
 }
@@ -810,7 +1103,11 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
 
 
 
-static errno_t update_dmdisp(IMGID imgdisp, IMGID *imgch, float *dmdisptmp)
+static errno_t update_dmdisp(
+    IMGID imgdisp,
+    IMGID *imgch,
+    float *dmdisptmp
+)
 {
     memcpy(dmdisptmp,
            imgch[0].im->array.F,
@@ -833,15 +1130,12 @@ static errno_t update_dmdisp(IMGID imgdisp, IMGID *imgch, float *dmdisptmp)
             ave += dmdisptmp[ii];
         }
         ave /= (*DMxsize) * (*DMysize);
-    }
 
-    if(*AveMode < 2)  // OFFSET BY DClevel
-    {
         for(uint_fast64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
         {
-            dmdisptmp[ii] += (*DClevel - ave);
-
             // remove negative values
+
+            dmdisptmp[ii] += (*DClevel - ave);
             if(*voltmode == 1)
                 if(dmdisptmp[ii] < 0.0)
                 {
@@ -963,12 +1257,12 @@ static errno_t compute_function()
         zpochecksum = 0;
         for(int ch = 0; ch < NB_ZEROPOINT_CH_MAX; ++ch)
         {
-            if( zpoffset_channel[ch] )
+            if(zpoffset_channel[ch])
             {
                 zpochecksum += 1 << ch;
             }
         }
-        if( zpochecksum != zpochecksum0 )
+        if(zpochecksum != zpochecksum0)
         {
             zpooffsetchange = 1;
             //printf("CHANGE TO ZPO\n");
@@ -995,7 +1289,8 @@ static errno_t compute_function()
 
             if(*astrogrid == 1)
             {
-                // exclude astrogridchan
+                // exclude astrogridchan from cntsum
+                //
                 for(uint32_t ch = 0; ch < *NBchannel; ch++)
                 {
                     //printf("[astrogridON] ZPO ch %u = %d \n", ch, zpoffset_channel[ch]);
@@ -1016,22 +1311,14 @@ static errno_t compute_function()
                 for(uint32_t ch = 0; ch < *NBchannel; ch++)
                 {
                     cnt0sum += imgch[ch].md->cnt0;
-                    /*if (*zpoffsetenable == 1)
-                    {
-                        printf(" %d", zpoffset_channel[ch]);
-                    }*/
 
-                    //printf("ZPO ch %u = %d \n", ch, zpoffset_channel[ch]);
                     if((*zpoffsetenable == 1) && (zpoffset_channel[ch] == 1))
                     {
                         cnt0sumzpo += imgch[ch].md->cnt0;
                     }
                 }
-                /*            if (*zpoffsetenable == 1)
-                            {
-                                printf("\n");
-                            }*/
             }
+
 
             if(cnt0sum != cntsumref)
             {
@@ -1062,7 +1349,6 @@ static errno_t compute_function()
         if(DMupdate == 1)
         {
             // Update DM disp
-            //printf("Updating dmdisp\n\n");
 
             if((*astrogrid) == 0)
             {
@@ -1070,7 +1356,7 @@ static errno_t compute_function()
             }
 
 
-            // Sum all channels
+            // Update astrogrid channel if needed
             //
             if(((*astrogrid) == 1) && ((*astrogridtdelay) == 0))
             {
@@ -1078,6 +1364,8 @@ static errno_t compute_function()
                 processinfo_update_output_stream(processinfo,
                                                  imgch[(*astrogridchan)].ID);
             }
+
+            // Sum all channels
             update_dmdisp(imgdisp, imgch, dmdisptmp);
             processinfo_update_output_stream(processinfo, imgdisp.ID);
 
@@ -1092,9 +1380,6 @@ static errno_t compute_function()
 
             if(((*astrogrid) == 1) && ((*astrogridtdelay) != 0))
             {
-                DMdisp_add_disp_from_circular_buffer(imgch[(*astrogridchan)]);
-                processinfo_update_output_stream(processinfo,
-                                                 imgch[(*astrogridchan)].ID);
 
                 // Add time delay
                 {
@@ -1110,10 +1395,14 @@ static errno_t compute_function()
                     nanosleep(&timesleep, NULL);
                 }
 
+                DMdisp_add_disp_from_circular_buffer(imgch[(*astrogridchan)]);
+                processinfo_update_output_stream(processinfo,
+                                                 imgch[(*astrogridchan)].ID);
+
+                // Sum all channels
+                //
                 update_dmdisp(imgdisp, imgch, dmdisptmp);
                 processinfo_update_output_stream(processinfo, imgdisp.ID);
-                // take into account update to astrogrid channel
-                cntsumref++;
 
                 if(*voltmode == 1)
                 {

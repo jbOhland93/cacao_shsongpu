@@ -3,22 +3,22 @@
 
 
 export CACAO_LOOPNAME="nir188"
-export CACAO_LOOPNUMBER="3"
+export CACAO_LOOPNUMBER="7"
 
 # ====== DEFORMABLE MIRROR ==========
 
 # Deformable mirror (DM) size
 # If DM is single dimension, enter "1" for DMsize
 #
-export CACAO_DMINDEX="00"    # Hardware DM - connected to physical DM
-export CACAO_DMSIMINDEX="10" # Simulation DM
-export CACAO_DMxsize="188" # + TT
-export CACAO_DMysize="1"
+export CACAO_DMINDEX="64"    # Hardware DM - connected to physical DM
+export CACAO_DMSIMINDEX="65" # Simulation DM
+export CACAO_DMxsize="64" # + TT
+export CACAO_DMysize="64"
 
 # 1 if DM actuators are on a coordinate grid
 # This informs processes if a spatial relationship exists
 # between DM actuators
-export CACAO_DMSPATIAL="0"
+export CACAO_DMSPATIAL="1"
 
 
 

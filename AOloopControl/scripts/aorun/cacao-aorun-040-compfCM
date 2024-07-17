@@ -24,11 +24,11 @@ Uses temporary directory ./${cfCMtmpdir}/
 INPUT TARGET CONTROL MODES (Tmodes)
 The output control modes will try to adhere to the Tmodes, using the same 
 ordering.
-By default Cmdoes are Zernike modes followed by Fourior modes.
+By default Cmdoes are Zernike modes followed by Fourier modes.
 User can specify a custom set of input control modes with -cm option.
 
 DM EXTRAPOLATION
-DM exttapolation set by extrfactor and extroffset.
+DM extrapolation set by extrfactor and extroffset.
 Extrapolation extends beyond dmmask by extroffset pixel (fixed quantity for all 
 modes) and extrfactor radian.(proportional to Fourier mode period). The second
 extrapolation (radian) is tapered.
@@ -197,12 +197,14 @@ mkdir -p ${cfCMtmpdir}
 
 # Get DM size from DMmask
 
-strcmd=$(fitsheader -k NAXIS1 $DMmask | tail -1)
+echo "Checking DM size from file $DMmask"
+
+strcmd=$(fitsheader $DMmask | grep NAXIS1 | tail -1)
 arr=($strcmd)
 DMsizex=${arr[2]}
 echo "DMsizex = $DMsizex"
 
-strcmd=$(fitsheader -k NAXIS2 $DMmask | tail -1)
+strcmd=$(fitsheader $DMmask | grep NAXIS2 | tail -1)
 arr=($strcmd)
 DMsizex=${arr[2]}
 echo "DMsizex = $DMsizex"
@@ -222,8 +224,11 @@ if [ "$Tmodes" = "NULL" ]; then
 
 ########################################################################
 #
-# CONSTRUCT TARGET MODES -> TmodesDMn
+# CONSTRUCT TARGET MODES IN DM SPACE
+# -> TmodesDMn: normalized over dmmask
+# -> TmodesDM : not normalized
 #
+# This is 5 Zernikes (TTF+Ast) + Fourier modes 
 ########################################################################
 
 # Create set of Fourier modes, store as modesF.fits
@@ -259,7 +264,7 @@ echo "DMr0 = $DMr0"
 # match as well as possible
 #
 # output :
-# TmodesDMn.fits  Modes
+# TmodesDMn.fits :  Modes, normalized over dmmask
 #
 
 # amplification factor for TT
@@ -267,7 +272,7 @@ TTfactor="8.0"
 
 # Fourier power law
 # large value -> fast decrease of amplitude with spatial frequency
-Falpha="1.0"
+Falpha="0.0"
 
 milk-all << EOF
 zern.mkzerc .TTfactor ${TTfactor}
@@ -433,6 +438,8 @@ EOF
 ########################################################################
 #
 # CONTROL MODES
+#
+# Straight SVD of zrespM
 #
 ########################################################################
 
@@ -631,7 +638,7 @@ fi
 # WFS-space Gramm-Schmidt
 #
 # INPUT:
-#   TmodesDMnWFSm
+#   TmodesDMnWFSm: WFS response to normalized DM ZF modes
 #
 # OUTPUT:
 #   TmodesDMnWFSmwfsgs
@@ -688,15 +695,15 @@ EOF
 #   TmodesDMnWFSm_CMmWFSnm_xp
 #
 # OUTPUT:
-#   matABr
-#   matArot
+#   matABr    : rotated decomposition of control modes (y axis) against target modes (x axis)
+#   matArot   : rotation matrix applied
 #   CMmDMnr   : rotated (new) basis, DM space
 #   CMmWFSnr  : rotated (new) basis, WFS space
 #
 milk-all << EOF
 linalg.sgemm .GPUdevice ${GPUdevice}
 loadfits "./${cfCMtmpdir}/TmodesDMnWFSmwfsgs_CMmWFSnm_xp.fits" matAB
-linalg.basisrotmatch .optmode 2
+linalg.basisrotmatch .optmode 1
 linalg.basisrotmatch matAB matArot
 # matABr.fits should now be lower triangular
 saveFITS matAB "./${cfCMtmpdir}/matABr.fits"

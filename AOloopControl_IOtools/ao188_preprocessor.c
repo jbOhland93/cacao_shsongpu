@@ -46,14 +46,15 @@ when exiting because of APD safety.
 */
 #include <stdio.h>
 #include <sys/select.h>
-int is_ready(int fd) {
+int is_ready(int fd)
+{
     fd_set fdset;
     struct timeval timeout;
     FD_ZERO(&fdset);
     FD_SET(fd, &fdset);
     timeout.tv_sec = 0;
     timeout.tv_usec = 1;
-    return select(fd+1, &fdset, NULL, NULL, &timeout) == 1 ? 1 : 0;
+    return select(fd + 1, &fdset, NULL, NULL, &timeout) == 1 ? 1 : 0;
 }
 
 // Optional custom configuration setup.
@@ -177,14 +178,16 @@ static errno_t one_sided_curvature_compute(
     {
         for(int k = 0; k < size; ++k)
         {
-            curvature[k] = (apd_onesided[k] - apd_reference[k]) / (apd_reference[k] + CURVATURE_REGZ);
+            curvature[k] = (apd_onesided[k] - apd_reference[k]) / (apd_reference[k] +
+                           CURVATURE_REGZ);
         }
     }
     else
     {
         for(int k = 0; k < size; ++k)
         {
-            curvature[k] = (- apd_onesided[k] - apd_reference[k]) / (apd_reference[k] + CURVATURE_REGZ);
+            curvature[k] = (- apd_onesided[k] - apd_reference[k]) /
+                           (apd_reference[k] + CURVATURE_REGZ);
         }
     }
     return RETURN_SUCCESS;
@@ -331,7 +334,8 @@ static errno_t compute_function()
             fflush(stdout);
             apd_safety_execute(0); // lowfs
             apd_safety_execute(1); // howfs
-            processloopOK = 0; // This is gonna quit
+            processloopOK =
+            1; // This is gonna quit // IT SHOULDN'T QUIT - but it should open the loop?
             // But the FPDP framegrabber is still running, so we can still get APD statistic to cntmon.
             for(int i = 0; i < 50; ++i)
             {

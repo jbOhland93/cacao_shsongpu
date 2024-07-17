@@ -8,8 +8,10 @@ source milk-script-std-config
 
 
 MSextdescr="
-Initial setup for cacao instance
-Creates work directory, install scripts and start conf processes in tmux sessions.
+Initial setup for cacao instance.
+Run this script from loop rootdir.
+
+Creates work directory (rundir), install scripts and start conf processes in tmux sessions.
 Each cacao loop has a unique ASCII name, referred to as <loopname> in this manual.
 
 Main steps performed by cacao-setup:
@@ -73,7 +75,7 @@ RequiredDirs=( )
 
 
 
-MSarg+=( "confname:string:configuration name" )
+MSarg+=( "loopname:string:loopname" )
 
 
 # SCRIPT OPTIONS
@@ -99,7 +101,7 @@ function set_fpsset {
 }
 
 UPDATEMODE="0"
-MSopt+=( "u:update:set_updatemode::update mode, do not quit/restart processes" )
+MSopt+=( "u:update:set_updatemode::update mode, only start process if not running" )
 function set_updatemode {
 	UPDATEMODE="1"
 }
@@ -181,6 +183,12 @@ function checkFileInfoOptional {
 
 
 echo "LOOPNAME = $LOOPNAME"
+if [ "$UPDATEMODE" = "0" ]; then
+export FPSLISTADD_MODE=" "
+else
+export FPSLISTADD_MODE="update"
+fi
+
 
 
 function cacaoCreateExampe_cacaovars {
@@ -193,51 +201,6 @@ function cacaoCreateExampe_cacaovars {
 
     EXAMPLEFILENAME="cacaovars.example.bash"
 
-    echo "# cacao environment variables for setup" >> ${EXAMPLEFILENAME}
-    echo "# source this file to take into effect" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_DMxsize=\"188\"" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_DMysize=\"1\"" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_LOOPROOTDIR=\"ao188lhs\"" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_DMINDEX=\"02\"" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_LOOPNUMBER=\"1\"" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_WFSSTREAM=\"aol${CACAO_LOOPNUMBER}_linsimWFS\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# ========================================" >> ${EXAMPLEFILENAME}
-    echo "# ======= FPS processes to be set up =====" >> ${EXAMPLEFILENAME}
-    echo "# ========================================" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# DM combination " >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_DMCOMB=\"ON\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# delay stream: emulates time lag in hardware" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_STREAMDELAY=\"ON\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# MVM lop on GPU: used to simulate hardware" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_SIMMVMGPU=\"ON\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# Measure latency" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_MLAT=\"ON\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# WFS acquire frames" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_ACQUWFS=\"ON\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# Acquire linear RM" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_ACQLINZRM=\"ON\"" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_ACQLINLORM=\"OFF\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# Compute Control Matrix and modes" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_COMPSCM=\"ON\"  # straight CM computation" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_COMPFCM=\"OFF\" # Fourier based CM and modes" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# GPU extract modes from WFS image" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_MODESEXTRACTWFSGPU=\"OFF\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
-    echo "# AO run loop" >> ${EXAMPLEFILENAME}
-    echo "export CACAO_FPSPROC_AOLOOP_RUN=\"ON\"" >> ${EXAMPLEFILENAME}
-    echo "" >> ${EXAMPLEFILENAME}
     exit 0
 }
 
@@ -305,7 +268,7 @@ function allFPScmd {
             echolog "FILE ${taskflist} EXISTS"
             while IFS='' read -r taskline || [[ -n "${taskline}" ]]; do
                 echolog "${taskline}"
-                echo "        ${taskline}   >> ${fpsCTRLfifo} "
+                echo "TASK:        ${taskline}   >> ${fpsCTRLfifo} "
                 echo "${taskline}" >> ${fpsCTRLfifo}
             done < ${taskflist}
         else
@@ -343,7 +306,7 @@ function cacaosetupCLEAR
 
     # turn off RUN processes
     allFPScmd runstop
-
+    
     # turn off CONF processes
     allFPScmd confstop
 
@@ -407,12 +370,16 @@ function fpssetparamconf {
     checkPipe ${fpsCTRLfifo}
     echo "SETTING PARAMETERS -> ${fpsCTRLfifo}"
 
-    rm -f fpssetup.setval.combined.conf
-    sed "s/LOOPNUMBER/${LOOPNUMBER}/g" ${CURRDIR}/${fpsSETPARAMCONFfile} | sed "s/DMINDEX/${CACAO_DMINDEX}/g" > fpssetuptmp.tmp
-    sed -i "s/DMSIMINDEX/${CACAO_DMSIMINDEX}/g" fpssetuptmp.tmp
+	if [ -f ${CURRDIR}/${fpsSETPARAMCONFfile} ]; then
+      rm -f fpssetup.setval.combined.conf
+      sed "s/LOOPNUMBER/${LOOPNUMBER}/g" ${CURRDIR}/${fpsSETPARAMCONFfile} | sed "s/DMINDEX/${CACAO_DMINDEX}/g" > fpssetuptmp.tmp
+      sed -i "s/DMSIMINDEX/${CACAO_DMSIMINDEX}/g" fpssetuptmp.tmp
+    fi
 
+    touch fpssetuptmp.tmp    
+    touch ${CURRDIR}/fpssetup.setval.conf
+    
     cat ${CURRDIR}/fpssetup.setval.conf fpssetuptmp.tmp > fpssetup.setval.combined.conf
-    #rm fpssetuptmp.tmp
     rm -f ${CURRDIR}/fpssetup.setval.conf
 
     while IFS='' read -r line || [[ -n "$line" ]]; do
@@ -420,8 +387,6 @@ function fpssetparamconf {
         echo "$line" >> ${fpsCTRLfifo}
     done < fpssetup.setval.combined.conf
 }
-
-
 
 
 
@@ -725,7 +690,6 @@ fi
 
 
 
-
 # Write in this file FPS-compatible processes that will be used
 # col1: FPS name as it should appear in FPS
 # col2: function to be called in cacao to launch process
@@ -740,8 +704,9 @@ fi
 
 # cacao-provided default script
 # writes in fpslist.txt and fps.conf/fpssetup.confstart.<fpsname>.conf
-source cacao-fpslistadd
-
+echo "Running cacao-fpslistadd from $PWD"
+cacao-fpslistadd
+echo "Done with cacao-fpslistadd"
 
 
 # &>> ${LOGFILENAME}
@@ -776,8 +741,7 @@ cd ${CACAO_LOOPRUNDIR_FULLPATH}
 export FPS_KEYWORDARRAY=":cacao-setup:${CACAO_LOOPNAME}:aol${CACAO_LOOPNUMBER}:"
 milk-fpsinit -e cacao -C
 
-
-
+# list of new FPS written in fpsinit.newFPS.log
 
 
 
@@ -826,14 +790,41 @@ fi
 
 
 # ===================================================================================
-# ========= START ALL CONF PROCESSES  ===============================================
+# ========= START CONF PROCESSES  ===================================================
 # ===================================================================================
 echolog "    (re)-starting conf processes ..."
 # stop CONF processes in case already running
-allFPScmd confstop
 
-allFPScmd confstart
-
+if [ "$UPDATEMODE" = "0" ]; then
+  allFPScmd confstop
+  allFPScmd confstart
+else
+  fpsnewfname="fpsinit.newFPS.log"
+  echo "READING FILE ${fpsnewfname}"
+  
+  if [ -f "${fpsnewfname}" ]; then
+    echo "File found"
+    while read -r LINE
+    do
+	  fpsname="${LINE}"
+      printf "NEW FPS ENTRY = %s\n" "$LINE"
+      echo "confstart ${fpsname}" >> ${fpsCTRLfifo}
+      
+      # if there is a taskfile associated with command, load it
+      taskflist="${CACAO_LOOPRUNDIR_FULLPATH}/fps.conf/fpssetup.cacaosetup-confstart.${fpsname}.conf"
+      echo "TASKFILELIST : ${taskflist}"
+      if [ -f ${taskflist} ]; then
+        while IFS='' read -r taskline || [[ -n "${taskline}" ]]; do
+          echolog "${taskline}"
+          echo "TASK:        ${taskline}   >> ${fpsCTRLfifo} "
+          echo "${taskline}" >> ${fpsCTRLfifo}
+        done < ${taskflist}
+      else
+        echo "FILE ${taskflist} DOES NOT EXIST - NOTHING TO DO"
+      fi
+    done < "$fpsnewfname"
+  fi
+fi
 
 
 
@@ -845,6 +836,8 @@ echolog "    INIT settings imported from conf file ..."
 if [ "$UPDATEMODE" = "0" ]; then
     fpssetparamconf
 fi
+
+
 
 
 # ===================================================================================
@@ -862,8 +855,6 @@ if [ "$UPDATEMODE" = "0" ]; then
     #echolog "    linking WFS ..."
     #milk-streamlink -p aol${LOOPNUMBER}_ wfsim # &>> ${LOGFILENAME}
 fi
-
-
 
 
 

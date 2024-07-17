@@ -18,7 +18,9 @@ add_library(${LIBNAME} SHARED ${SRCNAME}.c
 	modalCTRL_stats.h
 	modalstatsTUI.c
 	modalstatsTUI.h
-)
+	zonalfilter.c
+	zonalfilter.h
+	)
 
 
 #if(USE_CUDA)
@@ -71,11 +73,21 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/cacao-exec
 	scripts/cacao.tmux
 	scripts/cacao-fpslistadd
+	scripts/cacao-fpslistadd-ACQWFS
+	scripts/cacao-fpslistadd-MAPWFS
 	scripts/cacao-fpslistadd-MVMGPU_CMODEVAL2DM
 	scripts/cacao-fpslistadd-MVMGPU_CMODEVALOFFLOAD2DM
+	scripts/cacao-fpslistadd-MVMGPU_DM2MVAL
+	scripts/cacao-fpslistadd-MVMGPU_WFS2CMODEVAL
+	scripts/cacao-fpslistadd-MVMGPU_ZPO
 	scripts/cacao-fpslistadd-MODALCTRL_STATS
 	scripts/cacao-fpslistadd-MODALFILTERING
 	scripts/cacao-fpslistadd-MVMGPU_ZPO
+	scripts/cacao-fpslistadd-OLMODEVAL2DM
+	scripts/cacao-fpslistadd-SIMMVMGPU
+	scripts/cacao-fpslistadd-WFSMODEVAL2DM
+	scripts/cacao-fpslistadd-WFSCAMSIM
+	scripts/cacao-fpslistadd-ZONALFILTERING
 	scripts/cacao-modalstatsTUI
 	scripts/cacao-takedark
 	scripts/cacao-task-manager
@@ -99,12 +111,15 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-005-takedark
 	scripts/aorun/cacao-aorun-020-mlat
 	scripts/aorun/cacao-aorun-021-mlat-slowDM
+	scripts/aorun/cacao-aorun-021-mlatshow
 	scripts/aorun/cacao-aorun-025-acqWFS
 	scripts/aorun/cacao-aorun-026-takeref
+	scripts/aorun/cacao-aorun-028-mkZFmodes
 	scripts/aorun/cacao-aorun-030-acqlinResp
 	scripts/aorun/cacao-aorun-031-RMHdecode
 	scripts/aorun/cacao-aorun-032-RMmkmask
 	scripts/aorun/cacao-aorun-033-RM-mksynthetic
+	scripts/aorun/cacao-aorun-034-RMzonal2modal
 	scripts/aorun/cacao-aorun-039-compstrCM
 	scripts/aorun/cacao-aorun-040-compfCM
 	scripts/aorun/cacao-aorun-041-loadCM
@@ -114,6 +129,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-061-setmgains
 	scripts/aorun/cacao-aorun-062-setmmults
 	scripts/aorun/cacao-aorun-063-setmlimits
+	scripts/aorun/cacao-aorun-065-zonalfiltering
 	scripts/aorun/cacao-aorun-070-cmval2dm
 	scripts/aorun/cacao-aorun-071-zpo
 	scripts/aorun/cacao-aorun-080-testOL
@@ -121,6 +137,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-120-mstat
 	scripts/aorun/cacao-aorun-130-mkPF
 	scripts/aorun/cacao-aorun-140-applyPF
+	scripts/aorun/cacao-aorun-200-mfiltturbrec
 	DESTINATION bin)
 
 install(FILES ${SRCNAME}.h DESTINATION include/${SRCNAME})

@@ -23,6 +23,9 @@ static long     fpi_turbON;
 static int64_t *turbZERO;
 static long     fpi_turbZERO;
 
+// set seed position to zero
+static int64_t *seedZERO;
+static long     fpi_seedZERO;
 
 
 // output stream name
@@ -52,7 +55,6 @@ static long   fpi_turbwangle;
 // Wind amplitude [um]
 static float *turbampl;
 static long   fpi_turbampl;
-
 
 
 // number of time samples in turbulence cube
@@ -110,6 +112,15 @@ static CLICMDARGDEF farg[] =
         CLIARG_HIDDEN_DEFAULT,
         (void **) &turbZERO,
         &fpi_turbZERO
+    },
+    {
+        CLIARG_ONOFF,
+        ".seedZERO",
+        "set seed pos to zero",
+        "OFF",
+        CLIARG_HIDDEN_DEFAULT,
+        (void **) &seedZERO,
+        &fpi_seedZERO
     },
     {
         CLIARG_STREAM,
@@ -215,6 +226,7 @@ static errno_t customCONFsetup()
 
         data.fpsptr->parray[fpi_turbON].fpflag |= FPFLAG_WRITERUN;
         data.fpsptr->parray[fpi_turbZERO].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_seedZERO].fpflag |= FPFLAG_WRITERUN;
 
         data.fpsptr->parray[fpi_dmstream].fpflag |=
             FPFLAG_STREAM_RUN_REQUIRED | FPFLAG_CHECKSTREAM;
@@ -283,6 +295,8 @@ static errno_t make_seed_turbulence_screen(
     delete_image_ID("tmppha", DELETE_IMAGE_ERRMODE_WARNING);
     //  make_dist("tmpd",size,size,size/2,size/2);
     create_2Dimage_ID("tmpd", size, size, &ID);
+
+
     for(uint32_t ii = 0; ii < size; ii++)
         for(uint32_t jj = 0; jj < size; jj++)
         {
@@ -529,6 +543,18 @@ static errno_t compute_function()
         }
 
 
+        // zero position seed
+        if(data.fpsptr->parray[fpi_seedZERO].fpflag & FPFLAG_ONOFF)
+        {
+            x0m = 0.0;
+            y0m = 0.0;
+
+            // toggle back to OFF
+            data.fpsptr->parray[fpi_seedZERO].fpflag &= ~FPFLAG_ONOFF;
+        }
+
+
+
 
         if((*turbON) == 1)
         {
@@ -618,16 +644,22 @@ static errno_t compute_function()
             processinfo_WriteMessage_fmt(processinfo, "pht %.3lf s (+ %.0f us) RMS %.3f", phystime, 1e6 * dt, RMSval);
 
             // tweak amplcoeff to match desired RMS
-            // large discrepancy lead ot large correction
+            // large discrepancy leads to large correction
             //
             double coeffstep = (*turbampl) / RMSval;
             double logdiff = log10(coeffstep);
             double logdiff3abs = pow(fabs(logdiff), 3.0);
             double amplloopgain = 1.0e-4 + logdiff3abs / (logdiff3abs + 1.0);
+
+
             amplcoeff *= pow(10.0, amplloopgain * logdiff);
 
-            printf("RMS= %6.3f / %6.3f  logdiff = %6.3f  factor = %6.3f\n", RMSval, (*turbampl), logdiff, pow(10.0, logdiff));
 
+            /*printf("RMS= %6.3f / %6.3f  amplcoeff = %6.3f  logdiff = %6.3f  factor = %9.6f  amplloopgain = %g\n",
+                   RMSval, (*turbampl),
+                   amplcoeff,
+                   logdiff, pow(10.0, logdiff), amplloopgain);
+            */
 
 
 

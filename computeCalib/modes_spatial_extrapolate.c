@@ -96,49 +96,4 @@ errno_t modes_spatial_extrapolate(IMGID imgmodes,
 }
 
 
-/*
-long AOloopControl_computeCalib_DMextrapolateModes(
-    const char *IDin_name,
-    const char *IDmask_name,
-    const char *IDcpa_name,
-    const char *IDout_name
-)
-{
-    imageID IDin, IDmask, IDcpa, IDout;
-    long    xsize, ysize, zsize, xysize;
-    long    IDpixdist;
-    long    ii, jj, ii1, jj1, dii, djj, dii2, djj2;
-    float   r, dist;
-    float   coeff;
-    long    index;
-    long    kk;
 
-
-    // save_fits("pixmaskdist", "_tmp_pixmaskdist.fits");
-    // save_fits(IDcpa_name, "_tmp_cpa.fits");
-    for (kk = 0; kk < zsize; kk++)
-    {
-        for (ii = 0; ii < xsize; ii++)
-            for (jj = 0; jj < ysize; jj++)
-            {
-                index = jj * xsize + ii;
-                coeff = data.image[IDpixdist].array.F[index] /
-                        ((1.0 * xsize / (data.image[IDcpa].array.F[kk] + 0.1)) *
-                         0.8);
-
-                coeff = (exp(-coeff * coeff) - exp(-1.0)) / (1.0 - exp(-1.0));
-                if (coeff < 0.0)
-                {
-                    coeff = 0.0;
-                }
-                data.image[IDout].array.F[kk * xysize + index] =
-                    coeff * data.image[IDin].array.F[kk * xysize + index] *
-                    coeff;
-            }
-    }
-    delete_image_ID("pixmaskdist", DELETE_IMAGE_ERRMODE_WARNING);
-
-    return (IDout);
-}
-
-*/
