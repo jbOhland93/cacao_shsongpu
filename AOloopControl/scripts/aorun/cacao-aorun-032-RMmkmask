@@ -7,7 +7,7 @@
 MSdescr="Compute RM masks from zonal response matrix"
 
 
-if [ -z ${CACAO_CONFWDIR+x} ]; then
+if [ ! -z ${CACAO_CONFWDIR+x} ]; then
 	CACAO_CONFWDIR="conf"
 fi
 
