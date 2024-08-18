@@ -370,9 +370,10 @@ EOF
 done
 
 cp ${CMmDMname} "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits"
-cp ${CMmWFSname} "./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits"
 cp "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" "./${CACAO_CONFWDIR}/CMmodesDM.fits"
-cp "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesWFS.fits" "./${CACAO_CONFWDIR}/CMmodesWFS.fits"
+
+cp ${CMmWFSname} "./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits"
+cp "./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" "./${CACAO_CONFWDIR}/CMmodesWFS.fits"
 
 cacao-calib-streamupdate CMmodesWFS
 cacao-calib-streamupdate CMmodesDM
