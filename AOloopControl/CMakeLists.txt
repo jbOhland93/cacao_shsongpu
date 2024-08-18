@@ -123,6 +123,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/aorun/cacao-aorun-039-compstrCM
 	scripts/aorun/cacao-aorun-040-compfCM
 	scripts/aorun/cacao-aorun-041-loadCM
+	scripts/aorun/cacao-aorun-042-loadCM
 	scripts/aorun/cacao-aorun-041-saveCM
 	scripts/aorun/cacao-aorun-045-compCM-byblocks
 	scripts/aorun/cacao-aorun-050-wfs2cmval
