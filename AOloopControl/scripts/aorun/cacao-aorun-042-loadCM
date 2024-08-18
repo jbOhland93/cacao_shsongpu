@@ -103,8 +103,8 @@ ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}
 ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}
 
 # legacy
-ln -sf ${PWD}/${CMDMfnameSRC} /milk/shm/aol${LOOPNUMBER}_DMmodes.im.shm
-ln -sf ${PWD}/${CMWFSfnameSRC} /milk/shm/aol${LOOPNUMBER}_modesWFS.im.shm
+ln -sf ${PWD}/${CMDMfnameSRC} /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
+ln -sf ${PWD}/${CMWFSfnameSRC} /milk/shm/aol${CACAO_LOOPNUMBER}_modesWFS.im.shm
 
 CACAO_CONFWDIR="conf" # force update
 cacao-calib-streamupdate CMmodesDM
