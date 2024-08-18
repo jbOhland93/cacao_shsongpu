@@ -96,8 +96,9 @@ fi
 
 echo "Updating files"
 
-echo "ln -sf ${PWD}/${RMDMfnameSRC} ${RMDMfnameDEST}"
-echo "ln -sf ${PWD}/${RMWFSfnameSRC} ${RMWFSfnameDEST}"
+#echo "ln -sf ${PWD}/${RMDMfnameSRC} ${RMDMfnameDEST}"
+#echo "ln -sf ${PWD}/${RMWFSfnameSRC} ${RMWFSfnameDEST}"
+
 echo "ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}"
 echo "ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}"
 
