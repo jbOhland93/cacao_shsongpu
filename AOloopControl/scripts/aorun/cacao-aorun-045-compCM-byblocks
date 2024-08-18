@@ -74,14 +74,6 @@ fi
 
 
 
-
-SAVEDIR="calib/svd${SVDlim}-${margstring}/"
-echo "SAVEDIR : ${SAVEDIR}"
-
-
-
-if [ ! -d ${SAVEDIR} ]; then
-
 cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
 
 # Make T CM
@@ -149,26 +141,6 @@ fi
 cacao-aorun-039-compstrCM -mbm 0:1:2:3:4:5:6
 
 
-
-
-
-mkdir -p ${SAVEDIR}
-cp ${CACAO_CONFWDIR}/CMmodesDM.fits ${SAVEDIR}
-cp ${CACAO_CONFWDIR}/CMmodesWFS.fits ${SAVEDIR}
-cp ${CACAO_CONFWDIR}/CMmodesDM.xp.fits ${SAVEDIR}
-cp ${CACAO_CONFWDIR}/CMmodesWFS.xp.fits ${SAVEDIR}
-
-else
-
-
-echo "DIRECTORY ${SAVEDIR} exists"
-
-cp ${SAVEDIR}/CMmodesDM.fits ./${CACAO_CONFWDIR}/
-cp ${SAVEDIR}/CMmodesWFS.fits ./${CACAO_CONFWDIR}/
-cp ${SAVEDIR}/CMmodesDM.xp.fits ./${CACAO_CONFWDIR}/
-cp ${SAVEDIR}/CMmodesWFS.xp.fits ./${CACAO_CONFWDIR}/
-
-fi
 
 
 
