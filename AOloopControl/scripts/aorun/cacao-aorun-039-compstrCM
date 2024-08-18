@@ -332,7 +332,7 @@ CMmWFSname="NULL"
 export IFS=":"
 blockloopinit=0
 blocksrc="NULL"
-for block in $modeblockmerge; do
+for block in ${modeblockmerge}; do
   echo "BLOCK $block"
   if [[ $blockloopinit -eq 0 ]]; then
   firstblock="$block"
@@ -371,6 +371,8 @@ done
 
 cp ${CMmDMname} "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits"
 cp ${CMmWFSname} "./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits"
+cp "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" "./${CACAO_CONFWDIR}/CMmodesDM.fits"
+cp "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesWFS.fits" "./${CACAO_CONFWDIR}/CMmodesWFS.fits"
 
 cacao-calib-streamupdate CMmodesWFS
 cacao-calib-streamupdate CMmodesDM
@@ -542,8 +544,9 @@ EOF
 
   # Load CM DM to shared memory
   if [[ "$modeblock" == "ALL" ]]; then
-    milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
-    cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits ./${CACAO_CONFWDIR}/CMmodesWFS.fits
+	cacao-calib-streamupdate CMmodesWFS
+    #milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
+    #cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits ./${CACAO_CONFWDIR}/CMmodesWFS.fits
   fi
 
 
@@ -564,8 +567,9 @@ EOF
 
   # Load CM WFS to shared memory
   if [[ "$modeblock" == "ALL" ]]; then
-    milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_DMmodes
-    cp ${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits ./${CACAO_CONFWDIR}/CMmodesDM.fits
+    cacao-calib-streamupdate CMmodesDM
+    #milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_DMmodes
+    #cp ${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits ./${CACAO_CONFWDIR}/CMmodesDM.fits
   fi
 
 
