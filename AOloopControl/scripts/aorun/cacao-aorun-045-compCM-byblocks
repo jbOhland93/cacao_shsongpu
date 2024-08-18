@@ -75,7 +75,7 @@ fi
 
 
 
-SAVEDIR="calib/svd${SVDl100}-${margstring}/"
+SAVEDIR="calib/svd${SVDlim}-${margstring}/"
 echo "SAVEDIR : ${SAVEDIR}"
 
 
