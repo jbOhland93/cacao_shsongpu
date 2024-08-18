@@ -28,11 +28,9 @@ source cacaofuncs-log
 
 MSopt+=( "t:tag:setfiletag:tag[string]:Set file tag, empty by default, gets prepended with a period [.]" )
 filetag=""
-UpdateFiles=0 # 1 if using tag
 function setfiletag()
 {
 	filetag=".$1"
-     UpdateFiles=1
 }
 
 
@@ -95,15 +93,15 @@ fi
 
 
 
-if [ ${UpdateFiles} = 1 ]; then
-	echo "Updating files"
 
-	ln -sf ${PWD}/${RMDMfnameSRC} ${RMDMfnameDEST}
-	ln -sf ${PWD}/${RMWFSfnameSRC} ${RMWFSfnameDEST}
-	ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}
-	ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}
+echo "Updating files"
 
-fi
+echo "ln -sf ${PWD}/${RMDMfnameSRC} ${RMDMfnameDEST}"
+echo "ln -sf ${PWD}/${RMWFSfnameSRC} ${RMWFSfnameDEST}"
+echo "ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}"
+echo "ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}"
+
+
 
 
 cacao-calib-streamupdate CMmodesDM
