@@ -4,10 +4,15 @@
 # LOGGING conventions for AO calib
 #
 # All files in ./conf/
+#
+# Current working file ./conf/<name>.fits
+#
+# Currently in shared memory (when applicable): ./conf/shmim.<name>.fits
+#
 # logged to ./logdir/, which could be a symlink to a date-specific logging directory
 #
 # Last acquired calibration :
-# 	<NAME>.fits 
+# 	<name>.fits 
 #
 #
 # Last loaded to shmim (file name) :

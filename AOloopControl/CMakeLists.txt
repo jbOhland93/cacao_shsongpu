@@ -70,6 +70,7 @@ install(PROGRAMS scripts/cacao-setup
 	scripts/cacao-calib-archive
 	scripts/cacao-calib-apply
 	scripts/cacao-calib-archivecurrent
+	scripts/cacao-calib-streamload
 	scripts/cacao-exec
 	scripts/cacao.tmux
 	scripts/cacao-fpslistadd

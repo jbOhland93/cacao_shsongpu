@@ -7,10 +7,12 @@
 MSdescr="Compute RM masks from zonal response matrix"
 
 
+RMfname="conf/zrespM.fits"
+
 MSextdescr="Compute DM and WFS maps and masks
 
 Input: response matrix
-default: conf/shmim.zrespM.fits
+default: ${zRMfile}
 
 Output: DM and WFS maps and msaks
 conf/dmmap.fits
@@ -23,7 +25,8 @@ source milk-script-std-config
 source cacao-check-cacaovars
 
 
-RMfname="conf/shmim.zrespM.fits"
+
+
 MSopt+=( "f:RMfname:set_RMfname:RMfname[string]:set resp matrix filename" )
 function set_RMfname() {
 	RMfname="$1"
