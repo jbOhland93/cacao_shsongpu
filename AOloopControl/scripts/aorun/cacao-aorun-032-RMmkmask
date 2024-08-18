@@ -7,9 +7,11 @@
 MSdescr="Compute RM masks from zonal response matrix"
 
 
+echo "CACAO_CONFWDIR = ${CACAO_CONFWDIR}"
 if [ ! -z ${CACAO_CONFWDIR+x} ]; then
 	CACAO_CONFWDIR="conf"
 fi
+echo "CACAO_CONFWDIR = ${CACAO_CONFWDIR}"
 
 MSextdescr="Compute DM and WFS maps and masks
 
