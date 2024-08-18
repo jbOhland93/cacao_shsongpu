@@ -20,6 +20,7 @@ Use CACAO_CONFWDIR to select directory
 "
 source milk-script-std-config
 source cacao-check-cacaovars
+source cacaofuncs-log
 
 
 # SCRIPT OPTIONS
