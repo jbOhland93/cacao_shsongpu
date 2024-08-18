@@ -21,10 +21,8 @@ source cacao-check-cacaovars
 
 # prerequisites
 #
-RequiredCommands=( milk )
-RequiredFiles=()
-RequiredPipes=()
-RequiredDirs=( "conf" )
+RequiredPipes=() # don't need the fpsCTRL fifo for this operation
+RequiredDirs+=( "conf" )
 
 MSarg+=( "streamname:string:stream name" )
 

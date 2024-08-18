@@ -39,8 +39,8 @@ function cacao-calib-logFITSfile ()
 	
 	cacaomsglog "LOGGING ${SNAME} as ${LOGFILEOUT}"
 	cacaomsglog "LOGGING DIRECTORY $(realpath ${LOGDIR})"
-	cacaomsglog "cp conf/${SNAME}.fits ${LOGFILEOUT}"
-	cp conf/${SNAME}.fits "${LOGFILEOUT}"
+	cacaomsglog "cp ${CACAO_CONFWDIR}/${SNAME}.fits ${LOGFILEOUT}"
+	cp ${CACAO_CONFWDIR}/${SNAME}.fits "${LOGFILEOUT}"
 }
 
 
@@ -57,3 +57,21 @@ function cacao-calib-loadFITSfile ()
 	cacaomsglog "USING ${FITSFILE} as ${SNAME}"
 }
 
+function cacao-calib-streamupdate ()
+{
+	local STREAMNAME="$1"
+
+	cacao-calib-logFITSfile ${STREAMNAME}
+
+	if [ -z ${CACAO_CONFSTREAMLOAD+x} ]; then
+		# do not set
+		CACAO_CONFSTREAMLOAD=1
+	fi
+
+	if [ ${CACAO_CONFSTREAMLOAD} = 1 ]; then
+		# only load to shared mem if from conf
+		if [ "${CACAO_CONFWDIR}" = "conf" ]; then
+			cacao-calib-loadFITSfile ${STREAMNAME} ${LOGFILEOUT}
+		fi
+	fi
+}

@@ -160,6 +160,16 @@ RequiredCommands=( tmux milk )
 RequiredPipes=( ${fpsCTRLfifo} )
 RequiredDirs=()
 
+# SET CONF WORKING DIRECTORY
+if [ -z ${CACAO_CONFWDIR+x} ]; then
+	CACAO_CONFWDIR="./conf/"
+else
+	printf "\x1B[0;105m USING CACAO_CONFWDIR \x1B[0m %s\n" "$CACAO_CONFWDIR"
+	mkdir -p ${CACAO_CONFWDIR}
+fi
+
+
+
 # SET LOG DIRECTORIES
 datestr="$(date -u +'%Y%m%d')"
 # default log directory is upstream of CACAO_LOOPROOTDIR so it persists
@@ -188,6 +198,7 @@ CACAOLOOPRECORD="${MILK_SHM_DIR}/cacaoloop-${CACAO_LOOPNUMBER}"
 mkdir -p ${CACAOLOOPRECORD}
 echo "$0" > ${CACAOLOOPRECORD}/access-script
 
-fi
+fi # end of if [ "${MILKSCRIPTMODE}" != "help" ]
+
 
 
