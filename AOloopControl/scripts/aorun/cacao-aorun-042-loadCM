@@ -103,6 +103,8 @@ ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}
 ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}
 
 # legacy
+rm /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
+rm /milk/shm/aol${CACAO_LOOPNUMBER}_modesWFS.im.shm
 milk-FITS2shm ${CMDMfnameSRC} aol${CACAO_LOOPNUMBER}_DMmodes
 milk-FITS2shm ${CMWFSfnameSRC} aol${CACAO_LOOPNUMBER}_modesWFS
 #ln -sf ${PWD}/${CMDMfnameSRC} /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
