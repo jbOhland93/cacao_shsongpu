@@ -369,11 +369,19 @@ EOF
   blockcnt=$((blockcnt+1))
 done
 
+
+echo "============================================"
 cp ${CMmDMname} "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits"
 cp "./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" "./${CACAO_CONFWDIR}/CMmodesDM.fits"
 
 cp ${CMmWFSname} "./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits"
 cp "./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" "./${CACAO_CONFWDIR}/CMmodesWFS.fits"
+
+echo "============================================"
+echo "PWD = $(pwd)"
+echo "cp COMMAND: .${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits  -> ./${CACAO_CONFWDIR}/CMmodesWFS.fits"
+echo "cp COMMAND: .${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits  -> ./${CACAO_CONFWDIR}/CMmodesDM.fits"
+echo "============================================"
 
 cacao-calib-streamupdate CMmodesWFS
 cacao-calib-streamupdate CMmodesDM
