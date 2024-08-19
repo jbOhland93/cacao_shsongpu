@@ -238,7 +238,7 @@ errno_t AOloopControl_modalstatsTUI(
     IMGID imgDMmodes;
     {
         char name[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(name, "aol%d_DMmodes", loopindex);
+        WRITE_IMAGENAME(name, "aol%d_CMmodesDM", loopindex);
         imgDMmodes = mkIMGID_from_name(name);
         resolveIMGID(&imgDMmodes, ERRMODE_ABORT);
         NBmode = imgDMmodes.md->size[2];
