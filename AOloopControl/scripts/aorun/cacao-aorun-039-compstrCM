@@ -553,6 +553,7 @@ EOF
 
   # Load CM DM to shared memory
   if [[ "$modeblock" == "ALL" ]]; then
+    cp "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" "{CACAO_CONFWDIR}/CMmodesWFS.fits"
 	cacao-calib-streamupdate CMmodesWFS
     #milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
     #cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits ./${CACAO_CONFWDIR}/CMmodesWFS.fits
@@ -576,6 +577,7 @@ EOF
 
   # Load CM WFS to shared memory
   if [[ "$modeblock" == "ALL" ]]; then
+    cp "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" "{CACAO_CONFWDIR}/CMmodesDM.fits"
     cacao-calib-streamupdate CMmodesDM
     #milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_DMmodes
     #cp ${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits ./${CACAO_CONFWDIR}/CMmodesDM.fits
