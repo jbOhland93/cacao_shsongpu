@@ -295,14 +295,14 @@ cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesDM.fits ${CACAO_CONFWDIR}/CMmodesDM.fits
 cacao-calib-streamupdate CMmodesWFS
 cacao-calib-streamupdate CMmodesDM
 
-#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
+#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_CMmodesWFS
 #cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits ./${CACAO_CONFWDIR}/CMmodesWFS.fits
 
 
 # Load CM WFS to shared memory
 #cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesDM.fits ${CACAO_CONFWDIR}/CMmodesDM.fits
 
-#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_DMmodes
+#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_CMmodesDM
 #cp ${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits ./${CACAO_CONFWDIR}/CMmodesDM.fits
 
 
@@ -388,12 +388,12 @@ cacao-calib-streamupdate CMmodesDM
 
 
 # Load CM DM to shared memory
-#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
+#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_CMmodesWFS
 #cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits ./${CACAO_CONFWDIR}/CMmodesWFS.fits
 
 
 # Load CM WFS to shared memory
-#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_DMmodes
+#milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits" aol${CACAO_LOOPNUMBER}_CMmodesDM
 #cp ${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits ./${CACAO_CONFWDIR}/CMmodesDM.fits
 
 #source cacaofuncs-log
@@ -555,7 +555,7 @@ EOF
   if [[ "$modeblock" == "ALL" ]]; then
     cp "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" "${CACAO_CONFWDIR}/CMmodesWFS.fits"
 	cacao-calib-streamupdate CMmodesWFS
-    #milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_modesWFS
+    #milk-FITS2shm "${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits" aol${CACAO_LOOPNUMBER}_CMmodesWFS
     #cp ${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits ./${CACAO_CONFWDIR}/CMmodesWFS.fits
   fi
 
