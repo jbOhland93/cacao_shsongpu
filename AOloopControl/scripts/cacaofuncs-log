@@ -50,6 +50,7 @@ function cacao-calib-loadFITSfile ()
 	local FITSFILE="$2"
 	
 	echo "PWD = $(pwd)"
+	echo "FITSFILE = ${FITSFILE}"
 	echo "${FITSFILE}" > conf/shmim.${SNAME}.name.txt
 	cp "${FITSFILE}" "conf/shmim.${SNAME}.fits"
 	milk-FITS2shm "conf/shmim.${SNAME}.fits" aol${CACAO_LOOPNUMBER}_${SNAME}
@@ -71,7 +72,7 @@ function cacao-calib-streamupdate ()
 	if [ ${CACAO_CONFSTREAMLOAD} = 1 ]; then
 		# only load to shared mem if from conf
 		if [ "${CACAO_CONFWDIR}" = "conf" ]; then
-			cacao-calib-loadFITSfile ${STREAMNAME} ${LOGFILEOUT}
+			cacao-calib-loadFITSfile "${STREAMNAME}" "${LOGFILEOUT}"
 		fi
 	fi
 }
