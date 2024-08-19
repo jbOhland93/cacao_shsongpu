@@ -43,13 +43,16 @@ source milk-argparse
 #RMWFSfname0="conf/RMmodesWFS.fits"
 CMDMfnameDEST="conf/CMmodesDM.fits"
 CMWFSfnameDEST="conf/CMmodesWFS.fits"
+dmmaskfnameDEST="conf/dmmask.fits"
+wfsmaskfnameDEST="conf/wfsmask.fits"
 
 # SOURCE
 #RMDMfname="${CACAO_CONFWDIR}/RMmodesDM${filetag}.fits"
 #RMWFSfname="${CACAO_CONFWDIR}/RMmodesWFS${filetag}.fits"
 CMDMfnameSRC="${CACAO_CONFWDIR}/CMmodesDM${filetag}.fits"
 CMWFSfnameSRC="${CACAO_CONFWDIR}/CMmodesWFS${filetag}.fits"
-
+dmmaskfnameSRC="${CACAO_CONFWDIR}/dmmask${filetag}.fits"
+wfsmaskfnameSRC="${CACAO_CONFWDIR}/wfsmask${filetag}.fits"
 
 EXITSTATUS=0
 
@@ -101,18 +104,21 @@ echo "Updating files"
 
 ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}
 ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}
+ln -sf ${PWD}/${dmmaskfnameSRC} ${dmmaskfnameDEST}
+ln -sf ${PWD}/${wfsmaskfnameSRC} ${wfsmaskfnameDEST}
+
+
 
 # legacy
 rm /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
 rm /milk/shm/aol${CACAO_LOOPNUMBER}_modesWFS.im.shm
 milk-FITS2shm ${CMDMfnameSRC} aol${CACAO_LOOPNUMBER}_DMmodes
 milk-FITS2shm ${CMWFSfnameSRC} aol${CACAO_LOOPNUMBER}_modesWFS
-#ln -sf ${PWD}/${CMDMfnameSRC} /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
-#ln -sf ${PWD}/${CMWFSfnameSRC} /milk/shm/aol${CACAO_LOOPNUMBER}_modesWFS.im.shm
 
 CACAO_CONFWDIR="conf" # force update
 cacao-calib-streamupdate CMmodesDM
 cacao-calib-streamupdate CMmodesWFS
-
+cacao-calib-streamupdate dmmask
+cacao-calib-streamupdate wfsmask
 
 
