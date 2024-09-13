@@ -17,6 +17,14 @@ set -u
 MSextdescr="Select control matrix and load it
 
 Use CACAO_CONFWDIR to select directory
+
+Copies dmmask<TAG>, wfsmask<TAG>, CMmodesWFS<TAG>, CMmodesDM<TAG> from:
+CACAO_CONFWDIR/
+to:
+conf/
+
+Load to shared memory
+
 "
 source milk-script-std-config
 source cacao-check-cacaovars
@@ -110,8 +118,10 @@ ln -sf ${PWD}/${wfsmaskfnameSRC} ${wfsmaskfnameDEST}
 
 
 # legacy
-rm /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
-rm /milk/shm/aol${CACAO_LOOPNUMBER}_modesWFS.im.shm
+
+rm -f /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
+rm -f /milk/shm/aol${CACAO_LOOPNUMBER}_modesWFS.im.shm
+
 milk-FITS2shm ${CMDMfnameSRC} aol${CACAO_LOOPNUMBER}_DMmodes
 milk-FITS2shm ${CMWFSfnameSRC} aol${CACAO_LOOPNUMBER}_modesWFS
 
