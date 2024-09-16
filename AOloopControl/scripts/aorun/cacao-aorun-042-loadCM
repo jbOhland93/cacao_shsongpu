@@ -104,11 +104,10 @@ fi
 
 
 
-
-echo "Updating files"
-
-#echo "ln -sf ${PWD}/${RMDMfnameSRC} ${RMDMfnameDEST}"
-#echo "ln -sf ${PWD}/${RMWFSfnameSRC} ${RMWFSfnameDEST}"
+if [[ "${CACAO_CONFWDIR}" == "conf" ]]; then
+echo "Adopting existing conf"
+else
+echo "Adopting external conf: Updating files"
 
 echo "lininking ${PWD}/${CMDMfnameSRC} as ${CMDMfnameDEST}"
 ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}
@@ -121,7 +120,7 @@ ln -sf ${PWD}/${dmmaskfnameSRC} ${dmmaskfnameDEST}
 
 echo "linking ${PWD}/${wfsmaskfnameSRC} as ${wfsmaskfnameDEST}"
 ln -sf ${PWD}/${wfsmaskfnameSRC} ${wfsmaskfnameDEST}
-
+fi
 
 
 # legacy
