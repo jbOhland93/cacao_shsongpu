@@ -110,9 +110,16 @@ echo "Updating files"
 #echo "ln -sf ${PWD}/${RMDMfnameSRC} ${RMDMfnameDEST}"
 #echo "ln -sf ${PWD}/${RMWFSfnameSRC} ${RMWFSfnameDEST}"
 
+echo "lininking ${PWD}/${CMDMfnameSRC} as ${CMDMfnameDEST}"
 ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}
+
+echo "linking ${PWD}/${CMWFSfnameSRC} as ${CMWFSfnameDEST}"
 ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}
+
+echo "linking ${PWD}/${dmmaskfnameSRC} as ${dmmaskfnameDEST}"
 ln -sf ${PWD}/${dmmaskfnameSRC} ${dmmaskfnameDEST}
+
+echo "linking ${PWD}/${wfsmaskfnameSRC} as ${wfsmaskfnameDEST}"
 ln -sf ${PWD}/${wfsmaskfnameSRC} ${wfsmaskfnameDEST}
 
 
