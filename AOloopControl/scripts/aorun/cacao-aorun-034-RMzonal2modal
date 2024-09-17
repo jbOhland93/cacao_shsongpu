@@ -23,8 +23,8 @@ File name is ${CACAO_CONFWDIR}/RMmodesDM/<MODESNAME>.fits
 Input: ${CACAO_CONFWDIR}/zrespM.fits
 Zonal response matrix, one actuator poke response per slice
 
-Ouput: ${CACAO_CONFWDIR}/RMmodesDM/<MODESNAME>.fits
-Computed DM modes, one mode per slice
+Input: ${CACAO_CONFWDIR}/RMmodesDM/<MODESNAME>.fits
+DM modes, one mode per slice
 
 Output: ${CACAO_CONFWDIR}/RMmodesWFS/<MODESNAME>.fits
 Computed WFS modes, one mode per slice
