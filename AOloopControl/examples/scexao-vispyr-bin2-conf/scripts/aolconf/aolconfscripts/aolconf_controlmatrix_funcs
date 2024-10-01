@@ -12,7 +12,7 @@ fi
 
 
 
-function function_computeModesCM 
+function function_computeModesCM
 {
 tmuxnameMCM="aol${LOOPNUMBER}mkmodes"
 sleep 0.2
@@ -85,6 +85,3 @@ tmux send-keys -t $tmuxnameMCM "rm runproc/aolmkmodes.runproc" C-m
 tmux send-keys -t $tmuxnameMCM "./aolconfscripts/aollog \"$LOOPNAME\" \"CM computation DONE\" &" C-m
 tmux send-keys -t $tmuxnameMCM "dologext $LOOPNAME CM computation DONE &" C-m
 }
-
-
-

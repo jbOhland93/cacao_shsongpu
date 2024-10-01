@@ -326,11 +326,11 @@ static errno_t compute_function()
 
         // multiply RMmodesWFS by WFSmask
         printf("Masking RM WFS by WFSmask\n");
-        for(int m=0; m<nbmode; m++)
+        for(int m = 0; m < nbmode; m++)
         {
-            for(int ii=0; ii<nbwfspix; ii++)
+            for(int ii = 0; ii < nbwfspix; ii++)
             {
-                imgRMWFS.im->array.F[m*nbwfspix + ii] *= imgWFSmask.im->array.F[ii];
+                imgRMWFS.im->array.F[m * nbwfspix + ii] *= imgWFSmask.im->array.F[ii];
             }
         }
 
@@ -638,29 +638,29 @@ static errno_t compute_function()
                 {
                     double DMnorm = 0.0;
                     double DMnormcnt = 0.0;
-                    uint64_t iioffset = mi*imgCMDMall.md->size[0]*imgCMDMall.md->size[1];
-                    for(uint64_t ii=0; ii<imgCMDMall.md->size[0]*imgCMDMall.md->size[1]; ii++)
+                    uint64_t iioffset = mi * imgCMDMall.md->size[0] * imgCMDMall.md->size[1];
+                    for(uint64_t ii = 0; ii < imgCMDMall.md->size[0]*imgCMDMall.md->size[1]; ii++)
                     {
                         double val = imgCMDMall.im->array.F[iioffset + ii];
                         double valm = imgDMmask.im->array.F[ii];
-                        DMnorm += val*val*valm;
+                        DMnorm += val * val * valm;
                         DMnormcnt += valm;
                     }
-                    n2cmDM[mi] = sqrt( DMnorm/DMnormcnt);
+                    n2cmDM[mi] = sqrt(DMnorm / DMnormcnt);
                 }
 
                 {
                     double WFSnorm = 0.0;
                     double WFSnormcnt = 0.0;
-                    uint64_t iioffset = mi*imgCMWFSall.md->size[0]*imgCMWFSall.md->size[1];
-                    for(uint64_t ii=0; ii<imgCMWFSall.md->size[0]*imgCMWFSall.md->size[1]; ii++)
+                    uint64_t iioffset = mi * imgCMWFSall.md->size[0] * imgCMWFSall.md->size[1];
+                    for(uint64_t ii = 0; ii < imgCMWFSall.md->size[0]*imgCMWFSall.md->size[1]; ii++)
                     {
-                        double val = imgCMWFSall.im->array.F[iioffset+ii];
+                        double val = imgCMWFSall.im->array.F[iioffset + ii];
                         double valm = imgWFSmask.im->array.F[ii];
-                        WFSnorm += val*val*valm;
+                        WFSnorm += val * val * valm;
                         WFSnormcnt += valm;
                     }
-                    n2cmWFS[mi] = sqrt( WFSnorm/WFSnormcnt);
+                    n2cmWFS[mi] = sqrt(WFSnorm / WFSnormcnt);
                 }
 
 
@@ -761,10 +761,10 @@ static errno_t compute_function()
                     {
                         double val = imgCMWFS.im->array.F[CMmode * nbwfspix + ii];
                         double valm = imgWFSmask.im->array.F[ii];
-                        WFSnorm += val*val*valm;
+                        WFSnorm += val * val * valm;
                         WFSnormcnt += valm;
                     }
-                    n2cmWFS[CMmode] = sqrt( WFSnorm/WFSnormcnt);
+                    n2cmWFS[CMmode] = sqrt(WFSnorm / WFSnormcnt);
                 }
 
 
@@ -776,10 +776,10 @@ static errno_t compute_function()
                     {
                         double val = imgCMDM.im->array.F[CMmode * nbact + ii];
                         double valm = imgDMmask.im->array.F[ii];
-                        DMnorm += val*val*valm;
+                        DMnorm += val * val * valm;
                         DMnormcnt += valm;
                     }
-                    n2cmDM[CMmode] = sqrt( DMnorm/DMnormcnt);
+                    n2cmDM[CMmode] = sqrt(DMnorm / DMnormcnt);
                 }
 
 

@@ -875,7 +875,7 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
 
     if((*volttype) == 1)
     {
-        float inrange = (*maxvolt) * (*stroke100)/100.0;
+        float inrange = (*maxvolt) * (*stroke100) / 100.0;
 
         strcpy(outv_ftype, "float32");
         *outv_exp = 1.0;
@@ -889,7 +889,7 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
         // quadratic unipolar, output is UI16
         //
 
-        float inrange = (*maxvolt) * (*stroke100)/100.0;
+        float inrange = (*maxvolt) * (*stroke100) / 100.0;
 
         strcpy(outv_ftype, "uint16");
         *outv_exp = 0.5;
@@ -912,12 +912,12 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
         // map input to [0.0 - 1.0]
         float inval = imgdisp.im->array.F[ii];
         double x = inval - (*outv_inrange_min);
-        x = x / ( *outv_inrange_max - *outv_inrange_min );
-        if ( x < 0.0 )
+        x = x / (*outv_inrange_max - *outv_inrange_min);
+        if(x < 0.0)
         {
             x = 0.0;
         }
-        if ( x > 1.0 )
+        if(x > 1.0)
         {
             x = 1.0;
         }
@@ -926,7 +926,8 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
         valarray[ii] = pow(x, *outv_exp);
 
         // remap to output range
-        valarray[ii] = (*outv_outrange_min) + valarray[ii] * ( *outv_outrange_max - *outv_outrange_min );
+        valarray[ii] = (*outv_outrange_min) + valarray[ii] * (*outv_outrange_max -
+                       *outv_outrange_min);
     }
 
 
@@ -1016,7 +1017,7 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
         //
         int typeOK = 0; // toggles to 1 when type conversion done
 
-        if (strcmp(outv_ftype, "float64") == 0)
+        if(strcmp(outv_ftype, "float64") == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {
@@ -1026,64 +1027,64 @@ static errno_t DM_displ2V(IMGID imgdisp, IMGID imgvolt)
         }
 
 
-        if (strcmp(outv_ftype, "uint16") == 0)
+        if(strcmp(outv_ftype, "uint16") == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {
-                imgvolt.im->array.UI16[ii] =  ( uint16_t ) (valarray[ii]);;
+                imgvolt.im->array.UI16[ii] = (uint16_t)(valarray[ii]);;
             }
             typeOK = 1;
         }
 
-        if (strcmp(outv_ftype, "uint32") == 0)
+        if(strcmp(outv_ftype, "uint32") == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {
-                imgvolt.im->array.UI32[ii] =  ( uint32_t ) (valarray[ii]);;
+                imgvolt.im->array.UI32[ii] = (uint32_t)(valarray[ii]);;
             }
             typeOK = 1;
         }
 
-        if (strcmp(outv_ftype, "uint64") == 0)
+        if(strcmp(outv_ftype, "uint64") == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {
-                imgvolt.im->array.UI64[ii] =  ( uint64_t ) (valarray[ii]);;
+                imgvolt.im->array.UI64[ii] = (uint64_t)(valarray[ii]);;
             }
             typeOK = 1;
         }
 
 
-        if (strcmp(outv_ftype, "int16") == 0)
+        if(strcmp(outv_ftype, "int16") == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {
-                imgvolt.im->array.SI16[ii] =  ( int16_t ) (valarray[ii]);;
+                imgvolt.im->array.SI16[ii] = (int16_t)(valarray[ii]);;
             }
             typeOK = 1;
         }
 
-        if (strcmp(outv_ftype, "int32") == 0)
+        if(strcmp(outv_ftype, "int32") == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {
-                imgvolt.im->array.SI32[ii] =  ( int32_t ) (valarray[ii]);;
+                imgvolt.im->array.SI32[ii] = (int32_t)(valarray[ii]);;
             }
             typeOK = 1;
         }
 
-        if (strcmp(outv_ftype, "int64") == 0)
+        if(strcmp(outv_ftype, "int64") == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {
-                imgvolt.im->array.SI64[ii] =  ( int64_t ) (valarray[ii]);;
+                imgvolt.im->array.SI64[ii] = (int64_t)(valarray[ii]);;
             }
             typeOK = 1;
         }
 
 
         // default if none of the above types match
-        if( typeOK == 0)
+        if(typeOK == 0)
         {
             for(uint64_t ii = 0; ii < (*DMxsize) * (*DMysize); ii++)
             {

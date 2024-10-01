@@ -199,6 +199,3 @@ mkdir -p ${CACAOLOOPRECORD}
 echo "$0" > ${CACAOLOOPRECORD}/access-script
 
 fi # end of if [ "${MILKSCRIPTMODE}" != "help" ]
-
-
-

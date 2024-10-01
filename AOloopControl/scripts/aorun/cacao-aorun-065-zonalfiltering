@@ -86,12 +86,12 @@ if [ ${ACTIONOK} == 0 ]; then
 if [ ${ACTION} == "on" ]; then
 	ACTIONOK=1
 	cacaomsglog "ON"
-	
+
 	sendFPScmd "runstop mvalC2dm-${CACAO_LOOPNUMBER}"
 	sendFPScmd "setval mvalC2dm-${CACAO_LOOPNUMBER}.outcoeff aol${CACAO_LOOPNUMBER}_zvalDM"
 	sendFPScmd "confwupdate mvalC2dm-${CACAO_LOOPNUMBER}"
 	sendFPScmd "runstart mvalC2dm-${CACAO_LOOPNUMBER}"
-	
+
 	sendFPScmd "setval zfilt-${CACAO_LOOPNUMBER}.AOloopindex ${CACAO_LOOPNUMBER}"
 	sendFPScmd "setval zfilt-${CACAO_LOOPNUMBER}.inzval aol${CACAO_LOOPNUMBER}_zvalDM"
 	sendFPScmd "setval zfilt-${CACAO_LOOPNUMBER}.procinfo.triggersname aol${CACAO_LOOPNUMBER}_zvalDM"
@@ -116,7 +116,7 @@ if [ ${ACTION} == "off" ]; then
 	sendFPScmd "setval mvalC2dm-${CACAO_LOOPNUMBER}.outcoeff aol${CACAO_LOOPNUMBER}_dmC"
 	sendFPScmd "confwupdate mvalC2dm-${CACAO_LOOPNUMBER}"
 	sendFPScmd "runstart mvalC2dm-${CACAO_LOOPNUMBER}"
-	
+
 	sleep 1
 	milk-shmim-zero aol${CACAO_LOOPNUMBER}_modevalDMf
 fi

@@ -82,5 +82,3 @@ setpix aol${CACAO_LOOPNUMBER}_mlimitfact ${mlimitTT} 1 0
 listim
 exitCLI
 EOF
-
-

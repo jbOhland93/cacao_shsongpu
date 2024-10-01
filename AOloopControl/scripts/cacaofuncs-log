@@ -12,7 +12,7 @@
 # logged to ./logdir/, which could be a symlink to a date-specific logging directory
 #
 # Last acquired calibration :
-# 	<name>.fits 
+# 	<name>.fits
 #
 #
 # Last loaded to shmim (file name) :
@@ -29,14 +29,14 @@
 function cacao-calib-logFITSfile ()
 {
 	local SNAME="$1"
-	
+
 	local datestring="$(date -u +'%Y-%m-%dT%H:%M:%S.%NZ')"
-	
+
 	local LOGDIR="logdir/aol_${CACAO_LOOPNAME}/${SNAME}/"
-		
+
 	mkdir -p ${LOGDIR}
 	LOGFILEOUT="${LOGDIR}/${SNAME}.${datestring}.fits"
-	
+
 	cacaomsglog "LOGGING ${SNAME} as ${LOGFILEOUT}"
 	cacaomsglog "LOGGING DIRECTORY $(realpath ${LOGDIR})"
 	cacaomsglog "cp ${CACAO_CONFWDIR}/${SNAME}.fits ${LOGFILEOUT}"
@@ -48,13 +48,13 @@ function cacao-calib-loadFITSfile ()
 {
 	local SNAME="$1"
 	local FITSFILE="$2"
-	
+
 	echo "PWD = $(pwd)"
 	echo "FITSFILE = ${FITSFILE}"
 	echo "${FITSFILE}" > conf/shmim.${SNAME}.name.txt
 	cp "${FITSFILE}" "conf/shmim.${SNAME}.fits"
 	milk-FITS2shm "conf/shmim.${SNAME}.fits" aol${CACAO_LOOPNUMBER}_${SNAME}
-	
+
 	cacaomsglog "USING ${FITSFILE} as ${SNAME}"
 }
 

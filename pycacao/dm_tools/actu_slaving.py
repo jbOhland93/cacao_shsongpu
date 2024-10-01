@@ -9,9 +9,9 @@ import typing as typ
 import numpy as np
 
 
-def make_prox_mmse_basis(total_mask: np.ndarray,
-                         drive_mask: np.ndarray,
-                         pos_maps: typ.Optional[typ.Tuple[np.ndarray, np.ndarray]] = None):
+def make_prox_mmse_basis(total_mask: np.ndarray, drive_mask: np.ndarray,
+                         pos_maps: typ.Optional[typ.Tuple[np.ndarray,
+                                                          np.ndarray]] = None):
     """
         total_mask: 50x50 BOOL - all phys act on the DM
         drive_mask: 50x50 BOOL - actuators we're interested in
@@ -48,7 +48,8 @@ def make_prox_mmse_basis(total_mask: np.ndarray,
 
     return expander
 
-def mk_dm_2k(rad = 25.6):
+
+def mk_dm_2k(rad=25.6):
     x = np.arange(50) - 24.5
     r = (x[:, None]**2 + x[None, :]**2)**.5
 

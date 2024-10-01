@@ -92,6 +92,3 @@ tail -f -n0 fpsCTRL.log  | grep --line-buffered -v "DEBUG" | tee -a ${LOGFILEEXT
     -e 's/\(CMDFAIL\)/\x1B[0;101m\1\x1B[0m/' \
     -e 's/\(FPSCTRL\)/\x1B[1\;33m\1\x1B[0m/' \
     -e 's/\(SETVAL\)/\x1B[1;96m\1\x1B[0m/'
-
-
-

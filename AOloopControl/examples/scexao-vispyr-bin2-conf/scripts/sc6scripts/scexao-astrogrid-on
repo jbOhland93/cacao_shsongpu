@@ -33,4 +33,3 @@ echo "AGNBAVE = $AGNBAVE"
 echo "X_GRDMOD = ${agfrq}"
 
 scxkw-setter set X_GRDMOD $agfrq
-

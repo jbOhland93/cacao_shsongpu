@@ -127,76 +127,76 @@ long make_3Dgrid_DMsequ(char    *IDoutname,
     switch(XYmode)
     {
 
-        case 0: // XYdiag
-            for(uint32_t ii = 0; ii < xsize; ii++)
+    case 0: // XYdiag
+        for(uint32_t ii = 0; ii < xsize; ii++)
+        {
+            for(uint32_t jj = 0; jj < ysize; jj++)
             {
-                for(uint32_t jj = 0; jj < ysize; jj++)
-                {
-                    imgout.im->array.F[jj * xsize + ii] =
-                        2.0 * ((((ii / bin) % 2 + (jj / bin) % 2)) % 2) - 1;
-                }
+                imgout.im->array.F[jj * xsize + ii] =
+                    2.0 * ((((ii / bin) % 2 + (jj / bin) % 2)) % 2) - 1;
             }
-            break;
+        }
+        break;
 
-        case 1: // X
-            for(uint32_t ii = 0; ii < xsize; ii++)
+    case 1: // X
+        for(uint32_t ii = 0; ii < xsize; ii++)
+        {
+            for(uint32_t jj = 0; jj < ysize; jj++)
             {
-                for(uint32_t jj = 0; jj < ysize; jj++)
-                {
-                    imgout.im->array.F[jj * xsize + ii] =
-                        2.0 * ((ii / bin) % 2) - 1;
-                }
+                imgout.im->array.F[jj * xsize + ii] =
+                    2.0 * ((ii / bin) % 2) - 1;
             }
-            break;
+        }
+        break;
 
-        case 2: // Y
-            for(uint32_t ii = 0; ii < xsize; ii++)
+    case 2: // Y
+        for(uint32_t ii = 0; ii < xsize; ii++)
+        {
+            for(uint32_t jj = 0; jj < ysize; jj++)
             {
-                for(uint32_t jj = 0; jj < ysize; jj++)
-                {
-                    imgout.im->array.F[jj * xsize + ii] =
-                        2.0 * ((jj / bin) % 2) - 1;
-                }
+                imgout.im->array.F[jj * xsize + ii] =
+                    2.0 * ((jj / bin) % 2) - 1;
             }
-            break;
+        }
+        break;
 
-        case 3: // Xdiag
-            for(uint32_t ii = 0; ii < xsize; ii++)
+    case 3: // Xdiag
+        for(uint32_t ii = 0; ii < xsize; ii++)
+        {
+            for(uint32_t jj = 0; jj < ysize; jj++)
             {
-                for(uint32_t jj = 0; jj < ysize; jj++)
-                {
-                    imgout.im->array.F[jj * xsize + ii] =
-                        map4[(((ii + jj) / bin) % 4)];
-                }
+                imgout.im->array.F[jj * xsize + ii] =
+                    map4[(((ii + jj) / bin) % 4)];
             }
-            break;
+        }
+        break;
 
-        case 4: // Ydiag
-            for(uint32_t ii = 0; ii < xsize; ii++)
+    case 4: // Ydiag
+        for(uint32_t ii = 0; ii < xsize; ii++)
+        {
+            for(uint32_t jj = 0; jj < ysize; jj++)
             {
-                for(uint32_t jj = 0; jj < ysize; jj++)
-                {
-                    imgout.im->array.F[jj * xsize + ii] =
-                        map4[(((ysize + ii - jj) / bin) % 4)];
-                }
+                imgout.im->array.F[jj * xsize + ii] =
+                    map4[(((ysize + ii - jj) / bin) % 4)];
             }
-            break;
+        }
+        break;
 
-        case 5: // X then Y
-            for(uint32_t ii = 0; ii < xsize; ii++)
+    case 5: // X then Y
+        for(uint32_t ii = 0; ii < xsize; ii++)
+        {
+            for(uint32_t jj = 0; jj < ysize; jj++)
             {
-                for(uint32_t jj = 0; jj < ysize; jj++)
-                {
-                    // X
-                    imgout.im->array.F[jj * xsize + ii] =
-                        2.0 * ((ii / bin) % 2) - 1;
+                // X
+                imgout.im->array.F[jj * xsize + ii] =
+                    2.0 * ((ii / bin) % 2) - 1;
 
-                    // Y
-                    imgout.im->array.F[2 * xysize + jj * xsize + ii] =
-                        2.0 * ((jj / bin) % 2) - 1;
-                }
+                // Y
+                imgout.im->array.F[2 * xysize + jj * xsize + ii] =
+                    2.0 * ((jj / bin) % 2) - 1;
             }
-            break;
+        }
+        break;
     }
 
 

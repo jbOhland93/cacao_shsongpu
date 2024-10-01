@@ -796,15 +796,15 @@ errno_t AOloopControl_computeCalib_mkCM_RUN()
     if(GPUmode)
     {
         LINALGEBRA_magma_compute_SVDpseudoInverse("respM",
-                                                cm_name,
-                                                SVDlim,
-                                                100000,
-                                                "VTmat",
-                                                0,
-                                                1,
-                                                64,
-                                                0, // GPU device
-                                                NULL);
+                cm_name,
+                SVDlim,
+                100000,
+                "VTmat",
+                0,
+                1,
+                64,
+                0, // GPU device
+                NULL);
     }
     else
     {

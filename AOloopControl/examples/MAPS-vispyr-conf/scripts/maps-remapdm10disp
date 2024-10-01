@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
 ./scripts/maps-remapshmim dm10disp dm10disp2D
-

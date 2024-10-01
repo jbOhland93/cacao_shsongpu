@@ -52,7 +52,7 @@ done
 
 if [ "${PRINTDATE}" = "1" ]; then
 	IFS=';' read -r -a array <<< "${CMDLISTOUT//[$'\t\r\n']}"; unset IFS
-	IFS=$'\n' sortedarray=($(sort <<<"${array[*]}")); unset IFS	
+	IFS=$'\n' sortedarray=($(sort <<<"${array[*]}")); unset IFS
 	for element in "${sortedarray[@]//[$'\t\r\n']}"
 	do
 		cmdstr=$(echo $element | awk '{ print $2}')

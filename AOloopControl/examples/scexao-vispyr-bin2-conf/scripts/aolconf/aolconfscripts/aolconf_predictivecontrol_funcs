@@ -321,7 +321,7 @@ im2=im1*aol${LOOPNUMBER}_mode_ARPFgain
 imcpshm im2 aol${LOOPNUMBER}_mode_ARPFgain
 exitCLI
 EOF
-	
+
 tmuxname="aol${LOOPNUMBER}PFb0apply"
 tmux send-keys -t ${tmuxname} C-c
 tmux send-keys -t ${tmuxname} "exit" C-m
@@ -363,7 +363,7 @@ im2=im1*aol${LOOPNUMBER}_mode_ARPFgain
 imcpshm im2 aol${LOOPNUMBER}_mode_ARPFgain
 exitCLI
 EOF
-	
+
 tmuxname="aol${LOOPNUMBER}PFb1apply"
 tmux send-keys -t ${tmuxname} C-c
 tmux send-keys -t ${tmuxname} "exit" C-m
@@ -405,7 +405,7 @@ im2=im1*aol${LOOPNUMBER}_mode_ARPFgain
 imcpshm im2 aol${LOOPNUMBER}_mode_ARPFgain
 exitCLI
 EOF
-	
+
 tmuxname="aol${LOOPNUMBER}PFb2apply"
 tmux send-keys -t ${tmuxname} C-c
 tmux send-keys -t ${tmuxname} "exit" C-m
@@ -448,7 +448,7 @@ im2=im1*aol${LOOPNUMBER}_mode_ARPFgain
 imcpshm im2 aol${LOOPNUMBER}_mode_ARPFgain
 exitCLI
 EOF
-	
+
 tmuxname="aol${LOOPNUMBER}PFb3apply"
 tmux send-keys -t ${tmuxname} C-c
 tmux send-keys -t ${tmuxname} "exit" C-m
@@ -457,23 +457,3 @@ PFb3aON="OFF"
 file="./status/stat_PFb3aON.txt"
 echo "$PFb3aON" > $file
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -161,7 +161,8 @@ static errno_t find_image_spots(
 
     // median scan
     float *valarray =
-        (float *) malloc(sizeof(float) * 4 * ((int) spot_size + 1) * ((int) spot_size + 1));
+        (float *) malloc(sizeof(float) * 4 * ((int) spot_size + 1) * ((
+                             int) spot_size + 1));
 
     for(uint32_t ii = 0; ii < xsize; ii++)
     {
@@ -224,7 +225,7 @@ static errno_t find_image_spots(
 
     // zero out array
     //
-    for (uint64_t ii=0; ii<mapcimg.md->nelement; ii++)
+    for(uint64_t ii = 0; ii < mapcimg.md->nelement; ii++)
     {
         mapcimg.im->array.F[ii] = 0.0;
     }

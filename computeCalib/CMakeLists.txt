@@ -57,7 +57,7 @@ if(NOT MKL_FOUND)
     else()
        message("-- MKL NOT FOUND")
        message("   LINKING LAPACKE")
-       list(APPEND LINKLIBS lapacke)    
+       list(APPEND LINKLIBS lapacke)
     endif()
 
 endif()

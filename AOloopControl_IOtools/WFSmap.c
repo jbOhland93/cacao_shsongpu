@@ -173,78 +173,78 @@ errno_t image_pixremap(
     switch(inimg.datatype)
     {
 
-        case _DATATYPE_FLOAT :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.F[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_FLOAT :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.F[map_inpixindex[mapii]];
+        }
+        break;
 
-        case _DATATYPE_DOUBLE :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.D[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_DOUBLE :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.D[map_inpixindex[mapii]];
+        }
+        break;
 
 
-        case _DATATYPE_INT8 :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.SI8[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_INT8 :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.SI8[map_inpixindex[mapii]];
+        }
+        break;
 
-        case _DATATYPE_INT16 :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.SI16[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_INT16 :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.SI16[map_inpixindex[mapii]];
+        }
+        break;
 
-        case _DATATYPE_UINT16 :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.UI16[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_UINT16 :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.UI16[map_inpixindex[mapii]];
+        }
+        break;
 
-        case _DATATYPE_INT32 :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.SI32[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_INT32 :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.SI32[map_inpixindex[mapii]];
+        }
+        break;
 
-        case _DATATYPE_UINT32 :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.UI32[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_UINT32 :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.UI32[map_inpixindex[mapii]];
+        }
+        break;
 
-        case _DATATYPE_INT64 :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.SI64[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_INT64 :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.SI64[map_inpixindex[mapii]];
+        }
+        break;
 
-        case _DATATYPE_UINT64 :
-            for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
-            {
-                tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
-                                                     inimg.im->array.UI64[map_inpixindex[mapii]];
-            }
-            break;
+    case _DATATYPE_UINT64 :
+        for(uint64_t mapii = 0; mapii < mapNBpix; mapii ++)
+        {
+            tmpvarray[map_outpixindex[mapii]] += map_pixcoeff[mapii] *
+                                                 inimg.im->array.UI64[map_inpixindex[mapii]];
+        }
+        break;
 
 
     }

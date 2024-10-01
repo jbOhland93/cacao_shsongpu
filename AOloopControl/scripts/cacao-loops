@@ -27,7 +27,7 @@ do
 	loopdir=${MILK_SHM_DIR}/cacaoloop-${LOOP}
 	#echo "loopdir = ${loopfile}"
 	if [ -d "${loopdir}" ]; then
-		
+
 		if [ -f "$loopdir/loopname" ]; then
 			loopname=$( cat $loopdir/loopname )
 		else
@@ -65,13 +65,12 @@ do
 		else
 			dmysize="-1"
 		fi
-		
+
 		printf "LOOP %2d using DM %02d ( %d x %d )  NAME: %s\n" ${LOOP} ${loopdm} ${dmxsize} ${dmysize} "${loopname}"
 		printf "rootdir     : ${rootdir}\n"
 		printf "Last access script : ${accessscript}\n"
 		printf "Last access time   : $accesstime\n"
 		echo ""
 	fi
-   
-done
 
+done
