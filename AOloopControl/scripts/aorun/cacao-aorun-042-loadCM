@@ -125,7 +125,7 @@ do
 fnameSRC="${CACAO_CONFWDIR}/${calname}${filetag}.fits"
 fnameDEST="conf/${calname}.fits"
 
-echo "lininking ${PWD}/${CMDMfnameSRC} as ${CMDMfnameDEST}"
+echo "lininking ${PWD}/${fnameSRC} as ${fnameDEST}"
 ln -sf ${PWD}/${fnameSRC} ${fnameDEST}
 done
 
