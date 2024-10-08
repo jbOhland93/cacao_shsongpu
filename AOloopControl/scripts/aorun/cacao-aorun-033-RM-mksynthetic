@@ -33,7 +33,7 @@ Parameter radmaskfact sets the radial extension factor beyond the beam radius CA
 Zernike and Fourier modes are computed over this extended domain before edge blurring.
 
 The scripts main steps are:
-[1] Compute DM-space Fourier modes: conf/RMmodesDM/RMsyn_modesDM0.fits, over disk 
+[1] Compute DM-space Fourier modes: conf/RMmodesDM/RMsyn_modesDM0.fits, over disk
 defined by (CACAO_DM_beam_xcent, CACAO_DM_beam_ycent, CACAO_DM_beam_rad).
 [2] Edge blurring, preserving response for actuators within ./conf/dmmask.fits,
 and blurring actuators within  CACAO_DM_beam_rad*radmaskfact outside of dmmask.fits

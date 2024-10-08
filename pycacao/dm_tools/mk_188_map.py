@@ -36,7 +36,8 @@ def write_file(actuator_pos):
     with open('tmp_actpos.txt', 'w') as f:
         for nn, (xpos, ypos) in enumerate(p):
             f.write(f'{nn:4d} {xpos:+1.3f} {ypos:+1.3f}\n')
-            
+
+
 def write_neighbor_file(neighbors_all: t.List[t.List[int]]):
     with open('act_neighbors.txt', 'w') as f:
         for act, neighbors in enumerate(neighbors_all):
@@ -44,7 +45,8 @@ def write_neighbor_file(neighbors_all: t.List[t.List[int]]):
             for nn in neighbors:
                 f.write(f' {nn:4d}')
             f.write('\n')
-            
+
+
 def write_pair_file(pairs: t.List[t.Tuple[int, int]]):
     with open('act_neighbor_pairs.txt', 'w') as f:
         for ii, jj in pairs:
@@ -71,8 +73,10 @@ def influ_functions_of_188_onto_50x50(actuator_pos: np.ndarray,
     CACAO_DM_beam_rad = 24.5
 
     actu_pos_n = np.zeros_like(actuator_pos)
-    actu_pos_n[:, 0] = actuator_pos[:, 0] * CACAO_DM_beam_rad + CACAO_DM_beam_xcent
-    actu_pos_n[:, 1] = actuator_pos[:, 1] * CACAO_DM_beam_rad + CACAO_DM_beam_ycent
+    actu_pos_n[:,
+               0] = actuator_pos[:, 0] * CACAO_DM_beam_rad + CACAO_DM_beam_xcent
+    actu_pos_n[:,
+               1] = actuator_pos[:, 1] * CACAO_DM_beam_rad + CACAO_DM_beam_ycent
 
     influ_radius_n = influ_radius * size_buff / 2.
 
@@ -87,44 +91,43 @@ def influ_functions_of_188_onto_50x50(actuator_pos: np.ndarray,
 
     return actu_influ_nxn
 
+
 _typethis = t.Tuple[t.List[t.List[int]], t.List[t.Tuple[int, int]]]
+
+
 def make_neighbors_from_actupos(pos: np.ndarray) -> _typethis:
-    
+
     n_actu = len(pos)
-    
+
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
-    
-    rel_matrix = ((pos_x[None,:] - pos_x[:, None])**2 + (pos_y[None,:] - pos_y[:, None])**2)**.5
+
+    rel_matrix = ((pos_x[None, :] - pos_x[:, None])**2 +
+                  (pos_y[None, :] - pos_y[:, None])**2)**.5
     # Remove diagonal
-    rel_matrix += 10*np.max(rel_matrix)*np.eye(n_actu)
-    
+    rel_matrix += 10 * np.max(rel_matrix) * np.eye(n_actu)
+
     neighblists: t.List[t.List[int]] = []
     pairs: t.List[t.Tuple[int, int]] = []
-    
+
     for ii in range(n_actu):
         sorted = np.argsort(rel_matrix[ii])
         how_many = (3, 6)[ii >= 18 and ii < 188 - 40]
         neighblists += [list(sorted[:how_many])]
-        pairs += [(min(ii,jj), max(ii,jj)) for jj in neighblists[ii]]
-        
-    pairs = list(set(pairs)) # remove potential duplicates
-        
+        pairs += [(min(ii, jj), max(ii, jj)) for jj in neighblists[ii]]
+
+    pairs = list(set(pairs))  # remove potential duplicates
 
     return neighblists, pairs
-    
-    
-    
 
 
 if __name__ == "__main__":
     p = mk_coords_bim188()
     write_file(p)
-    
+
     neighblists, pairs = make_neighbors_from_actupos(p)
     write_neighbor_file(neighblists)
     write_pair_file(pairs)
-    
 
     influs = influ_functions_of_188_onto_50x50(p)
     fits.writeto('influ_sim.fits', influs, overwrite=True)
@@ -137,12 +140,11 @@ if __name__ == "__main__":
             modes=influs, resp_matrix=sim_respM_2500).astype(np.float32)
 
     fits.writeto('respM_160x160_toBIM188.fits', bim_respM, overwrite=True)
-    
-    
-    
-    1/0
-    import matplotlib.pyplot as plt; plt.ion()
-    
-    plt.scatter(p[:,0], p[:,1], c=[len(l) for l in neighblists])
+
+    1 / 0
+    import matplotlib.pyplot as plt
+    plt.ion()
+
+    plt.scatter(p[:, 0], p[:, 1], c=[len(l) for l in neighblists])
     for p1, p2 in pairs:
         plt.plot([p[p1, 0], p[p2, 0]], [p[p1, 1], p[p2, 1]], 'k-')

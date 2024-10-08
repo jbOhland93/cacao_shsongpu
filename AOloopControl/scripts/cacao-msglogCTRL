@@ -9,7 +9,7 @@ Launch at beginning of each UT day.
 
 Creates log directory ../logdir-${CACAO_LOOPNAME} if it does not exist.
 Note that the directory may be created as a symlink to system log directory prior to running this command.
-Starts FPS log process within a tmux session 
+Starts FPS log process within a tmux session
 
 MESSAGE LOG fpsCTRL.log
 	Automatic log of milk-fpsCTRL commands and status
@@ -21,7 +21,7 @@ MESSAGE LOG fpsctrl.CACAO_LOOPNAME.log
 	Includes status polling
 	Written by script cacao-fpsctrl-log running within tmux session fpsCTRLlog-proc-CACAO_LOOPNAME
 	OUTPUT in tmux session fpsCTRLlog-out-CACAO_LOOPNAME
-	
+
 MESSAGE LOG cacao.CACAO_LOOPNAME.log
 	High level log from cacao scripts and msglogCLI instances
 
@@ -87,18 +87,18 @@ fi
 if [ ${ACTION} == "stop" ]; then
 	ACTIONOK=1
 	cacaomsglog "STOP"
-	
+
 	tmuxname="fpsCTRLlog-proc-${CACAO_LOOPNAME}"
 	tmux send-keys -t ${tmuxname} C-c 2>/dev/null || :
 	tmux send-keys -t ${tmuxname} "exit" C-m 2>/dev/null || :
 	tmux kill-session -t ${tmuxname} 2>/dev/null || :
-	
+
 	sleep 1
-	
+
 	tmuxname="fpsCTRLlog-out-${CACAO_LOOPNAME}"
 	tmux send-keys -t ${tmuxname} C-c 2>/dev/null || :
 	tmux send-keys -t ${tmuxname} "exit" C-m 2>/dev/null || :
-	tmux kill-session -t ${tmuxname} 2>/dev/null || :	
+	tmux kill-session -t ${tmuxname} 2>/dev/null || :
 fi
 
 
@@ -136,13 +136,3 @@ if [ ${ACTIONOK} == 0 ]; then
 fi
 
 cacaomsglog "END"
-
-
-
-
-
-
-
-
-
-

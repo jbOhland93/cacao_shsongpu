@@ -186,8 +186,8 @@ cacao-calib-streamupdate wfsmap
 
 
 if [[ "$nomask" -eq 0 ]]; then
-mv ${CACAO_CONFWDIR}/dmmask.tmp.fits ${CACAO_CONFWDIR}/dmmask.fits 
-mv ${CACAO_CONFWDIR}/wfsmask.tmp.fits ${CACAO_CONFWDIR}/wfsmask.fits 
+mv ${CACAO_CONFWDIR}/dmmask.tmp.fits ${CACAO_CONFWDIR}/dmmask.fits
+mv ${CACAO_CONFWDIR}/wfsmask.tmp.fits ${CACAO_CONFWDIR}/wfsmask.fits
 
 cacao-calib-streamupdate dmmask
 cacao-calib-streamupdate wfsmask

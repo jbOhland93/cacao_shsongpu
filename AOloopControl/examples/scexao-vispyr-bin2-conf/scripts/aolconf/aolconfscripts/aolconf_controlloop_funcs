@@ -96,7 +96,7 @@ echo "tmux send-keys -t aol${LOOPNUMBER}-run \"./auxscripts/aolrun\" C-m" >> $sc
 
 echo "sleep 1" >> $scriptfile
 echo "tmux send-keys -t aol${LOOPNUMBER}-ctr \"aolsetgain 0.0\" C-m" >> $scriptfile
-	
+
 
 
 echo "tmux send-keys -t aol${LOOPNUMBER}-ctr \"aolon\" C-m" >> $scriptfile
@@ -430,13 +430,13 @@ fi
 #	     multfb[10#${gi}]=${multfb${gi}}
 #	     echo "tmux send-keys -t aol${LOOPNUMBER}-ctr \"aolsetmultfb ${gi} ${multfb[10#${gi}]}\" C-m" >> $scriptfile
 
-#		ConfReadParam gainb${gi} "0.0"; gainb${gi}="$paramvalue"	     
+#		ConfReadParam gainb${gi} "0.0"; gainb${gi}="$paramvalue"
 #		file="./conf/conf_gainb${gi}.txt"
 #		if [ ! -f "$file" ]; then
 #		echo "1.0" > $file
 #		fi
 #	     gainb[10#${gi}]=${gainb${gi}}
-	     
+
 #	     echo "tmux send-keys -t aol${LOOPNUMBER}-ctr \"aolsetmbgain ${gi} ${gainb[10#${gi}]} 0\" C-m" >> $scriptfile
 #	 done
 
@@ -608,11 +608,11 @@ fi
 
 }
 
- 
- 
- 
- 
- 
+
+
+
+
+
 
 
 # argument is tmux session name within which command should be executed
@@ -762,7 +762,7 @@ fi
 # if agrument is NULL, execute from bash
 
 function function_LOOP_OFF {
-	
+
 # all commands written in script file
 scriptfile="script_AOloop_OFF"
 rm $scriptfile
@@ -868,5 +868,3 @@ function_PFb3applyOFF
 
 func_logPFbALL_stop
 }
-
-

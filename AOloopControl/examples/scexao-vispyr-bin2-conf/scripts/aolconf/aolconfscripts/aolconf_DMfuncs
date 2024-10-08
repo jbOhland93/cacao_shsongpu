@@ -21,7 +21,7 @@ function initDMfunc {
         fi
     file="./conf/param_dm${DMindex}ysize.txt"
     if [ -a $file ]
-         then          
+         then
          dmysize=$(echo "$( head -1 $file )")
          else
          dmysize=32 #default
@@ -54,7 +54,7 @@ function initDMfunc {
     if [ "$CPUconfRT" -eq "1" ]; then
     tmux send-keys -t $tmuxname "csetpmove system" C-m
     fi
-    if [ "$dmvoltmode" = "1" ]; then 
+    if [ "$dmvoltmode" = "1" ]; then
     tmux send-keys -t $tmuxname "readshmim dmvolt" C-m
     fi
     if [ "$dm2dm_mode" = "1" ]; then
@@ -72,7 +72,7 @@ function initDMfunc {
 	else
 	dmDelayON="OFF"
 	fi
-	
+
 	if [ "$dmDelayON" = " ON" ]; then
 	if [ -f "./conf/param_dmdelayus.txt" ]; then
 	dmdelayus=$( head -1 ./conf/param_dmdelayus.txt )
@@ -80,18 +80,18 @@ function initDMfunc {
 	fi
 	fi
 
-  
-    
+
+
     aoconflog "STARTING DM COM"
-    
+
     tmux send-keys -t $tmuxname "aolcontrolDMcomb ${DMindex} ${dmxsize} ${dmysize} 12 ${dmcombavemode} $dm2dm_mode ${dm2dmM} ${dm2dmO} ${dmwfsrefmode} ${dmwrefRM} ${dmwrefO} ${dmvoltmode} dmvolt 0.0 120.0" C-m
-    
+
     aoconflog "INITIALIZING DM POKE FILES"
     rm ./conf/RM_DMmask.fits # remove RM DM mask
     rm ./conf/RMpokeCubeZ.fits # remove zonal poke cube
     rm ./conf/RMpokeCube.fits # remove poke cube
     ./auxscripts/mkHpoke # make masks, poke pattern (Hadamard mode)
-    
+
     # if DM is modal, create simple "./conf/DMmodes.fits"
     if [ "$DMMODE" = "MODAL" ]; then
 ./AOloopControl << EOF
@@ -101,8 +101,8 @@ savefits DMmodes "!./conf/aol${LOOPNUMBER}_DMmodes_zonal.fits"
 exitCLI
 EOF
     fi
-    
-    # by default, set # of blocks to 1 
+
+    # by default, set # of blocks to 1
 	file="./conf/conf_NBmodeblocks.txt"
     echo "1" > $file
     NBmodeblocks=$( head -1 ./conf/conf_NBmodeblocks.txt )
@@ -126,6 +126,3 @@ function stopDMfunc {
     tmux send-keys -t $tmuxname "exit" C-m
 #    tmux kill-session -t $tmuxname # not necessary - just making sure
 }
-
-
-

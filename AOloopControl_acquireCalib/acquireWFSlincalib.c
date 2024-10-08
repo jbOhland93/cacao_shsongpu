@@ -522,8 +522,8 @@ static errno_t customCONFsetup()
 
 // create simple poke matrix
 static imageID mkSimpleZpokeM(uint32_t dmxsize,
-        uint32_t dmysize,
-        char    *IDout_name)
+                              uint32_t dmysize,
+                              char    *IDout_name)
 {
     imageID  IDout;
     uint64_t dmxysize;

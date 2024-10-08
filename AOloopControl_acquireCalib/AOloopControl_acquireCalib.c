@@ -62,7 +62,3 @@ static errno_t init_module_CLI()
 
     return RETURN_SUCCESS;
 }
-
-
-
-

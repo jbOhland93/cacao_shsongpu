@@ -32,4 +32,3 @@ plot "hardwlatency.dat" u 2:3
 exit
 EOF
 );
-

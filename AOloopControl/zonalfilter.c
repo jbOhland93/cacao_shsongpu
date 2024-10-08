@@ -391,7 +391,7 @@ static errno_t compute_function()
 
 
     // ========================= MODAL LIMIT COUNTER ==================
-    long * zlimitcntarray = (long*) malloc(sizeof(long)*dmxysize);
+    long *zlimitcntarray = (long *) malloc(sizeof(long) * dmxysize);
     long modal_limit_counter = 0;
     for(uint32_t act = 0; act < dmxysize; act++)
     {
@@ -402,7 +402,7 @@ static errno_t compute_function()
     {
         char name[STRINGMAXLEN_STREAMNAME];
         WRITE_IMAGENAME(name, "aol%lu_zlimitcntfrac", *AOloopindex);
-        imgzlimitcntfrac = stream_connect_create_2Df32(name,dmxsize, dmysize);
+        imgzlimitcntfrac = stream_connect_create_2Df32(name, dmxsize, dmysize);
     }
 
 
@@ -459,7 +459,8 @@ static errno_t compute_function()
 
 
                 //add the new delta command to the integrated command with leak: this is the goal position
-                zvalDMc[act] = (1.0 - imgzgain.im->array.F[act]) * zvalDMc[act] + imgzgain.im->array.F[act] * zvalin;
+                zvalDMc[act] = (1.0 - imgzgain.im->array.F[act]) * zvalDMc[act] +
+                               imgzgain.im->array.F[act] * zvalin;
 
                 // Apply mult coeff
                 zvalDMc[act]  *= imgzmult.im->array.F[act];
@@ -481,7 +482,8 @@ static errno_t compute_function()
 
             for(uint32_t act = 0; act < dmxysize; act++)
             {
-                data.image[imgout.ID].array.F[act] = zvalDMc[act] + imgzzeropoint.im->array.F[act];
+                data.image[imgout.ID].array.F[act] = zvalDMc[act] +
+                                                     imgzzeropoint.im->array.F[act];
             }
             ImageStreamIO_UpdateIm(imgout.im);
 

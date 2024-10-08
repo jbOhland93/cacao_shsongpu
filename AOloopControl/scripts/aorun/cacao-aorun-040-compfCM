@@ -22,14 +22,14 @@ MSextdescr="Takes as input the zonal response matrix
 Uses temporary directory ./${cfCMtmpdir}/
 
 INPUT TARGET CONTROL MODES (Tmodes)
-The output control modes will try to adhere to the Tmodes, using the same 
+The output control modes will try to adhere to the Tmodes, using the same
 ordering.
 By default Cmdoes are Zernike modes followed by Fourier modes.
 User can specify a custom set of input control modes with -cm option.
 
 DM EXTRAPOLATION
 DM extrapolation set by extrfactor and extroffset.
-Extrapolation extends beyond dmmask by extroffset pixel (fixed quantity for all 
+Extrapolation extends beyond dmmask by extroffset pixel (fixed quantity for all
 modes) and extrfactor radian.(proportional to Fourier mode period). The second
 extrapolation (radian) is tapered.
 
@@ -228,7 +228,7 @@ if [ "$Tmodes" = "NULL" ]; then
 # -> TmodesDMn: normalized over dmmask
 # -> TmodesDM : not normalized
 #
-# This is 5 Zernikes (TTF+Ast) + Fourier modes 
+# This is 5 Zernikes (TTF+Ast) + Fourier modes
 ########################################################################
 
 # Create set of Fourier modes, store as modesF.fits
@@ -260,7 +260,7 @@ echo "DMr0 = $DMr0"
 # First modes are Zernikes, then Fourier
 # Modes are not orthogonal
 #
-# This is the target ordering which the new control modes should 
+# This is the target ordering which the new control modes should
 # match as well as possible
 #
 # output :
@@ -325,7 +325,7 @@ fi
 ########################################################################
 #
 # EXTRAPOLATION MODES
-# 
+#
 # Used to extrapolate DM shape beyond active pixels
 # A modal basis is constructed, along with its extended (beyond
 # active DM pixels) version.
@@ -487,7 +487,7 @@ fi
 # INPOUT:
 #   TmodesDM.fits
 #   TmodesWFSm.fits
-# 
+#
 # OUTPUT:
 #   CMmDM.fits
 #   CMmWFS.fits
@@ -529,10 +529,10 @@ fi
 
 # Renormalize modes in WFS space
 #
-# Input: 
+# Input:
 #   CMmDM   : control modes in DM space, unity RMS over dmmask
 #   CMmWFS  : control modes in WFS space, orthogonal basis
-# 
+#
 # Output:
 #   CMmDMn  : control modes in DM space
 #   CMmWFSn : control modes in WFS space, orthonormal basis over wfsmask
@@ -684,7 +684,7 @@ EOF
 
 
 
-# Compute the rotation that will turn 
+# Compute the rotation that will turn
 # the cross-product into a lower(0,1)/upper(2) triangular matrix, ensuring
 # a good match between the two sets of modes.
 # The rotation is stored as matArot.fits
@@ -803,7 +803,7 @@ EOF
 # OPTIONAL
 #
 # should be approximately diagonal
-# 
+#
 milk-all << EOF
 linalg.sgemm .GPUdevice ${GPUdevice}
 loadfits "${DMmask}" dmmask
@@ -853,7 +853,7 @@ if [ ${TESTMODE} = 1 ]; then
 #
 # Test that output CM DM modes are unity RMS over dmmask
 # diagonal value = number pix in dmmask
-# 
+#
 milk-all << EOF
 linalg.sgemm .GPUdevice ${GPUdevice}
 loadfits "conf/CMmodesDM/CMmodesDM_sf.fits" CMmodesDM_sf

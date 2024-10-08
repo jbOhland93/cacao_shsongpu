@@ -126,7 +126,7 @@ static IMGID load_actmapcoord2D(
     float xcoord;
     float ycoord;
     long NBact = 0; // counter
-    while( fscanf(fp, "%ld %f %f\n", &actindex, &xcoord, &ycoord) == 3 )
+    while(fscanf(fp, "%ld %f %f\n", &actindex, &xcoord, &ycoord) == 3)
     {
         NBact++;
     }
@@ -154,8 +154,8 @@ static IMGID load_actmapcoord2D(
             exit(0);
         }
 
-        imgout.im->array.F[act*2] = xcoord;
-        imgout.im->array.F[act*2 + 1] = ycoord;
+        imgout.im->array.F[act * 2] = xcoord;
+        imgout.im->array.F[act * 2 + 1] = ycoord;
     }
     fclose(fp);
 
@@ -205,43 +205,43 @@ static errno_t compute_function()
     fflush(stdout);
     list_image_ID();
 
-    float xcentf = 0.5*wfxsize;
-    float ycentf = 0.5*wfysize;
-    float radf   = 0.25*(wfxsize+wfysize);
+    float xcentf = 0.5 * wfxsize;
+    float ycentf = 0.5 * wfysize;
+    float radf   = 0.25 * (wfxsize + wfysize);
 
 
     // Build mapping
     //
-    long *iiact = (long*) malloc(sizeof(long)*mapsize);
-    long *jjact = (long*) malloc(sizeof(long)*mapsize);
+    long *iiact = (long *) malloc(sizeof(long) * mapsize);
+    long *jjact = (long *) malloc(sizeof(long) * mapsize);
 
-    for(uint32_t act=0; act < mapsize; act++)
+    for(uint32_t act = 0; act < mapsize; act++)
     {
         // actuator coordinates
         // relative to beam center, radius = 1
         //
-        float xact = imgmap2D.im->array.F[act*2];
-        float yact = imgmap2D.im->array.F[act*2+1];
+        float xact = imgmap2D.im->array.F[act * 2];
+        float yact = imgmap2D.im->array.F[act * 2 + 1];
 
-        iiact[act] = (long) (xcentf + radf*xact);
-        jjact[act] = (long) (ycentf + radf*yact);
+        iiact[act] = (long)(xcentf + radf * xact);
+        jjact[act] = (long)(ycentf + radf * yact);
 
         if(iiact[act] < 0)
         {
             iiact[act] = 0;
         }
-        if(iiact[act] > wfxsize-1)
+        if(iiact[act] > wfxsize - 1)
         {
-            iiact[act] = wfxsize-1;
+            iiact[act] = wfxsize - 1;
         }
 
         if(jjact[act] < 0)
         {
             jjact[act] = 0;
         }
-        if(jjact[act] > wfysize-1)
+        if(jjact[act] > wfysize - 1)
         {
-            jjact[act] = wfysize-1;
+            jjact[act] = wfysize - 1;
         }
     }
 
@@ -251,12 +251,12 @@ static errno_t compute_function()
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
-        for(uint32_t slice=0; slice < NBslice; slice++)
+        for(uint32_t slice = 0; slice < NBslice; slice++)
         {
-            for(uint32_t act=0; act < mapsize; act++)
+            for(uint32_t act = 0; act < mapsize; act++)
             {
-                imgoutWF1D.im->array.F[slice*mapsize + act] =
-                    imgWF2D.im->array.F[slice*wfsize + jjact[act]*wfxsize + iiact[act]];
+                imgoutWF1D.im->array.F[slice * mapsize + act] =
+                imgWF2D.im->array.F[slice * wfsize + jjact[act] * wfxsize + iiact[act]];
             }
         }
     }

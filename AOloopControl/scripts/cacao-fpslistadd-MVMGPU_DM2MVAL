@@ -57,4 +57,3 @@ function fpsentry_addcmds() {
 
 
 source milk-fpslist-addentry
-

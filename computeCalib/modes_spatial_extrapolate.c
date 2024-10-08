@@ -94,6 +94,3 @@ errno_t modes_spatial_extrapolate(IMGID imgmodes,
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;
 }
-
-
-

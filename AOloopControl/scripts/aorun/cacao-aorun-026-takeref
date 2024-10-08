@@ -32,7 +32,7 @@ fi
 
 cacaomsglog "NBframe ${NBframe}"
 
-#MILK_QUIET=1 
+#MILK_QUIET=1
 milk << EOF
 readshmim aol${CACAO_LOOPNUMBER}_imWFS1
 streamave ..procinfo 1

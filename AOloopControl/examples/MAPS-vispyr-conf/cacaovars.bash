@@ -74,7 +74,7 @@ export CACAO_FPSPROC_MLAT="ON"
 #
 export CACAO_FPSPROC_ACQUWFS="ON"
 
-# Acquire linear RM 
+# Acquire linear RM
 #
 export CACAO_FPSPROC_MEASURELINRESP="ON"
 

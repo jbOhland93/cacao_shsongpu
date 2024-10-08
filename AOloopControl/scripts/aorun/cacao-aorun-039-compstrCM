@@ -134,18 +134,18 @@ fi
 #
 function modes_marginalizeWFS()
 {
-echo "margWFS ================================="	
+echo "margWFS ================================="
 echo "margWFS INPUT  : ${mAWFSfile}"
 echo "margWFS INPUT  : ${mADMfile}"
 echo "margWFS INPUT  : ${mBWFSfile}"
 echo "margWFS INPUT  : ${mBDMfile}"
-	
+
 # required to handle long file names
 cp "${mAWFSfile}" _mAWFS.fits
 cp "${mADMfile}" _mADM.fits
 cp "${mBWFSfile}" _mBWFS.fits
 cp "${mBDMfile}" _mBDM.fits
-	
+
 milk-all << EOF
 loadfits "./${CACAO_CONFWDIR}/wfsmask.fits" wfsmask
 loadfits "_mAWFS.fits" mAWFS
@@ -204,8 +204,8 @@ echo "margWFS OUTPUT : $2"
 #
 function modes_marginalizeDM()
 {
-	
-echo "margDM  ================================="	
+
+echo "margDM  ================================="
 echo "margDM  INPUT  : ${mADMfile}"
 echo "margDM  INPUT  : ${mAWFSfile}"
 echo "margDM  INPUT  : ${mBDMfile}"
@@ -216,7 +216,7 @@ cp "${mADMfile}" _mADM.fits
 cp "${mAWFSfile}" _mAWFS.fits
 cp "${mBDMfile}" _mBDM.fits
 cp "${mBWFSfile}" _mBWFS.fits
-	
+
 milk-all << EOF
 loadfits "${CACAO_CONFWDIR}/dmmask.fits" dmmask
 loadfits "${mADMfile}" mADM
@@ -362,7 +362,7 @@ saveFITS mC "./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.${mbC}.fits"
 exitCLI
 EOF
   CMmWFSname="./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.${mbC}.fits"
-  
+
   mergesrc="m${blockcnt}"
   fi
   blockloopinit=1
@@ -441,21 +441,21 @@ EOF
     inputRMDMfname="${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.${modeblock}.fits"
     inputRMWFSfname="${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.${modeblock}.fits"
   fi
-  
+
 
 
   mB="${modeblock}"
   mBWFSfile="./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.${mB}.fits"
-  mBDMfile="./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.${mB}.fits"  
+  mBDMfile="./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.${mB}.fits"
 
 
   # marginalize input DM modes against previous mode blocks CM(s) DM
   #
-  export IFS=":"    
+  export IFS=":"
   for block in $modeblockmarginalizeDM; do
     marginalizeDM=1
     mA="${block}"
-  
+
     mADMfile="./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.${mA}.fits"
     mAWFSfile="./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.${mA}.fits"
 
@@ -470,20 +470,20 @@ EOF
 
   # marginalize input WFS modes against previous mode blocks CM(s) WFS
   #
-  export IFS=":"    
+  export IFS=":"
   for block in $modeblockmarginalizeWFS; do
     marginalizeWFS=1
     mA="${block}"
-  
+
 	# input for script
     mAWFSfile="./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.${mA}.fits"
     mADMfile="./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.${mA}.fits"
 
     inputRMWFSfname="${inputRMWFSfname}.mW${block}"
     inputRMDMfname="${inputRMDMfname}.mW${block}"
-   
+
     modes_marginalizeWFS "${inputRMWFSfname}" "${inputRMDMfname}"
-    
+
     # input for next iteration of script
     mBWFSfile="${inputRMWFSfname}"
     mBDMfile="${inputRMDMfname}"

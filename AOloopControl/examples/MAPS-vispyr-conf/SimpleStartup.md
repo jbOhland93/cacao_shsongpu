@@ -15,7 +15,7 @@ cacao-aorun-025-acqWFS -w start
 ```
 
 Now we are picking a calibration
-``` 
+```
 ls ../maps-calibs
  ```
 find the <calib-dir> from that list that you want to use tonight.
@@ -23,7 +23,7 @@ find the <calib-dir> from that list that you want to use tonight.
 ```
 cacao-calib-apply <calib-dir>
 ```
-^ long term, this needs to shut down all confs and restart them again, this ensures the proper resp mat sizes. 
+^ long term, this needs to shut down all confs and restart them again, this ensures the proper resp mat sizes.
 
 ```
 cacao-aorun-050-wfs2cmval start
@@ -32,9 +32,8 @@ cacao-aorun-070-cmval2dm start
 ```
 
 To start the 2D DM viewing stream:
-``` 
+```
 tmux new -s remap
-./scripts/maps-remapdm10disp 
+./scripts/maps-remapdm10disp
 ctrl-b d
 ```
-

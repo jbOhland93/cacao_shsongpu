@@ -26,4 +26,3 @@ saveFITS actmap mapping.fits
 listim
 exitCLI
 EOF
-

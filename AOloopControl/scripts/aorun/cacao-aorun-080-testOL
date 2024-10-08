@@ -9,7 +9,7 @@ MSdescr="Test pseudo open loop reconstruction"
 MSextdescr="Run psOL test
 Tune latency and WFSfact to optimize psOL
 
-Parameter: update gain. 
+Parameter: update gain.
 0 if no update
 "
 source milk-script-std-config

@@ -1,12 +1,12 @@
 # Observing Run Notes:
 
-These are notes for running MAPs as of the 2023 May/June run. References to simulations are cut out for ease of use. 
+These are notes for running MAPs as of the 2023 May/June run. References to simulations are cut out for ease of use.
 
 ## Streams
 
 Milk commands for keeping tabs on streams:
 - `milk-streamCTRL`
-    - x => exit the viewer 
+    - x => exit the viewer
 - `milk-fpsCTRL` => "Function Parameter monitor" can set params and run proc from here
     - shift + R => starts a process
     - ctrl + R => ends a process
@@ -36,20 +36,20 @@ connect to hardware
 <br> `./scripts/aorun-setmode-hardw`
 
 
-## CHAI: Setting up 
+## CHAI: Setting up
 (not a part  of this package, MAPs specific)
 
 ```bash
 chai
 > ttmod.enable
-> ttmod.start 
+> ttmod.start
 # these previous two lines have been automated at time of writing
 > viswfs.enable # starting the wfs streams
-> cacao.enable 
+> cacao.enable
 ```
 Once chai has been started, we can look at wfs streams
 ``` bash
-rtimview viswfs_slopes & 
+rtimview viswfs_slopes &
 rtimview viswfs_pupils &
 ```
 
@@ -65,7 +65,7 @@ Start WFS fram aquisition
 
 ### DM to WFS latency
 
-Running from command line: 
+Running from command line:
 ```bash
 # option -w is to wait for completion
 cacao-aorun-020-mlat -w
@@ -167,8 +167,8 @@ cacao-fpsctrl setval mfilt loopON ON
 
 Alternatively, on the fpsCTRL
 - shift + R `wfs2cmodeval`
-- shift + R `mfilt` 
-- shift + R `mvalC2dm` 
+- shift + R `mfilt`
+- shift + R `mvalC2dm`
 - edit values in `mfilt`
    - `mfilt -> loopgain -> 0.1`
    - `mfilt -> loopmult -> 0.98`

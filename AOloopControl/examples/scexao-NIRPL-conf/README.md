@@ -1,5 +1,5 @@
 # Overview
-## Near-IR Photonic Lantern - photometric 
+## Near-IR Photonic Lantern - photometric
 (scroll down for dispersed PL instructions!)
 
 cacao-task-manager tasks for this example :
@@ -223,12 +223,12 @@ cacao-fpsctrl setval mfilt loopON ON
 
 ```
 ## NIRPL - dispersed mode
-In this section we set up and test the simulator mode for the dispersed 3-port PL. This involves new `cacao` functions. Work in progress! Currently testing on my laptop (WSL2). 
+In this section we set up and test the simulator mode for the dispersed 3-port PL. This involves new `cacao` functions. Work in progress! Currently testing on my laptop (WSL2).
 
 ### Simulator mode
 To run simulator mode you will need to two things: an N x M reference wfs image and an N x M x 2500 zonal response matrix.
-These files need to be named `wfsref.fits` and `respM.fits`, and put in (or replaced in) `scexao-NIRPL-conf/simLHS`. Currently, 
-the simulator is configured to pull old files corresponding to a non-dispersed 19-port PL, imaged on `glint`, from some google drive link, and I don't know how to change that. 
+These files need to be named `wfsref.fits` and `respM.fits`, and put in (or replaced in) `scexao-NIRPL-conf/simLHS`. Currently,
+the simulator is configured to pull old files corresponding to a non-dispersed 19-port PL, imaged on `glint`, from some google drive link, and I don't know how to change that.
 
 ### Loop deployment
 As usual, run
@@ -237,7 +237,7 @@ As usual, run
 cacao-loop-deploy scexao-NIRPL
 ```
 
-to deploy the loop. Then, to start the simulator, run 
+to deploy the loop. Then, to start the simulator, run
 
 ```bash
 ./scripts/aorun-setmode-sim
@@ -272,13 +272,13 @@ To make this shared memory, use
 which will call a Python function in `scripts/utility.py`. To edit the behavior of this script, you can add new functions to this file.
 
 ### Take dark
-First we take a raw (full-frame) dark with 
+First we take a raw (full-frame) dark with
 ```bash
 cacao-aorun-005-takedark
 ```
 which copies the dark to the shared memory `aol6_wfsdarkraw`.
 
-Then we remap this dark using 
+Then we remap this dark using
 ```bash
 ./scripts/scexao-NIRPL-mapdark-spec
 ```
@@ -286,9 +286,9 @@ Then we remap this dark using
 
 ### WFS image acquisition
 
-Finally, we can start the `acquire_spectra-6` function through `fpsCTRL`. In `comp`, there are toggles for dark subtraction, normalization. Note that the normalization is different than what is done in `acqu_WFS-6`; normalization is done per-wavelength, as opposed to dividing the entire WFS image by the flux total. After running, the processed WFS image is written to the shared memory `aol6_imWFS2` as usual. 
+Finally, we can start the `acquire_spectra-6` function through `fpsCTRL`. In `comp`, there are toggles for dark subtraction, normalization. Note that the normalization is different than what is done in `acqu_WFS-6`; normalization is done per-wavelength, as opposed to dividing the entire WFS image by the flux total. After running, the processed WFS image is written to the shared memory `aol6_imWFS2` as usual.
 
-You can also take a reference using 
+You can also take a reference using
 ```bash
 cacao-aorun-026-takeref
 ```
@@ -299,7 +299,7 @@ Finally, you can average the traces horizontally by `x` pixels using the `binnin
 
 ## how to install and uninstall
 ### installation
-In your $MILK_ROOT folder, do 
+In your $MILK_ROOT folder, do
 ```bash
 cd plugins/cacao-src
 git pull
@@ -322,8 +322,6 @@ rm -r .NIRPL*
 tmux kill-server
 rm -r /milk/shm/*
 ```
-Maybe don't run this if you have other shared memories you don't want to nuke. 
+Maybe don't run this if you have other shared memories you don't want to nuke.
 
 THE END (for now)
-
-

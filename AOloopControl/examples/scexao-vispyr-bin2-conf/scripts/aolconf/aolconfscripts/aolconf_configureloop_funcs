@@ -48,7 +48,7 @@ MASKS_LOCK="$paramvalue"
 # TOP LEVEL AUTO CALIBRATION ACQUIRE
 #
 function function_nAUTOC {
-	
+
 echo "ENTERING function_nAUTOC"
 
 
@@ -79,8 +79,8 @@ while [ $dirnb -gt 0 ]; do
 	i1s=`( printf "%03d" "$i1" )`
 	mv conf_staged.$i1s conf_staged.$is
 	let dirnb-=1
-done    
- 
+done
+
 cp -rf conf_staged conf_staged.000
 
 
@@ -400,6 +400,3 @@ tmux send-keys -t $1 "mv LOwfsmask.fits ./${dir}/" C-m
 tmux send-keys -t $1 "echo \"LOdmmask/LOdmmask_${mCALIBdatestr}.fits\" > ./${dir}/shmim.LOdmmask.name.txt" C-m
 tmux send-keys -t $1 "mv LOdmmask.fits ./${dir}/" C-m
 }
-
-
-

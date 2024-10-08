@@ -306,7 +306,7 @@ function cacaosetupCLEAR
 
     # turn off RUN processes
     allFPScmd runstop
-    
+
     # turn off CONF processes
     allFPScmd confstop
 
@@ -376,9 +376,9 @@ function fpssetparamconf {
       sed -i "s/DMSIMINDEX/${CACAO_DMSIMINDEX}/g" fpssetuptmp.tmp
     fi
 
-    touch fpssetuptmp.tmp    
+    touch fpssetuptmp.tmp
     touch ${CURRDIR}/fpssetup.setval.conf
-    
+
     cat ${CURRDIR}/fpssetup.setval.conf fpssetuptmp.tmp > fpssetup.setval.combined.conf
     rm -f ${CURRDIR}/fpssetup.setval.conf
 
@@ -801,7 +801,7 @@ if [ "$UPDATEMODE" = "0" ]; then
 else
   fpsnewfname="fpsinit.newFPS.log"
   echo "READING FILE ${fpsnewfname}"
-  
+
   if [ -f "${fpsnewfname}" ]; then
     echo "File found"
     while read -r LINE
@@ -809,7 +809,7 @@ else
 	  fpsname="${LINE}"
       printf "NEW FPS ENTRY = %s\n" "$LINE"
       echo "confstart ${fpsname}" >> ${fpsCTRLfifo}
-      
+
       # if there is a taskfile associated with command, load it
       taskflist="${CACAO_LOOPRUNDIR_FULLPATH}/fps.conf/fpssetup.cacaosetup-confstart.${fpsname}.conf"
       echo "TASKFILELIST : ${taskflist}"

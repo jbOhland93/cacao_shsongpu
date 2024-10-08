@@ -113,5 +113,3 @@ then
 else
      echo "Failed to find ${CMDMfname0}."
 fi
-
-

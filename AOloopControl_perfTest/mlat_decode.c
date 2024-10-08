@@ -119,7 +119,7 @@ errno_t mlat_diffseq_decode(
     long xsize = inimg.size[0];
     long ysize = inimg.size[1];
     long zsize = inimg.size[2];
-    long xysize = xsize*ysize;
+    long xysize = xsize * ysize;
 
     // output
     copyIMGID(&inimg, outimg);
@@ -133,7 +133,7 @@ errno_t mlat_diffseq_decode(
 
 
     // initialize imgrec to inimg
-    for ( int ii=0; ii<xysize*zsize; ii++ )
+    for(int ii = 0; ii < xysize * zsize; ii++)
     {
         imgrec.im->array.F[ii] = inimg.im->array.F[ii];
     }
@@ -143,11 +143,11 @@ errno_t mlat_diffseq_decode(
 
     // build timing kernel
     // time goes back with index
-    float *tkern = (float*) malloc(sizeof(float) * 2 * samplingfactor);
-    for( int tstep=0; tstep<samplingfactor; tstep++)
+    float *tkern = (float *) malloc(sizeof(float) * 2 * samplingfactor);
+    for(int tstep = 0; tstep < samplingfactor; tstep++)
     {
         tkern[tstep] = 1.0;
-        tkern[tstep+samplingfactor] = -1.0;
+        tkern[tstep + samplingfactor] = -1.0;
     }
 
     float *imv = (float *) malloc(sizeof(float) * xysize);
@@ -160,49 +160,49 @@ errno_t mlat_diffseq_decode(
     double loopgainmult = 0.99;
 
 
-    for (int loopiter=0; loopiter<NBloopiter; loopiter++)
+    for(int loopiter = 0; loopiter < NBloopiter; loopiter++)
     {
         printf("LOOP iteration %4d  ", loopiter);
-        for ( int kk=0; kk<zsize; kk++ )
+        for(int kk = 0; kk < zsize; kk++)
         {
-            for(int ii=0; ii<xysize; ii++)
+            for(int ii = 0; ii < xysize; ii++)
             {
-                outimg->im->array.F[kk*xysize + ii] = imgrec.im->array.F[kk*xysize + ii];
+                outimg->im->array.F[kk * xysize + ii] = imgrec.im->array.F[kk * xysize + ii];
             }
 
-            for(int ii=0; ii<xysize; ii++)
+            for(int ii = 0; ii < xysize; ii++)
             {
                 imv[ii] = 0.0;
             }
-            for(int kstep=1; kstep<2*samplingfactor; kstep++)
+            for(int kstep = 1; kstep < 2 * samplingfactor; kstep++)
             {
-                int k1 = kk-kstep;
-                if(k1>=0)
+                int k1 = kk - kstep;
+                if(k1 >= 0)
                 {
-                    for(int ii=0; ii<xysize; ii++)
+                    for(int ii = 0; ii < xysize; ii++)
                     {
-                        imv[ii] += tkern[kstep] * outimg->im->array.F[k1*xysize + ii];
+                        imv[ii] += tkern[kstep] * outimg->im->array.F[k1 * xysize + ii];
                     }
                 }
             }
-            for(int ii=0; ii<xysize; ii++)
+            for(int ii = 0; ii < xysize; ii++)
             {
-                outimg->im->array.F[kk*xysize + ii] -= imv[ii];
+                outimg->im->array.F[kk * xysize + ii] -= imv[ii];
             }
         }
 
 
         // Apply temporal smoothing filter
-        if (1)
+        if(1)
         {
             //printf("Temporal convolution ");
-            float *varray = (float*) malloc(sizeof(float)*zsize);
+            float *varray = (float *) malloc(sizeof(float) * zsize);
 
-            for(int ii=0; ii<xysize; ii++)
+            for(int ii = 0; ii < xysize; ii++)
             {
-                for ( int kk=0; kk<zsize; kk++ )
+                for(int kk = 0; kk < zsize; kk++)
                 {
-                    varray[kk] = outimg->im->array.F[kk*xysize + ii];
+                    varray[kk] = outimg->im->array.F[kk * xysize + ii];
                 }
 
 
@@ -215,9 +215,9 @@ errno_t mlat_diffseq_decode(
 
 
 
-                for ( int kk=0; kk<zsize; kk++ )
+                for(int kk = 0; kk < zsize; kk++)
                 {
-                    outimg->im->array.F[kk*xysize + ii] *= loopgainmult;
+                    outimg->im->array.F[kk * xysize + ii] *= loopgainmult;
                 }
             }
 
@@ -227,51 +227,53 @@ errno_t mlat_diffseq_decode(
 
 
         // Reconstruct input
-        for ( int kk=0; kk<zsize; kk++ )
+        for(int kk = 0; kk < zsize; kk++)
         {
-            for(int ii=0; ii<xysize; ii++)
+            for(int ii = 0; ii < xysize; ii++)
             {
-                imgrec.im->array.F[kk*xysize + ii] = 0.0;
+                imgrec.im->array.F[kk * xysize + ii] = 0.0;
             }
-            for(int kstep=0; kstep<2*samplingfactor; kstep++)
+            for(int kstep = 0; kstep < 2 * samplingfactor; kstep++)
             {
-                int k1 = kk-kstep;
-                if(k1>=0)
+                int k1 = kk - kstep;
+                if(k1 >= 0)
                 {
-                    for(int ii=0; ii<xysize; ii++)
+                    for(int ii = 0; ii < xysize; ii++)
                     {
-                        imgrec.im->array.F[kk*xysize + ii] += tkern[kstep] * outimg->im->array.F[k1*xysize + ii];
+                        imgrec.im->array.F[kk * xysize + ii] += tkern[kstep] * outimg->im->array.F[k1 *
+                                                                xysize + ii];
                     }
                 }
             }
         }
 
-        if (1)
+        if(1)
         {
             double resval = 0.0;
             double resval0 = 0.0;
-            for ( int kk=0; kk<framezero_end; kk++ )
+            for(int kk = 0; kk < framezero_end; kk++)
             {
-                for ( int ii=0; ii<xysize; ii++ )
+                for(int ii = 0; ii < xysize; ii++)
                 {
-                    double dv = inimg.im->array.F[kk*xysize + ii] - imgrec.im->array.F[kk*xysize + ii];
-                    double dv0 = inimg.im->array.F[kk*xysize + ii];
+                    double dv = inimg.im->array.F[kk * xysize + ii] - imgrec.im->array.F[kk * xysize
+                                + ii];
+                    double dv0 = inimg.im->array.F[kk * xysize + ii];
 
-                    resval += dv*dv;
-                    resval0 += dv0*dv0;
+                    resval += dv * dv;
+                    resval0 += dv0 * dv0;
 
-                    imgrec.im->array.F[kk*xysize + ii] += loopgain1 * dv;
+                    imgrec.im->array.F[kk * xysize + ii] += loopgain1 * dv;
                 }
             }
 
-            for ( int kk=framezero_end; kk<zsize; kk++ )
+            for(int kk = framezero_end; kk < zsize; kk++)
             {
-                for ( int ii=0; ii<xysize; ii++ )
+                for(int ii = 0; ii < xysize; ii++)
                 {
-                    imgrec.im->array.F[kk*xysize + ii]  *= 0.9;
+                    imgrec.im->array.F[kk * xysize + ii]  *= 0.9;
                 }
             }
-            printf("  %12.9f", resval/resval0);
+            printf("  %12.9f", resval / resval0);
         }
 
 
@@ -309,11 +311,11 @@ errno_t mlat_diffseq_decode(
 
 
 
-    if (0)
+    if(0)
     {
         long m = inimg.size[2];
         // n: number of samples in reconstructed seq
-        long n = (m-1) + 2*samplingfactor; // - framezero_start - framezero_end;
+        long n = (m - 1) + 2 * samplingfactor; // - framezero_start - framezero_end;
 
 
 
@@ -329,26 +331,26 @@ errno_t mlat_diffseq_decode(
         createimagefromIMGID(&imgtmat);
 
 
-        for( uint32_t ii=0; ii<m; ii++)
+        for(uint32_t ii = 0; ii < m; ii++)
         {
-            for( uint32_t jj=0; jj<n; jj++)
+            for(uint32_t jj = 0; jj < n; jj++)
             {
-                imgtmat.im->array.F[ii*n+jj] = 0.0;
+                imgtmat.im->array.F[ii * n + jj] = 0.0;
             }
 
             int jpos = ii; // - framezero_start;
             int jpos1 = 0;
 
             // negative
-            for ( int j=0; j<samplingfactor; j++)
+            for(int j = 0; j < samplingfactor; j++)
             {
-                if(jpos<0)
+                if(jpos < 0)
                 {
                     jpos1 = 0;
                 }
-                else if (jpos > (n-1))
+                else if(jpos > (n - 1))
                 {
-                    jpos1 = n-1;
+                    jpos1 = n - 1;
                 }
                 else
                 {
@@ -356,27 +358,27 @@ errno_t mlat_diffseq_decode(
                 }
                 if(jpos >= 0)
                 {
-                    imgtmat.im->array.F[ii*n + jpos1] -= 1.0;
+                    imgtmat.im->array.F[ii * n + jpos1] -= 1.0;
                 }
                 jpos ++;
             }
 
             // positive
-            for ( int j=0; j<samplingfactor; j++)
+            for(int j = 0; j < samplingfactor; j++)
             {
-                if(jpos<0)
+                if(jpos < 0)
                 {
                     jpos1 = 0;
                 }
-                else if (jpos > (n-1))
+                else if(jpos > (n - 1))
                 {
-                    jpos1 = n-1;
+                    jpos1 = n - 1;
                 }
                 else
                 {
                     jpos1 = jpos;
                 }
-                imgtmat.im->array.F[ii*n + jpos1] += 1.0;
+                imgtmat.im->array.F[ii * n + jpos1] += 1.0;
                 jpos ++;
             }
         }
@@ -415,10 +417,10 @@ errno_t mlat_diffseq_decode(
         long NBloopiter = 100;
 
 
-        computeSGEMM( inimg, imgpsinv, outimg, 0, 0, GPUdev);
+        computeSGEMM(inimg, imgpsinv, outimg, 0, 0, GPUdev);
 
 
-        for (int loopiter=0; loopiter<NBloopiter; loopiter++)
+        for(int loopiter = 0; loopiter < NBloopiter; loopiter++)
         {
 
             {
@@ -426,51 +428,51 @@ errno_t mlat_diffseq_decode(
                 int xsize = outimg->md->size[0];
                 int ysize = outimg->md->size[1];
                 int zsize = outimg->md->size[2];
-                float *refarray = (float*) malloc(sizeof(float)*xsize*ysize);
-                for ( int ii=0; ii<xsize*ysize; ii++)
+                float *refarray = (float *) malloc(sizeof(float) * xsize * ysize);
+                for(int ii = 0; ii < xsize * ysize; ii++)
                 {
                     refarray[ii] = 0.0;
                 }
-                for ( int kk=0; kk<framezero_start; kk++ )
+                for(int kk = 0; kk < framezero_start; kk++)
                 {
-                    for ( int ii=0; ii<xsize*ysize; ii++)
+                    for(int ii = 0; ii < xsize * ysize; ii++)
                     {
-                        refarray[ii] += outimg->im->array.F[kk*xsize*ysize + ii];
+                        refarray[ii] += outimg->im->array.F[kk * xsize * ysize + ii];
                     }
                 }
-                for ( int ii=0; ii<xsize*ysize; ii++)
+                for(int ii = 0; ii < xsize * ysize; ii++)
                 {
                     refarray[ii] /= framezero_start;
                 }
 
 
-                for ( int kk=0; kk<zsize; kk++ )
+                for(int kk = 0; kk < zsize; kk++)
                 {
-                    for ( int ii=0; ii<xsize*ysize; ii++)
+                    for(int ii = 0; ii < xsize * ysize; ii++)
                     {
-                        outimg->im->array.F[kk*xsize*ysize + ii] -= refarray[ii];
+                        outimg->im->array.F[kk * xsize * ysize + ii] -= refarray[ii];
                     }
                 }
 
                 free(refarray);
 
                 double resval = 0.0;
-                for ( int kk=0; kk<framezero_start; kk++ )
+                for(int kk = 0; kk < framezero_start; kk++)
                 {
-                    for ( int ii=0; ii<xsize*ysize; ii++)
+                    for(int ii = 0; ii < xsize * ysize; ii++)
                     {
-                        float dv =  outimg->im->array.F[kk*xsize*ysize + ii] * loopgain;
-                        resval += dv*dv;
-                        outimg->im->array.F[kk*xsize*ysize + ii] -= dv;
+                        float dv =  outimg->im->array.F[kk * xsize * ysize + ii] * loopgain;
+                        resval += dv * dv;
+                        outimg->im->array.F[kk * xsize * ysize + ii] -= dv;
                     }
                 }
-                for ( int kk=framezero_start; kk<zsize; kk++ )
+                for(int kk = framezero_start; kk < zsize; kk++)
                 {
-                    for ( int ii=0; ii<xsize*ysize; ii++)
+                    for(int ii = 0; ii < xsize * ysize; ii++)
                     {
-                        float dv =  outimg->im->array.F[kk*xsize*ysize + ii] * loopgain*0.01;
-                        resval += dv*dv;
-                        outimg->im->array.F[kk*xsize*ysize + ii] -= dv;
+                        float dv =  outimg->im->array.F[kk * xsize * ysize + ii] * loopgain * 0.01;
+                        resval += dv * dv;
+                        outimg->im->array.F[kk * xsize * ysize + ii] -= dv;
                     }
                 }
                 printf(">>>>>>>>>>>>>>>>>>> OUTPUT SPACE RESIDUAL = %g\n", resval);
@@ -485,26 +487,28 @@ errno_t mlat_diffseq_decode(
 
             {
                 double resval = 0.0;
-                for(long ii=0; ii<imgrec.md->size[0]*imgrec.md->size[1]*imgrec.md->size[2]; ii++)
+                for(long ii = 0; ii < imgrec.md->size[0]*imgrec.md->size[1]*imgrec.md->size[2];
+                        ii++)
                 {
                     double v = inimg.im->array.F[ii] - imgrec.im->array.F[ii];
                     imgres.im->array.F[ii] = v;
-                    resval += v*v;
+                    resval += v * v;
                 }
                 printf(">>>>>>>>>>>>>>>>>>>  INPUT SPACE RESIDUAL = %g\n", resval);
             }
 
 
-            computeSGEMM( imgres, imgpsinv, &imgoutres, 0, 0, GPUdev);
+            computeSGEMM(imgres, imgpsinv, &imgoutres, 0, 0, GPUdev);
             {
                 int xsize = imgoutres.md->size[0];
                 int ysize = imgoutres.md->size[1];
                 int zsize = imgoutres.md->size[2];
-                for ( int kk=0; kk<zsize; kk++ )
+                for(int kk = 0; kk < zsize; kk++)
                 {
-                    for ( int ii=0; ii<xsize*ysize; ii++)
+                    for(int ii = 0; ii < xsize * ysize; ii++)
                     {
-                        outimg->im->array.F[kk*xsize*ysize + ii] += loopgain * imgoutres.im->array.F[kk*xsize*ysize + ii];
+                        outimg->im->array.F[kk * xsize * ysize + ii] += loopgain *
+                                imgoutres.im->array.F[kk * xsize * ysize + ii];
                     }
                 }
             }

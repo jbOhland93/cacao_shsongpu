@@ -24,8 +24,8 @@ class PreInstallCommand(develop):
         #os.system('cd src; ./compile_dcamusb; cd ..')
         develop.run(self)
 
-scripts = [
-]
+
+scripts = []
 
 setup(
         name='pycacao',

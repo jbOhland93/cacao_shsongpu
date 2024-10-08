@@ -143,17 +143,18 @@ static errno_t compute_function()
 
     INSERT_STD_PROCINFO_COMPUTEFUNC_START
     {
-        for(uint32_t mode=0; mode < NBmodes; mode++)
+        for(uint32_t mode = 0; mode < NBmodes; mode++)
         {
             printf(".");
             fflush(stdout);
 
-            for(uint64_t iidm=0; iidm < dmsize; iidm++)
+            for(uint64_t iidm = 0; iidm < dmsize; iidm++)
             {
-                for(uint64_t iiwfs=0; iiwfs < wfssize; iiwfs++)
+                for(uint64_t iiwfs = 0; iiwfs < wfssize; iiwfs++)
                 {
                     imgoutWFSc.im->array.F[wfssize * mode + iiwfs] +=
-                    imDMmodesC.im->array.F[dmsize*mode + iidm] * imgzRM.im->array.F[wfssize * iidm + iiwfs];
+                    imDMmodesC.im->array.F[dmsize * mode + iidm] * imgzRM.im->array.F[wfssize * iidm
+                            + iiwfs];
                 }
             }
         }
