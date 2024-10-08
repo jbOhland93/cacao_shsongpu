@@ -16,9 +16,9 @@ set -u
 MSextdescr="Compute CMs by blocks
 
 Marginalization modes:
-1: DM for blocks 0 1, WFS after
-2: WFS
-3: DM
+1: marginalize in DM space for blocks 0 1, and WFS space after
+2: marginalize in WFS space
+3: marginalize in DM space
 "
 
 source milk-script-std-config
@@ -71,8 +71,9 @@ fi
 
 
 
-
-
+NBRMmodes=$( fitsheader ${CACAO_CONFWDIR}/RMmodesDMRMmodesDM.fits | grep "NAXIS3" | awk '{print $3}' )
+echo "NB modes = ${NBRMmodes}"
+exit
 
 cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
 
