@@ -118,9 +118,9 @@ for (( i=0; i<$maxi; i++)); do
 
       if [[ ${MARGMODE} -eq 1 ]]; then
 	    if [ -z "${margstring}" ]; then
-	      fullmargstr=" ${WHICH_MARG} ${margstring}"
-	    else
 	      fullmargstr=""
+	    else
+	      fullmargstr=" ${WHICH_MARG} ${margstring}"
 	    fi
         echo "cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1 ${fullmargstr} ${MARGTT}"
       else
