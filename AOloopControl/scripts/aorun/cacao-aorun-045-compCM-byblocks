@@ -85,7 +85,7 @@ echo "NB modes = ${NBRMmodes}"
 
 
 
-mbstartarray=(1 2 3 12 50 200 1000 5000 10000)
+mbstartarray=(1 2 3 13 51 201 1001 5001 10000)
 
 maxi=${#mbstartarray[@]}
 let maxi=maxi-1
@@ -115,17 +115,19 @@ for (( i=0; i<$maxi; i++)); do
     if [[ $i -lt 2 ]]; then
       echo "cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1"
     else
-      if [[ $i -eq 2 ]]; then
-        margstring="2"
-      else
-        margstring="${margstring}:$i"
-      fi
 
       if [[ ${MARGMODE} -eq 1 ]]; then
         echo "cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1 ${WHICH_MARG} ${margstring} ${MARGTT}"
       else
         echo "cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1 ${WHICH_MARG} 0:1:${margstring}"
       fi
+      
+      if [[ $i -eq 2 ]]; then
+        margstring="2"
+      else
+        margstring="${margstring}:$i"
+      fi
+      
     fi
   fi
 
