@@ -603,14 +603,15 @@ errno_t AOloopControl_modalstatsTUI(
                 screenprint_setbold();
             }
 
-            TUI_printfw("%4ld [%5.3f %5.3f ",
+            TUI_printfw("%4ld [%5.3f %5.3f %8.6f]   ",
                         mi,
                         imgmgain.im->array.F[mi],
-                        imgmmult.im->array.F[mi]
+                        imgmmult.im->array.F[mi],
+                        imgmlimit.im->array.F[mi]
                        );
 
-            printfixedlen_unsigned(imgmlimit.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
-            TUI_printfw("]   ");
+            //printfixedlen_unsigned(imgmlimit.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
+            //TUI_printfw("]   ");
 
 
 
