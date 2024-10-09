@@ -90,7 +90,7 @@ mbstartarray=(1 2 3 12 50 200 1000 5000 10000)
 maxi=${#mbstartarray[@]}
 let maxi=maxi-1
 
-
+echo "MARGMODE MARGTT = ${MARGMODE} ${MARGTT}"
 if [[ ${MARGMODE} -eq 1 ]]; then
 margstring=""
 else
