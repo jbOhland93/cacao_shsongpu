@@ -84,6 +84,7 @@ NBRMmodes=$( fitsheader ${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits | grep "NAXIS
 echo "NB modes = ${NBRMmodes}"
 
 
+cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
 
 mbstartarray=(1 2 3 13 51 201 1001 5001 10000)
 
@@ -113,7 +114,7 @@ for (( i=0; i<$maxi; i++)); do
   
 
     if [[ $i -lt 2 ]]; then
-      echo "cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1"
+      cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1
     else
 
       if [[ ${MARGMODE} -eq 1 ]]; then
@@ -122,9 +123,9 @@ for (( i=0; i<$maxi; i++)); do
 	    else
 	      fullmargstr=" ${WHICH_MARG} ${margstring}"
 	    fi
-        echo "cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1 ${fullmargstr} ${MARGTT}"
+        cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1 ${fullmargstr} ${MARGTT}
       else
-        echo "cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1 ${WHICH_MARG} 0:1:${margstring}"
+        cacao-aorun-039-compstrCM -mb $i -mr $mb0:$mb1 ${WHICH_MARG} 0:1:${margstring}
       fi
       
       if [[ $i -eq 2 ]]; then
@@ -139,85 +140,95 @@ for (( i=0; i<$maxi; i++)); do
 done
 
 # merge CMs
-echo "MERGE: cacao-aorun-039-compstrCM -mbm 0:1:${margstring}"
-
-exit
-
-cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
-
-# Make T CM
-cacao-aorun-039-compstrCM -mb 0 -mr 1:1
-
-# Make T CM
-cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
-cacao-aorun-039-compstrCM -mb 1 -mr 2:2
-
-# make LO CM
-cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
-
-if [[ ${MARGMODE} -eq 1 ]]; then
-cacao-aorun-039-compstrCM -mb 2 -mr 3:12 ${MARGTT}
-else
-cacao-aorun-039-compstrCM -mb 2 -mr 3:12 ${WHICH_MARG} 0:1
-fi
-
-
-
-
-
-
-
-# make LO CM
-cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
-
-if [[ ${MARGMODE} -eq 1 ]]; then
-cacao-aorun-039-compstrCM -mb 3 -mr 13:50 ${WHICH_MARG} 2 ${MARGTT}
-else
-cacao-aorun-039-compstrCM -mb 3 -mr 13:50 ${WHICH_MARG} 0:1:2
-fi
-
-
-
-# make MO CM
-cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
-
-if [[ ${MARGMODE} -eq 1 ]]; then
-cacao-aorun-039-compstrCM -mb 4 -mr 51:200 ${WHICH_MARG} 2:3 ${MARGTT}
-else
-cacao-aorun-039-compstrCM -mb 4 -mr 51:200 ${WHICH_MARG} 0:1:2:3
-fi
-
-
-
-# make HO CM
-cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
-
-if [[ ${MARGMODE} -eq 1 ]]; then
-cacao-aorun-039-compstrCM -mb 5 -mr 201:1000 ${WHICH_MARG} 2:3:4 ${MARGTT}
-else
-cacao-aorun-039-compstrCM -mb 5 -mr 201:1000 ${WHICH_MARG} 0:1:2:3:4
-fi
-
-
-
-# make HHO CM
-cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
-
-if [[ ${MARGMODE} -eq 1 ]]; then
-cacao-aorun-039-compstrCM -mb 6 -mr 1001:5029 ${WHICH_MARG} 2:3:4:5 ${MARGTT}
-else
-cacao-aorun-039-compstrCM -mb 6 -mr 1001:5029 ${WHICH_MARG} 0:1:2:3:4:5
-fi
-
-
-# merge CMs
-cacao-aorun-039-compstrCM -mbm 0:1:2:3:4:5:6
-
-
-
-
-
+cacao-aorun-039-compstrCM -mbm 0:1:${margstring}
 
 
 
 cacaomsglog "END"
+
+
+
+
+
+
+
+
+
+#cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
+
+# Make T CM
+#cacao-aorun-039-compstrCM -mb 0 -mr 1:1
+
+# Make T CM
+#cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
+#cacao-aorun-039-compstrCM -mb 1 -mr 2:2
+
+# make LO CM
+#cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
+
+#if [[ ${MARGMODE} -eq 1 ]]; then
+#cacao-aorun-039-compstrCM -mb 2 -mr 3:12 ${MARGTT}
+#else
+#cacao-aorun-039-compstrCM -mb 2 -mr 3:12 ${WHICH_MARG} 0:1
+#fi
+
+
+
+
+
+
+
+# make LO CM
+#cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
+
+#if [[ ${MARGMODE} -eq 1 ]]; then
+#cacao-aorun-039-compstrCM -mb 3 -mr 13:50 ${WHICH_MARG} 2 ${MARGTT}
+#else
+#cacao-aorun-039-compstrCM -mb 3 -mr 13:50 ${WHICH_MARG} 0:1:2
+#fi
+
+
+
+# make MO CM
+#cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
+
+#if [[ ${MARGMODE} -eq 1 ]]; then
+#cacao-aorun-039-compstrCM -mb 4 -mr 51:200 ${WHICH_MARG} 2:3 ${MARGTT}
+#else
+#cacao-aorun-039-compstrCM -mb 4 -mr 51:200 ${WHICH_MARG} 0:1:2:3
+#fi
+
+
+
+# make HO CM
+#cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
+
+#if [[ ${MARGMODE} -eq 1 ]]; then
+#cacao-aorun-039-compstrCM -mb 5 -mr 201:1000 ${WHICH_MARG} 2:3:4 ${MARGTT}
+#else
+#cacao-aorun-039-compstrCM -mb 5 -mr 201:1000 ${WHICH_MARG} 0:1:2:3:4
+#fi
+
+
+
+# make HHO CM
+#cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
+
+#if [[ ${MARGMODE} -eq 1 ]]; then
+#cacao-aorun-039-compstrCM -mb 6 -mr 1001:5029 ${WHICH_MARG} 2:3:4:5 ${MARGTT}
+#else
+#cacao-aorun-039-compstrCM -mb 6 -mr 1001:5029 ${WHICH_MARG} 0:1:2:3:4:5
+#fi
+
+
+# merge CMs
+#cacao-aorun-039-compstrCM -mbm 0:1:2:3:4:5:6
+
+
+
+
+
+
+
+
+
