@@ -82,6 +82,15 @@ fi
 
 NBRMmodes=$( fitsheader ${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits | grep "NAXIS3" | awk '{print $3}' )
 echo "NB modes = ${NBRMmodes}"
+
+mbstartarray=(1 2 4 8 16 32 64 128 256 512 1024 2048 4096)
+for mb0 in "${mbstartarray[@]}"; do
+let mb1=mb0+1
+printf "MODE BLOCK %02d  : %4d : %4d\n" $mbindex $mb0 $mb1
+done
+
+
+
 exit
 
 cacao-fpsctrl setval compstrCM svdlim ${SVDlim}
