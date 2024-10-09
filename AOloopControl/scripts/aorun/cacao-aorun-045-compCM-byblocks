@@ -115,7 +115,7 @@ else
 if [[ $i -eq 2 ]]; then
 margstring="2"
 else
-margstring="margstring:$i"
+margstring="${margstring}:$i"
 fi
 
 if [[ ${MARGMODE} -eq 1 ]]; then
