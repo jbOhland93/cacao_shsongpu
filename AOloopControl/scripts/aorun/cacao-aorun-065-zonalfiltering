@@ -98,7 +98,7 @@ saveFITS psinvcheck "conf/matDM2mval_psinvcheck.fits"
 saveFITS psinv "conf/modesDMinv.fits"
 imgbasic.imswapaxis2D psinv matDM2mval
 listim
-setaxes matDM2mval ${CACAO_DMxsize} ${CACAO_DMxsize} ${NBmode}
+set3Daxes matDM2mval ${CACAO_DMxsize} ${CACAO_DMxsize} ${NBmode}
 saveFITS matDM2mval "conf/matDM2mval.fits"
 imcpshm matDM2mval aol${CACAO_LOOPNUMBER}_matDM2mval
 listim
