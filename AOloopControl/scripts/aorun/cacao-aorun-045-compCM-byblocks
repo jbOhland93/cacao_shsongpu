@@ -16,17 +16,20 @@ set -u
 MSextdescr="Compute CMs by blocks
 
 Marginalization modes:
-1: marginalize in DM space for blocks 0 1, and WFS space after
+1 (recommended): marginalize in DM space for blocks 0 1, and WFS space after
 2: marginalize in WFS space
 3: marginalize in DM space
 
-
 Calls script cacao-aorun-039-compstrCM
 
-Blocks defined as follows:
-block0 1:1
-block1 2:2
-block2 3:12
+
+INPUT:
+./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits
+./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.fits
+OUTPUT:
+./${CACAO_CONFWDIR}/CMmodesDM/CMmodesDM.fits
+./${CACAO_CONFWDIR}/CMmodesWFS/CMmodesWFS.fits
+
 
 "
 
