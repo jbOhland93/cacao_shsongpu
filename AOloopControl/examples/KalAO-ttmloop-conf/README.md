@@ -99,7 +99,7 @@ The following files are written to ./conf/DMmodes/ :
 - HpokeC.fits    : Hadamard modes
 - Hmat.fits      : Hadamard matrix (to convert Hadamard-zonal)
 - Hpixindex.fits : Hadamard pixel index
-- SmodesC.fits    : 
+- SmodesC.fits    :
 
 
 
@@ -127,7 +127,7 @@ cacao-aorun-031-RMHdecode
 This should not be used when actually using KalAO as it would overwrite the NCPA reference.
 
 ```bash
-# Acquire reference 
+# Acquire reference
 # cacao-aorun-026-takeref
 ```
 

@@ -323,7 +323,7 @@ static errno_t compute_function()
 
         lim0 = (*wfsmaskcoeff0) * img_percentile("wfsmap", (*wfsmaskperc0));
         create_2Dimage_ID("_tmpwfsmap", sizexWFS, sizeyWFS, &IDtmp);
-        for(uint64_t ii = 0; ii < sizexWFS * sizeyWFS; ii++)
+        for(uint64_t ii = 0; ii < sizexWFS *sizeyWFS; ii++)
         {
             data.image[IDtmp].array.F[ii] = data.image[IDWFSmap].array.F[ii] - lim0;
         }

@@ -24,7 +24,7 @@ tmux send-keys -t dm00disp2D Enter
 ##########################################
 #
 # Setup aol2_dmC2D
-# 
+#
 ##########################################
 
 # Check if the session exists, discarding output
@@ -46,7 +46,7 @@ tmux send-keys -t aol2_dmC2D Enter
 ##########################################
 #
 # Setup aol2_dmRM2D
-# 
+#
 ##########################################
 
 # Check if the session exists, discarding output
@@ -62,5 +62,3 @@ tmux send-keys -t aol2_dmRM2D Enter
 tmux send-keys -t aol2_dmRM2D C-c
 tmux send-keys -t aol2_dmRM2D "./scripts/maps-remapshmim aol2_dmRM aol2_dmRM2D"
 tmux send-keys -t aol2_dmRM2D Enter
-
-

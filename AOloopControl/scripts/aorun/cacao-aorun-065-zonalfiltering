@@ -7,7 +7,33 @@
 MSdescr="Zonal filtering and control"
 
 MSextdescr="Zonal filtering and control
-"
+
+on/off: toggles zonal filter on/off
+cal: compute conversion matrix from DM to modes, to be used by CACAO_FPSPROC_MVMGPU_DM2MVAL
+
+
+ACTION = on
+- Change CU dm2mval output from aolX_dmC to aolX_zvalDM
+- start zonal filtering process, input aolX_zvalDM output aolX_dmC
+
+ACTION = off
+- Change CU dm2mval output from aolX_zvalDM to aolX_dmC 
+- stop zonal filtering process
+
+ACTION = cal
+Use CMmodesDM to computes a conversion matrix from DM map to mode values.
+Input:
+FILE conf/CMmodesDM.fits
+	Controm modes, DM space
+Output:
+FILE   conf/modesDMinv.fit
+	pseudo-inverse of DM space control modes
+FILE   conf/matDM2mval_psinvcheck.fits
+	pseudo inverse check. Should be identity
+FILE   conf/matDM2mval.fits
+STREAM aolX_matDM2mval
+	conversion matrix from DM to mode values
+"	
 
 source milk-script-std-config
 source cacao-check-cacaovars
@@ -68,11 +94,11 @@ linalg.compSVD .GPUdevice 0
 linalg.compSVD .compmode 6
 linalg.compSVD CMmDM SVDU SVDS SVDV ${calsvdlim}
 #saveFITS SVDinrec "SVDinrec.fits"
-#saveFITS psinvcheck "psinvcheck.fits"
+saveFITS psinvcheck "conf/matDM2mval_psinvcheck.fits"
 saveFITS psinv "conf/modesDMinv.fits"
 imgbasic.imswapaxis2D psinv matDM2mval
 listim
-setaxes matDM2mval ${CACAO_DMxsize} ${CACAO_DMxsize} ${NBmode}
+set3Daxes matDM2mval ${CACAO_DMxsize} ${CACAO_DMxsize} ${NBmode}
 saveFITS matDM2mval "conf/matDM2mval.fits"
 imcpshm matDM2mval aol${CACAO_LOOPNUMBER}_matDM2mval
 listim
@@ -86,12 +112,12 @@ if [ ${ACTIONOK} == 0 ]; then
 if [ ${ACTION} == "on" ]; then
 	ACTIONOK=1
 	cacaomsglog "ON"
-	
+
 	sendFPScmd "runstop mvalC2dm-${CACAO_LOOPNUMBER}"
 	sendFPScmd "setval mvalC2dm-${CACAO_LOOPNUMBER}.outcoeff aol${CACAO_LOOPNUMBER}_zvalDM"
 	sendFPScmd "confwupdate mvalC2dm-${CACAO_LOOPNUMBER}"
 	sendFPScmd "runstart mvalC2dm-${CACAO_LOOPNUMBER}"
-	
+
 	sendFPScmd "setval zfilt-${CACAO_LOOPNUMBER}.AOloopindex ${CACAO_LOOPNUMBER}"
 	sendFPScmd "setval zfilt-${CACAO_LOOPNUMBER}.inzval aol${CACAO_LOOPNUMBER}_zvalDM"
 	sendFPScmd "setval zfilt-${CACAO_LOOPNUMBER}.procinfo.triggersname aol${CACAO_LOOPNUMBER}_zvalDM"
@@ -116,7 +142,7 @@ if [ ${ACTION} == "off" ]; then
 	sendFPScmd "setval mvalC2dm-${CACAO_LOOPNUMBER}.outcoeff aol${CACAO_LOOPNUMBER}_dmC"
 	sendFPScmd "confwupdate mvalC2dm-${CACAO_LOOPNUMBER}"
 	sendFPScmd "runstart mvalC2dm-${CACAO_LOOPNUMBER}"
-	
+
 	sleep 1
 	milk-shmim-zero aol${CACAO_LOOPNUMBER}_modevalDMf
 fi

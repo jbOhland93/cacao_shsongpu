@@ -439,20 +439,20 @@ static errno_t compute_function()
         void *ptrv = NULL;
         switch(WFSatype)
         {
-            case _DATATYPE_FLOAT:
-            case _DATATYPE_UINT16:
-            case _DATATYPE_INT16:
-            {
-                int ts = ImageStreamIO_typesize(imgwfsim.md->datatype);
-                ptrv = imgwfsim.im->array.raw + ts * slice * sizeWFS;
-                memcpy(array_tmp, ptrv, ts * sizeWFS);
-            }
-            break;
+        case _DATATYPE_FLOAT:
+        case _DATATYPE_UINT16:
+        case _DATATYPE_INT16:
+        {
+            int ts = ImageStreamIO_typesize(imgwfsim.md->datatype);
+            ptrv = imgwfsim.im->array.raw + ts * slice * sizeWFS;
+            memcpy(array_tmp, ptrv, ts * sizeWFS);
+        }
+        break;
 
-            default:
-                PRINT_ERROR("DATA TYPE NOT SUPPORTED");
-                abort();
-                break;
+        default:
+            PRINT_ERROR("DATA TYPE NOT SUPPORTED");
+            abort();
+            break;
         }
 
         if(processinfo->loopcnt % n_print_timings == 0)
@@ -489,74 +489,74 @@ static errno_t compute_function()
 
         switch(WFSatype)
         {
-            case _DATATYPE_UINT16:
-                if(status_darksub == 0)
+        case _DATATYPE_UINT16:
+            if(status_darksub == 0)
+            {
+                // no dark subtraction, convert data to float
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
-                    // no dark subtraction, convert data to float
-                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
-                    {
-                        imgimWFS0.im->array.F[ii] = ((float) arrayutmp[ii]);
-                    }
+                    imgimWFS0.im->array.F[ii] = ((float) arrayutmp[ii]);
                 }
-                else
+            }
+            else
+            {
+                // dark subtraction
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
-                    // dark subtraction
-                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
-                    {
-                        imgimWFS0.im->array.F[ii] =
-                            ((float) arrayutmp[ii]) -
-                            imgwfsdark.im->array.F[ii];
-                    }
+                    imgimWFS0.im->array.F[ii] =
+                        ((float) arrayutmp[ii]) -
+                        imgwfsdark.im->array.F[ii];
                 }
-                break;
+            }
+            break;
 
-            case _DATATYPE_INT16:
-                if(status_darksub == 0)
+        case _DATATYPE_INT16:
+            if(status_darksub == 0)
+            {
+                // no dark subtraction, convert data to float
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
-                    // no dark subtraction, convert data to float
-                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
-                    {
-                        imgimWFS0.im->array.F[ii] = ((float) arraystmp[ii]);
-                    }
+                    imgimWFS0.im->array.F[ii] = ((float) arraystmp[ii]);
                 }
-                else
+            }
+            else
+            {
+                // dark subtraction
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
-                    // dark subtraction
-                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
-                    {
-                        imgimWFS0.im->array.F[ii] =
-                            ((float) arraystmp[ii]) -
-                            imgwfsdark.im->array.F[ii];
-                    }
+                    imgimWFS0.im->array.F[ii] =
+                        ((float) arraystmp[ii]) -
+                        imgwfsdark.im->array.F[ii];
                 }
-                break;
+            }
+            break;
 
-            case _DATATYPE_FLOAT:
-                if(status_darksub == 0)
+        case _DATATYPE_FLOAT:
+            if(status_darksub == 0)
+            {
+                // no dark subtraction, copy data to imWFS0
+                memcpy(imgimWFS0.im->array.F,
+                       arrayftmp,
+                       sizeof(float) * sizeWFS);
+            }
+            else
+            {
+                // dark subtraction
+                for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
                 {
-                    // no dark subtraction, copy data to imWFS0
-                    memcpy(imgimWFS0.im->array.F,
-                           arrayftmp,
-                           sizeof(float) * sizeWFS);
+                    imgimWFS0.im->array.F[ii] =
+                        arrayftmp[ii] - imgwfsdark.im->array.F[ii];
                 }
-                else
-                {
-                    // dark subtraction
-                    for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
-                    {
-                        imgimWFS0.im->array.F[ii] =
-                            arrayftmp[ii] - imgwfsdark.im->array.F[ii];
-                    }
-                }
-                break;
+            }
+            break;
 
-            default:
-                printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
-                       __FILE__,
-                       __LINE__);
-                printf("datatype = %d\n", WFSatype);
-                exit(0);
-                break;
+        default:
+            printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
+                   __FILE__,
+                   __LINE__);
+            printf("datatype = %d\n", WFSatype);
+            exit(0);
+            break;
         }
 
         if(status_darksub == 1)

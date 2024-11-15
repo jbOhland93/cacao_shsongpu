@@ -35,4 +35,3 @@ sendFPScmd "setval mapWFS-${CACAO_LOOPNUMBER}.wfsout aol${CACAO_LOOPNUMBER}m_wfs
 sendFPScmd "confwupdate mapWFS-${CACAO_LOOPNUMBER}"
 sendFPScmd "runstart mapWFS-${CACAO_LOOPNUMBER}"
 # creaates stream aol${CACAO_LOOPNUMBER}_wfsimmap
-

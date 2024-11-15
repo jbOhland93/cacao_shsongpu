@@ -34,7 +34,7 @@ function fpsentry_addcmds() {
 
 
     addfpscmd "setval ${fpsfname}.insname aol${CACAO_LOOPNUMBER}_imWFS2"
-    addfpscmd "setval ${fpsfname}.immodes aol${CACAO_LOOPNUMBER}_modesWFS"
+    addfpscmd "setval ${fpsfname}.immodes aol${CACAO_LOOPNUMBER}_CMmodesWFS"
     addfpscmd "setval ${fpsfname}.outcoeff aol${CACAO_LOOPNUMBER}_modevalWFS"
 
 	addfpscmd "setval ${fpsfname}.option.sname_intot aol${CACAO_LOOPNUMBER}_imWFS0tot"
@@ -58,4 +58,3 @@ function fpsentry_addcmds() {
 
 
 source milk-fpslist-addentry
-

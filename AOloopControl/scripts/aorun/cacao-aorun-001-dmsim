@@ -69,7 +69,7 @@ for (( ch=0; ch<NBchannel; ch++ ))
 do
    echo "zeroing $ch"
    dmchstring=$( printf "dm%02ddisp%02d" ${CACAO_DMSIMINDEX} $ch )
-   milk-shmim-zero ${dmchstring} 
+   milk-shmim-zero ${dmchstring}
 done
 
 

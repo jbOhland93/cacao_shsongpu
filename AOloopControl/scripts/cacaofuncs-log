@@ -4,10 +4,15 @@
 # LOGGING conventions for AO calib
 #
 # All files in ./conf/
+#
+# Current working file ./conf/<name>.fits
+#
+# Currently in shared memory (when applicable): ./conf/shmim.<name>.fits
+#
 # logged to ./logdir/, which could be a symlink to a date-specific logging directory
 #
 # Last acquired calibration :
-# 	<NAME>.fits 
+# 	<name>.fits
 #
 #
 # Last loaded to shmim (file name) :
@@ -24,18 +29,18 @@
 function cacao-calib-logFITSfile ()
 {
 	local SNAME="$1"
-	
+
 	local datestring="$(date -u +'%Y-%m-%dT%H:%M:%S.%NZ')"
-	
+
 	local LOGDIR="logdir/aol_${CACAO_LOOPNAME}/${SNAME}/"
-		
+
 	mkdir -p ${LOGDIR}
 	LOGFILEOUT="${LOGDIR}/${SNAME}.${datestring}.fits"
-	
+
 	cacaomsglog "LOGGING ${SNAME} as ${LOGFILEOUT}"
 	cacaomsglog "LOGGING DIRECTORY $(realpath ${LOGDIR})"
-	cacaomsglog "cp conf/${SNAME}.fits ${LOGFILEOUT}"
-	cp conf/${SNAME}.fits "${LOGFILEOUT}"
+	cacaomsglog "cp ${CACAO_CONFWDIR}/${SNAME}.fits ${LOGFILEOUT}"
+	cp ${CACAO_CONFWDIR}/${SNAME}.fits "${LOGFILEOUT}"
 }
 
 
@@ -43,12 +48,31 @@ function cacao-calib-loadFITSfile ()
 {
 	local SNAME="$1"
 	local FITSFILE="$2"
-	
+
 	echo "PWD = $(pwd)"
+	echo "FITSFILE = ${FITSFILE}"
 	echo "${FITSFILE}" > conf/shmim.${SNAME}.name.txt
-	cp ${FITSFILE} "conf/shmim.${SNAME}.fits"
+	cp "${FITSFILE}" "conf/shmim.${SNAME}.fits"
 	milk-FITS2shm "conf/shmim.${SNAME}.fits" aol${CACAO_LOOPNUMBER}_${SNAME}
-	
+
 	cacaomsglog "USING ${FITSFILE} as ${SNAME}"
 }
 
+function cacao-calib-streamupdate ()
+{
+	local STREAMNAME="$1"
+
+	cacao-calib-logFITSfile ${STREAMNAME}
+
+	if [ -z ${CACAO_CONFSTREAMLOAD+x} ]; then
+		# do not set
+		CACAO_CONFSTREAMLOAD=1
+	fi
+
+	if [ ${CACAO_CONFSTREAMLOAD} = 1 ]; then
+		# only load to shared mem if from conf
+		if [ "${CACAO_CONFWDIR}" = "conf" ]; then
+			cacao-calib-loadFITSfile "${STREAMNAME}" "${LOGFILEOUT}"
+		fi
+	fi
+}

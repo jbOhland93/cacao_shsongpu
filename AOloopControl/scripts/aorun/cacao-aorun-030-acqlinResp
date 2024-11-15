@@ -6,15 +6,21 @@
 # script 1-line description
 MSdescr="Measure WFS response to DM modes"
 
+set +u
+if [ -z ${CACAO_CONFWDIR+x} ]; then
+	CACAO_CONFWDIR="conf"
+fi
+set -u
+
 MSextdescr="
 Input DM modes in:
-<rootdir>/conf/DMmodes/<name>.fits
+./${CACAO_CONFWDIR}/DMmodes/<name>.fits
 
 Sources <looprundir>/fps.mlat-<loopnumber>.datadir/cacaovars.bash
 to get CACAO_WFSFRATE and CACAO_LATENCYHARDWFR
 
 Output WFS response written as:
-<rootdir>/conf/WFSmodes/<name>.WFSresp.fits
+./${CACAO_CONFWDIR}/WFSmodes/<name>.WFSresp.fits
 
 "
 
@@ -40,7 +46,7 @@ function set_saveALL() {
 source milk-argparse
 
 DMmodeCname="${inputMSargARRAY[0]}"
-DMmCfname="conf/RMmodesDM/${DMmodeCname}.fits"
+DMmCfname="${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits"
 
 
 checkFile ${DMmCfname}
@@ -81,8 +87,8 @@ if [ $errexit = 1 ]; then
 fi
 
 
-mkdir -p ./conf/RMmodesDM/
-mkdir -p ./conf/RMmodesWFS/
+mkdir -p ./${CACAO_CONFWDIR}/RMmodesDM/
+mkdir -p ./${CACAO_CONFWDIR}/RMmodesWFS/
 
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.procinfo.loopcntMax ${NBloop}"
 
@@ -114,8 +120,8 @@ sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.hardwlatfr ${LATENCY}"
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.streamin aol${CACAO_LOOPNUMBER}_dmRM"
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.streamout aol${CACAO_LOOPNUMBER}_imWFS2"
 
-sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.inmodes ../conf/RMmodesDM/${DMmodeCname}.fits"
-sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.outmodes ../conf/RMmodesWFS/${DMmodeCname}.WFSresp.fits"
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.inmodes ../${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits"
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.outmodes ../${CACAO_CONFWDIR}/RMmodesWFS/${DMmodeCname}.WFSresp.fits"
 
 if [ $saveALL = 1 ]; then
 sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.saveALL ON"
@@ -128,12 +134,12 @@ sendFPScmd "runstart measlinresp-${CACAO_LOOPNUMBER}"
 cacaomsglog "START"
 
 
-rm -f ./conf/RMmodesDM/RMmodesDM.fits
-ln -s $(pwd)/conf/RMmodesDM/${DMmodeCname}.fits ./conf/RMmodesDM/RMmodesDM.fits
-cp $(pwd)/conf/RMmodesDM/${DMmodeCname}.fits ./conf/RMmeas_modesDM.fits
+rm -f ./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits
+ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits ./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits
+cp $(pwd)/${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits ./${CACAO_CONFWDIR}/RMmeas_modesDM.fits
 
 
-rm -f ./conf/RMmodesWFS/RMmodesWFS.fits
+rm -f ./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.fits
 
 
 echo "Waiting for completion ..."
@@ -144,8 +150,8 @@ while [ $pOK -gt 0 ]; do
 done
 #fi
 
-ln -s $(pwd)/conf/RMmodesWFS/${DMmodeCname}.WFSresp.fits ./conf/RMmodesWFS/RMmodesWFS.fits
-cp $(pwd)/conf/RMmodesWFS/${DMmodeCname}.WFSresp.fits ./conf/RMmeas_modesWFS.fits
+ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesWFS/${DMmodeCname}.WFSresp.fits ./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.fits
+cp $(pwd)/${CACAO_CONFWDIR}/RMmodesWFS/${DMmodeCname}.WFSresp.fits ./${CACAO_CONFWDIR}/RMmeas_modesWFS.fits
 
 
 # LOGGING

@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="set simulator configuration"
+
+MSextdescr="Simulation mode
+"
+
+source milk-script-std-config
+source cacao-check-cacaovars
+
+RequiredCommands=( cacao-setDMnolink )
+
+
+source milk-argparse
+
+
+
+
+
+
+# Checking required FPS
+FPScheckOK="OK"
+checkFPSON CACAO_FPSPROC_ACQUWFS ${CACAO_FPSPROC_ACQUWFS}
+checkFPSON CACAO_FPSPROC_WFSCAMSIM ${CACAO_FPSPROC_WFSCAMSIM}
+checkFPSON CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL ${CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL}
+checkFPSON CACAO_FPSPROC_MVMGPU_CMODEVAL2DM ${CACAO_FPSPROC_MVMGPU_CMODEVAL2DM}
+checkFPSON CACAO_FPSPROC_MEASURELINRESP ${CACAO_FPSPROC_MEASURELINRESP}
+
+if [ ${FPScheckOK} == "FAIL" ]; then
+	echo "[$(tput setaf 1)$(tput bold) FAILED $(tput sgr0)] FPS check failed"
+	cacaomsglog "ERROR FPScheck"
+	exit 1
+fi
+
+
+
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.ampl 0.03"
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.NBave 5"
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.NBexcl 1"
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.timing.NBinnerCycle 10"
+sendFPScmd "setval measlinresp-${CACAO_LOOPNUMBER}.procinfo.loopcntMax 20"
+
+
+
+sendFPScmd "setval wfs2cmodeval-${CACAO_LOOPNUMBER}.GPUindex 0"
+sendFPScmd "confwupdate wfs2cmodeval-${CACAO_LOOPNUMBER}"
+
+sendFPScmd "setval mvalC2dm-${CACAO_LOOPNUMBER}.GPUindex 0"
+sendFPScmd "confwupdate mvalC2dm-${CACAO_LOOPNUMBER}"
+
+
+
+# WFS
+echo "Linking WFS"
+
+ln -sf ${MILK_SHM_DIR}/${CACAO_WFSSTREAMSIM}.im.shm ${MILK_SHM_DIR}/aol${CACAO_LOOPNUMBER}_wfsim.im.shm
+
+sendFPScmd "setval wfscamsim-${CACAO_LOOPNUMBER}.compphnoise OFF"
+sendFPScmd "confwupdate wfscamsim-${CACAO_LOOPNUMBER}"
+sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.insname aol${CACAO_LOOPNUMBER}_wfsim"
+sendFPScmd "setval acquWFS-${CACAO_LOOPNUMBER}.WFSnormfloor 0.01"
+
+
+
+# DM
+echo "Switching to simulation DM"
+DMINDEX="${CACAO_DMSIMINDEX}"
+echo "${DMINDEX}" > DMINDEX
+
+echo "Linking DM"
+cacao-setDMnolink
+
+
+
+
+
+
+# update system cacaoloop record
+#
+CACAOLOOPRECORD="${MILK_SHM_DIR}/cacaoloop-${CACAO_LOOPNUMBER}"
+mkdir -p ${CACAOLOOPRECORD}
+echo "${DMINDEX}" > ${CACAOLOOPRECORD}/dmindex
+echo "${CACAO_WFSSTREAMSIM}" > ${CACAOLOOPRECORD}/wfsim
+
+
+cacaomsglog "END"

@@ -53,14 +53,3 @@ echo "$fname" > $ffname
 aoconflog "select configuration file ${name} : ${fname}"
 Fits2shm -c -p aol${LOOPNUMBER}_ $name
 }
-
-
-
-
-
-
-
-
-
-
-

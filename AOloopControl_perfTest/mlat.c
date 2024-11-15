@@ -322,7 +322,8 @@ static errno_t compute_function()
     resolveIMGID(&imgpokemap, ERRMODE_WARN);
     if(imgpokemap.ID != -1)
     {
-        printf("pokemap size : %u %u\n", imgpokemap.md->size[0], imgpokemap.md->size[1]);
+        printf("pokemap size : %u %u\n", imgpokemap.md->size[0],
+               imgpokemap.md->size[1]);
     }
 
     // create wfs image cube for storage
@@ -363,8 +364,9 @@ static errno_t compute_function()
     //
     long diffseqsize = *seqNBframe; // number of slices
     float diffseqdtframe = *seqdtframe; // time increment per slice [frame]
-    float *  diffseqkkcnt = (float *) malloc(sizeof(float)*diffseqsize); // count how many frames go in each slice
-    for ( int diffseqkk=0; diffseqkk<diffseqsize; diffseqkk++)
+    float   *diffseqkkcnt = (float *) malloc(sizeof(float) *
+                            diffseqsize); // count how many frames go in each slice
+    for(int diffseqkk = 0; diffseqkk < diffseqsize; diffseqkk++)
     {
         diffseqkkcnt[diffseqkk] = 0.0;
     }
@@ -567,7 +569,7 @@ static errno_t compute_function()
 
 
 
-                for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                for(uint32_t ii = 0; ii < dmxsize * dmysize; ii++)
                 {
                     imgdm.im->array.F[ii] = 0.0;
                 }
@@ -700,15 +702,15 @@ static errno_t compute_function()
                         kkoffset = wfsframe;
 
                         dmstate = 1;
-                        if( imgpokemap.ID == -1 )
+                        if(imgpokemap.ID == -1)
                         {
                             copy_image_ID("_mlattestdm", dmstream, 1);
                         }
                         else
                         {
-                            for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                            for(uint32_t ii = 0; ii < dmxsize * dmysize; ii++)
                             {
-                                imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
+                                imgdm.im->array.F[ii] = (*OPDamp) * imgpokemap.im->array.F[ii];
                             }
                             processinfo_update_output_stream(processinfo, imgdm.ID);
                         }
@@ -724,15 +726,15 @@ static errno_t compute_function()
                 }
 
 
-                if( imgpokemap.ID == -1 )
+                if(imgpokemap.ID == -1)
                 {
                     copy_image_ID("_mlattestdm", dmstream, 1);
                 }
                 else
                 {
-                    for(uint32_t ii = 0; ii < dmxsize*dmysize; ii++)
+                    for(uint32_t ii = 0; ii < dmxsize * dmysize; ii++)
                     {
-                        imgdm.im->array.F[ii] =  (*OPDamp) * imgpokemap.im->array.F[ii];
+                        imgdm.im->array.F[ii] = (*OPDamp) * imgpokemap.im->array.F[ii];
                     }
                     processinfo_update_output_stream(processinfo, imgdm.ID);
                 }
@@ -764,7 +766,7 @@ static errno_t compute_function()
                 double valmin = DBL_MAX;
 
 
-                float * diffseqvalarray = (float *) malloc(sizeof(float) * wfssize);
+                float *diffseqvalarray = (float *) malloc(sizeof(float) * wfssize);
                 // Measure latency from stored image cube
                 // For each time step (= slice in cube), measure magnitude of change
                 // between current and previous frame.
@@ -825,13 +827,14 @@ static errno_t compute_function()
                     valarray[kk] = sqrt(valarray[kk] / wfssize / 2);
 
                     {
-                        float timeoffset = (0.5 * (dtarray[kk] + dtarray[kk - 1]) - *dtoffset) * (*framerateHz);
+                        float timeoffset = (0.5 * (dtarray[kk] + dtarray[kk - 1]) - *dtoffset) *
+                                           (*framerateHz);
                         int diffseqkk = timeoffset / diffseqdtframe;
-                        if( (diffseqkk >= 0 ) && (diffseqkk < diffseqsize) )
+                        if((diffseqkk >= 0) && (diffseqkk < diffseqsize))
                         {
-                            for (uint64_t ii = 0; ii < wfssize; ii++)
+                            for(uint64_t ii = 0; ii < wfssize; ii++)
                             {
-                                imgdiffseq.im->array.F[diffseqkk*wfssize + ii] += diffseqvalarray[ii];
+                                imgdiffseq.im->array.F[diffseqkk * wfssize + ii] += diffseqvalarray[ii];
                             }
                             diffseqkkcnt[diffseqkk] += 1.0;
                         }
@@ -918,20 +921,20 @@ static errno_t compute_function()
             // normalize imgdiffseq
             {
                 uint64_t wfssize = imgwfs.md->size[0] * imgwfs.md->size[1];
-                for ( int diffseqkk = 0; diffseqkk < diffseqsize; diffseqkk++)
+                for(int diffseqkk = 0; diffseqkk < diffseqsize; diffseqkk++)
                 {
-                    if ( diffseqkkcnt[diffseqkk] > 0.5 )
+                    if(diffseqkkcnt[diffseqkk] > 0.5)
                     {
-                        for (uint64_t ii = 0; ii < wfssize; ii++)
+                        for(uint64_t ii = 0; ii < wfssize; ii++)
                         {
-                            imgdiffseq.im->array.F[diffseqkk*wfssize + ii] /= diffseqkkcnt[diffseqkk];
+                            imgdiffseq.im->array.F[diffseqkk * wfssize + ii] /= diffseqkkcnt[diffseqkk];
                         }
                     }
                 }
             }
             // Save imgdiffseq
             //
-            if( data.fpsptr->parray[fpi_saveseq].fpflag & FPFLAG_ONOFF )
+            if(data.fpsptr->parray[fpi_saveseq].fpflag & FPFLAG_ONOFF)
             {
                 char ffnameC[STRINGMAXLEN_FULLFILENAME];
                 WRITE_FULLFILENAME(ffnameC,

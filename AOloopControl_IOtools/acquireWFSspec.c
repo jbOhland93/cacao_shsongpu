@@ -154,55 +154,61 @@ static errno_t extract_traces(
     uint32_t binning
 )
 {
+    DEBUG_TRACE_FSTART();
+
     uint32_t sizeWFSx = wfsin.size[0];
     uint32_t sizeWFSy = wfsin.size[1];
     uint64_t sizeWFSraw  = sizeWFSx * sizeWFSy;
 
-    uint32_t sizeWFSoutx = sizeWFSx/binning;
+    uint32_t sizeWFSoutx = sizeWFSx / binning;
 
     uint8_t  WFSatype = wfsin.md->datatype;
 
     uint32_t numtraces = specmask.size[2];
     uint64_t sizeWFSout  = sizeWFSoutx * numtraces;
 
-    for (uint32_t k = 0; k < numtraces; k++){
+    for(uint32_t k = 0; k < numtraces; k++)
+    {
         uint32_t xpix_index = 0;
-        for (uint32_t i = 0; i < sizeWFSx; i=i+binning){
+        for(uint32_t i = 0; i < sizeWFSx; i = i + binning)
+        {
             float tot = 0.0;
-            for (uint32_t _i = 0; _i < binning; _i++){
-                for (uint32_t j = 0; j < sizeWFSy; j++) {
+            for(uint32_t _i = 0; _i < binning; _i++)
+            {
+                for(uint32_t j = 0; j < sizeWFSy; j++)
+                {
                     uint64_t mpixindex = k * sizeWFSraw +  j * sizeWFSx + i + _i;
                     uint64_t pixindex = j * sizeWFSx + i + _i;
-                    
+
                     // handle different input types, ultimately cast to float
                     switch(WFSatype)
                     {
-                        case _DATATYPE_UINT16: 
-                            tot += wfsin.im->array.UI16[pixindex] * specmask.im->array.UI16[mpixindex];
-                            break;
-                        case _DATATYPE_INT16:
-                            tot += wfsin.im->array.SI16[pixindex] * specmask.im->array.UI16[mpixindex];
-                            break;
-                        case _DATATYPE_FLOAT:
-                            tot += wfsin.im->array.F[pixindex] * specmask.im->array.UI16[mpixindex];
-                            break;
-                        case _DATATYPE_UINT32:
-                            tot += wfsin.im->array.UI32[pixindex] * specmask.im->array.UI16[mpixindex];
-                            break;
-                        default:
-                            printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
-                                __FILE__,
-                                __LINE__);
-                            printf("datatype = %d\n", WFSatype);
-                            exit(0);
-                            break;
+                    case _DATATYPE_UINT16:
+                        tot += wfsin.im->array.UI16[pixindex] * specmask.im->array.UI16[mpixindex];
+                        break;
+                    case _DATATYPE_INT16:
+                        tot += wfsin.im->array.SI16[pixindex] * specmask.im->array.UI16[mpixindex];
+                        break;
+                    case _DATATYPE_FLOAT:
+                        tot += wfsin.im->array.F[pixindex] * specmask.im->array.UI16[mpixindex];
+                        break;
+                    case _DATATYPE_UINT32:
+                        tot += wfsin.im->array.UI32[pixindex] * specmask.im->array.UI16[mpixindex];
+                        break;
+                    default:
+                        printf("ERROR: WFS data type not recognized\n File %s, line %d\n",
+                               __FILE__,
+                               __LINE__);
+                        printf("datatype = %d\n", WFSatype);
+                        exit(0);
+                        break;
                     }
                 }
             }
             wfsout.im->array.F[k * sizeWFSoutx + xpix_index] = tot;
             xpix_index += 1;
         }
-    }  
+    }
     DEBUG_TRACE_FEXIT();
     return RETURN_SUCCESS;
 }
@@ -214,33 +220,33 @@ static errno_t dark_sub(
 )
 {
     uint8_t  darkWFSatype = wfsdark.md->datatype;
-    uint64_t sizeWFS = wfsin.size[0]*wfsin.size[1];
-    
+    uint64_t sizeWFS = wfsin.size[0] * wfsin.size[1];
+
     // dark subtraction
     for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
     {
         switch(darkWFSatype)
-            {
-                case _DATATYPE_UINT16: 
-                    wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.UI16[ii];
-                    break;
-                case _DATATYPE_INT16:
-                    wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.SI16[ii];
-                    break;
-                case _DATATYPE_FLOAT:
-                    wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.F[ii];
-                    break;
-                case _DATATYPE_UINT32:
-                    wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.UI32[ii];
-                    break;
-                default:
-                    printf("ERROR: WFS DARK data type not recognized\n File %s, line %d\n",
-                        __FILE__,
-                        __LINE__);
-                    printf("datatype = %d\n", darkWFSatype);
-                    exit(0);
-                    break;
-            }
+        {
+        case _DATATYPE_UINT16:
+            wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.UI16[ii];
+            break;
+        case _DATATYPE_INT16:
+            wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.SI16[ii];
+            break;
+        case _DATATYPE_FLOAT:
+            wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.F[ii];
+            break;
+        case _DATATYPE_UINT32:
+            wfsout.im->array.F[ii] = wfsin.im->array.F[ii] - wfsdark.im->array.UI32[ii];
+            break;
+        default:
+            printf("ERROR: WFS DARK data type not recognized\n File %s, line %d\n",
+                   __FILE__,
+                   __LINE__);
+            printf("datatype = %d\n", darkWFSatype);
+            exit(0);
+            break;
+        }
     }
 }
 
@@ -253,17 +259,22 @@ static errno_t spec_norm(
     uint32_t sizeWFSx = wfsin.size[0];
     uint32_t numtraces = wfsin.size[1];
 
-    for (uint_fast32_t i = 0; i < sizeWFSx; i++) {
+    for(uint_fast32_t i = 0; i < sizeWFSx; i++)
+    {
         float tot = 0.0;
-        for (j = 0; j < numtraces; j++){
-            tot += wfsin.im->array.F[j*sizeWFSx + i];
+        for(j = 0; j < numtraces; j++)
+        {
+            tot += wfsin.im->array.F[j * sizeWFSx + i];
         }
         float normval = 0.;
-        if (tot > 0){
-            normval = 1./tot;
+        if(tot > 0)
+        {
+            normval = 1. / tot;
         }
-        for (j = 0; j < numtraces; j++) {
-            wfsout.im->array.F[j*sizeWFSx + i] = wfsin.im->array.F[j*sizeWFSx + i]*normval;
+        for(j = 0; j < numtraces; j++)
+        {
+            wfsout.im->array.F[j * sizeWFSx + i] = wfsin.im->array.F[j * sizeWFSx + i] *
+                                                   normval;
         }
     }
 }
@@ -291,7 +302,7 @@ static errno_t compute_function()
     // each z-slice looks like a bar that covers one trace
 
     // create/read images
-    IMGID imgimWFSm; // mapped (extracted spectra) 
+    IMGID imgimWFSm; // mapped (extracted spectra)
     IMGID imgimWFS0; // dark subtracted
     IMGID imgimWFS1; // normalized
     IMGID imgimWFS2; // ref subtracted - this is ultimately the output
@@ -338,8 +349,8 @@ static errno_t compute_function()
     INSERT_STD_PROCINFO_COMPUTEFUNC_LOOPSTART
     {
         // STEP 1: extract spectra -> aolx_imWFSm
-        extract_traces(wfsin,specmask,imgimWFSm,*binning);
-        
+        extract_traces(wfsin, specmask, imgimWFSm, *binning);
+
         // Done and post downstream.
         processinfo_update_output_stream(processinfo, imgimWFSm.ID);
 
@@ -353,7 +364,7 @@ static errno_t compute_function()
                 status_darksub = 1;
             }
         }
-        
+
         imgimWFS0.md->write = 1;
 
         if(status_darksub == 0)
@@ -361,12 +372,12 @@ static errno_t compute_function()
             // no dark subtraction, pass through
             for(uint_fast64_t ii = 0; ii < sizeWFS; ii++)
             {
-                memcpy(imgimWFS0.im->array.F , imgimWFSm.im->array.F , sizeof(float) * sizeWFS);
+                memcpy(imgimWFS0.im->array.F, imgimWFSm.im->array.F, sizeof(float) * sizeWFS);
             }
         }
         else
         {
-            dark_sub(imgimWFSm,imgWFSdark,imgimWFS0); // dark sub to imWFS0
+            dark_sub(imgimWFSm, imgWFSdark, imgimWFS0); // dark sub to imWFS0
         }
         processinfo_update_output_stream(processinfo, imgimWFS0.ID); // post
 
@@ -377,7 +388,7 @@ static errno_t compute_function()
         if(data.fpsptr->parray[fpi_compWFSnormalize].fpflag & FPFLAG_ONOFF)
         {
             status_normalize = 1;
-            spec_norm(imgimWFS0,imgimWFS1);
+            spec_norm(imgimWFS0, imgimWFS1);
         }
         else
         {
@@ -386,7 +397,7 @@ static errno_t compute_function()
                    sizeof(float) * sizeWFS);
         }
         processinfo_update_output_stream(processinfo, imgimWFS1.ID);
-        
+
         // STEP 4: REFERENCE SUBTRACTION
 
         int status_refsub = 0;

@@ -33,8 +33,8 @@ export CACAO_LOOPRUNDIR="${CACAO_LOOPNAME}-rundir"
 
 
 # input WFS stream
-export CACAO_WFSSTREAM="curv_1kdouble"    # Hardware stream, connected to physical camera
-export CACAO_WFSSTREAMSIM="curv_sim" # Simulation camera stream
+export CACAO_WFSSTREAM="dac40_raw"    # Hardware stream, connected to physical camera
+export CACAO_WFSSTREAMSIM="dac40_raw_sim" # Simulation camera stream
 
 # Specify that WFS stream is not raw image, but processed WFS signal
 # If set to ON, this turns off intensity scaling
@@ -86,7 +86,7 @@ export CACAO_FPSPROC_MLAT="OFF"
 
 # Acquire WFS stream
 #
-export CACAO_FPSPROC_ACQUWFS="OFF"
+export CACAO_FPSPROC_ACQUWFS="ON"
 
 
 
@@ -139,4 +139,3 @@ echo "Processing cacaovars file ${cvarf}"
 . ./${cvarf}
 done
 shopt -u nullglob #revert nullglob back to it's normal default state
-

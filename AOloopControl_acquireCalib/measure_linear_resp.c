@@ -1056,7 +1056,7 @@ static errno_t Measure_Linear_Response_Modal(
                     float posval = imgoutC2.im->array.F[(mode * 2) * sizexyout + ii];
                     float negval = imgoutC2.im->array.F[(mode * 2 + 1) * sizexyout + ii];
                     imgmoderespC.im->array.F[ mode * sizexyout + ii ] = (posval - negval) / 2 /
-                    (timing_NBave * (iter+1) * ampl);
+                    (timing_NBave * (iter + 1) * ampl);
 
                 }
 

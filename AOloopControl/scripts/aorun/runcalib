@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+
+
+# Calibration script
+
+# Configuration name
+# 
+export CACAO_CONFWDIR="$1"
+cwd=$(pwd)
+
+if [ ! -d "$1" ]; then
+echo "ERROR: directory does not exist - not a valid conf ?"
+exit
+fi
+
+
+# toggles to true if forcing recompute
+RECOMP=false
+function ftest ()
+{
+outfile="${CACAO_CONFWDIR}/$1.fits"
+if [ ! -f $outfile ]; then
+RECOMP=true
+fi
+if $RECOMP; then
+  true
+else
+ false
+fi
+}
+
+
+
+# Assemble zonal RM 
+# average 4x zonal RMs
+if ftest "zrespM"; then	
+cd ${CACAO_CONFWDIR}
+./mkzRM
+cd $cwd
+fi
+
+# Make DM and WFS masks
+if ftest "dmmask"; then
+cacao-aorun-032-RMmkmask -wfsc0 0.2 -wfsc1 0.2
+fi
+
+
+# Build Zernike Fourier Zonal (ZF) modes
+if ftest "RMmodesDM/modesZF"; then
+cacao-aorun-028-mkZFmodes -c0 0 -c1 32 -c 50 -ea 2.0 -t 1.0 -a 0.3
+fi
+
+# Compute response to ZF modes
+if ftest "RMmodesWFS/RMmodesWFS"; then
+cacao-aorun-034-RMzonal2modal modesZF
+fi
+
+SVDlim="0.2"
+if ftest "CMmodesWFS"; then
+cacao-aorun-045-compCM-byblocks $SVDlim 1
+fi
+
+echo "Stopping/restarting loop processes with new CM ..."
+
+# stopping loop
+echo "1/6 loop OFF"
+cacao-fpsctrl setval mfilt loopON OFF
+
+sleep 1
+# stop loop processes
+echo "2/6 Stop processes"
+cacao-aorun-070-cmval2dm stop
+cacao-aorun-060-mfilt stop
+cacao-aorun-050-wfs2cmval stop
+sleep 3
+
+# upload new calibration
+echo "3/6 Load new CM"
+
+
+cacao-aorun-042-loadCM
+
+
+# start loop processes
+sleep 1
+echo "4/6 Start WFS -> modesWFS"
+cacao-aorun-050-wfs2cmval start
+sleep 1
+echo "5/6 Start mfilt"
+cacao-aorun-060-mfilt start
+sleep 1
+echo "6/6 Start modeDM -> DM"
+cacao-aorun-070-cmval2dm start
+
+
+cacao-aorun-061-setmgains .8
+
+echo "Done"

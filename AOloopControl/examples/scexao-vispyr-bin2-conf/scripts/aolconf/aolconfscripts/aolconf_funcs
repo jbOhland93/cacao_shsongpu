@@ -60,11 +60,11 @@ function logRunningProcessQ
 ##########################################
 # log process
 ##########################################
-function logRunningProcess 
+function logRunningProcess
 {
 	datestr=`date -u +%Y-%m-%d_%H:%M:%S`
 	string=$( printf "%s   %20s   %20s   %s" "${datestr}" "$1" "$2" "$3" )
-	echo "$string" > runproc/$1.runproc 
+	echo "$string" > runproc/$1.runproc
 }
 
 
@@ -78,7 +78,7 @@ function logRunningProcess
 ##########################################
 # arg 1: parameter name
 # arg 2: default value
-# 
+#
 # param value is stored in variable "paramvalue"
 function ConfReadParam {
 file="./conf/param_$1.txt"
@@ -99,7 +99,7 @@ fi
 ##############################################
 # arg 1: status name
 # arg 2: default value
-# 
+#
 # param value is stored in variable "statusvalue"
 function StatReadStat {
 mkdir -p status
@@ -120,7 +120,7 @@ fi
 ##############################################
 # arg 1: parameter name
 # arg 2: default value
-# 
+#
 # param value is stored in variable "instconfvalue"
 function ConfReadInstConf {
 file="./conf/instconf_$1.txt"
@@ -151,7 +151,7 @@ line=$1
 
 
 function getshmimsize {
-	
+
 if [ -f "./loadedSM/$1.kept" ] && [ -f "./loadedSM/$1.imsize" ]; then  # don't re-measure size if unchanged
 cp ./loadedSM/$1.imsize conf/conf_imsize_$1.txt
 else
@@ -208,7 +208,7 @@ str0=$( echo $i|awk '{printf("%03d",$1)}')
 str1=$( echo $i|awk '{printf("%5.3f", $1*0.001)}')
 menuitems1+=( "$str0" "$str1" )
 fi
-done 
+done
 
 cmd=( dialog --default-item "${vali}" --menu "Choose one:" 50 80 100 "${menuitems1[@]}" )
 value1=$("${cmd[@]}" 2>&1 >/dev/tty)
@@ -237,7 +237,7 @@ str0=$( echo $i|awk '{printf("%05d",$1)}')
 str1=$( echo $i|awk '{printf("%7.5f", $1*0.00001)}')
 menuitems1+=( "$str0" "$str1" )
 fi
-done 
+done
 
 cmd=( dialog --default-item "${vali}" --menu "Choose one:" 50 80 100 "${menuitems1[@]}" )
 value1=$("${cmd[@]}" 2>&1 >/dev/tty)
@@ -266,13 +266,10 @@ str0=$( echo $i|awk '{printf("%03d",$1)}')
 str1=$( echo $i|awk '{printf("%5.3f", 1.0-$1*0.001)}')
 menuitems1+=( "$str0" "$str1" )
 fi
-done 
+done
 
 cmd=( dialog --default-item "${vali}" --menu "Choose one:" 50 80 100 "${menuitems1[@]}" )
 value1=$("${cmd[@]}" 2>&1 >/dev/tty)
 value=$( echo $value1 | awk '{printf("%5.3f", 1.0-$1*0.001)}' )
 echo $value
 }
-
-
-

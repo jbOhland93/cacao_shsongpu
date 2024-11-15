@@ -30,7 +30,7 @@ for i in `seq 20 40 240 `;
 str0=$( echo $i|awk '{printf("%04.1f", $1*0.1)}')
 str1=$( echo $i|awk '{printf("%4.1f CPA", $1*0.1)}')
 menuitems+=( "$str0" "$str1" )
-done 
+done
 
 cpamaxdefault="00.2"
 if [ -z "$cpamax" ]; then cpamax=${cpamaxdefault}; else echo "cpamax is set to '$cpamax'"; fi
@@ -58,13 +58,9 @@ file="./conf/param_cpamax.txt"
 echo "$cpamax" > $file
 
 ;; # button 1:
-   1) state="menutop";;  
-   2) state="menuexit";; 
+   1) state="menutop";;
+   2) state="menuexit";;
    255) state="menuexit";;
 esac
 
 fi
-
-
-
-

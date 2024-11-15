@@ -74,9 +74,9 @@ do
     if [ -d "$f" ]
     then
         for ff in $f/*
-        do      
+        do
             #if this is a broken symlink, ignore it
-            if [ -L $ff ] && [ ! -e $ff ] 
+            if [ -L $ff ] && [ ! -e $ff ]
             then
                 continue
             fi

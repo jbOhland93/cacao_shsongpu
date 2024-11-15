@@ -6,24 +6,32 @@
 
 MSdescr="Compute modal response from zonal RM"
 
+
+set +u
+if [ -z ${CACAO_CONFWDIR+x} ]; then
+	CACAO_CONFWDIR="conf"
+fi
+set -u
+
+
 MSextdescr="
 Computes modal response matrix (RM) from zonal RM.
 
 Arg: Zonal response matrix name
-File name is conf/RMmodesDM/<MODESNAME>.fits
+File name is ${CACAO_CONFWDIR}/RMmodesDM/<MODESNAME>.fits
 
-Input: conf/RMmodesWFS/zrespM-H.fits
+Input: ${CACAO_CONFWDIR}/zrespM.fits
 Zonal response matrix, one actuator poke response per slice
 
-Ouput: conf/RMmodesDM/<MODESNAME>.fits
-Computed DM modes, one mode per slice
+Input: ${CACAO_CONFWDIR}/RMmodesDM/<MODESNAME>.fits
+DM modes, one mode per slice
 
-Output: conf/RMmodesWFS/<MODESNAME>.fits
+Output: ${CACAO_CONFWDIR}/RMmodesWFS/<MODESNAME>.fits
 Computed WFS modes, one mode per slice
 
 Upon completion, set RM to output of this sctipt:
-  ln -s $(pwd)/conf/RMmodesDM/RMsyn_modesDM.fits ./conf/RMmodesDM/RMmodesDM.fits
-  ln -s $(pwd)/conf/RMmodesWFS/RMsyn_modesWFS.fits ./conf/RMmodesWFS/RMmodesWFS.fits
+  ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesDM/RMsyn_modesDM.fits ./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits
+  ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesWFS/RMsyn_modesWFS.fits ./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.fits
 
 "
 
@@ -41,7 +49,7 @@ MSarg+=( "DMmodes:string:DM modes cube FITS file" )
 source milk-argparse
 
 DMmodeCname="${inputMSargARRAY[0]}"
-DMmCfname="conf/RMmodesDM/${DMmodeCname}.fits"
+DMmCfname="${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits"
 
 
 checkFile ${DMmCfname}
@@ -55,12 +63,12 @@ cacaomsglog "START"
 
 # Compute WFS response of synthetic modes
 #
-
+mkdir -p ${CACAO_CONFWDIR}/RMmodesWFS
 cacao << EOF
-loadfits "conf/RMmodesWFS/zrespM-H.fits" zrespM
-loadfits "conf/RMmodesDM/${DMmodeCname}.fits" dmC
+loadfits "${CACAO_CONFWDIR}/zrespM.fits" zrespM
+loadfits "${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits" dmC
 cacaocc.generateRMWFS zrespM dmC wfsC
-saveFITS wfsC "conf/RMmodesWFS/${DMmodeCname}.fits"
+saveFITS wfsC "${CACAO_CONFWDIR}/RMmodesWFS/${DMmodeCname}.fits"
 listim
 exitCLI
 EOF
@@ -69,14 +77,14 @@ EOF
 
 echo "Set default to ${DMmodeCname} files"
 
-rm -f ./conf/RMmodesDM/RMmodesDM.fits
-ln -s $(pwd)/conf/RMmodesDM/${DMmodeCname}.fits ./conf/RMmodesDM/RMmodesDM.fits
-echo "ln -s $(pwd)/conf/RMmodesDM/${DMmodeCname}.fits ./conf/RMmodesDM/RMmodesDM.fits"
+rm -f ./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits
+ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits ./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits
+echo "ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesDM/${DMmodeCname}.fits ./${CACAO_CONFWDIR}/RMmodesDM/RMmodesDM.fits"
 cacaomsglog "USING ${DMmodeCname} as RMmodesDM"
 
-rm -f ./conf/RMmodesWFS/RMmodesWFS.fits
-ln -s $(pwd)/conf/RMmodesWFS/${DMmodeCname}.fits ./conf/RMmodesWFS/RMmodesWFS.fits
-echo "ln -s $(pwd)/conf/RMmodesWFS/${DMmodeCname}.fits ./conf/RMmodesWFS/RMmodesWFS.fits"
+rm -f ./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.fits
+ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesWFS/${DMmodeCname}.fits ./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.fits
+echo "ln -s $(pwd)/${CACAO_CONFWDIR}/RMmodesWFS/${DMmodeCname}.fits ./${CACAO_CONFWDIR}/RMmodesWFS/RMmodesWFS.fits"
 cacaomsglog "USING ${DMmodeCname} as RMmodesWFS"
 
 

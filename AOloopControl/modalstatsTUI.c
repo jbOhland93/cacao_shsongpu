@@ -107,7 +107,7 @@ static int modalstats_TUI_process_user_key(
 
     case KEY_UP:
         mstatstruct->modeindex --;
-        if(mstatstruct->modeindex<0)
+        if(mstatstruct->modeindex < 0)
         {
             mstatstruct->modeindex = 0;
         }
@@ -115,15 +115,15 @@ static int modalstats_TUI_process_user_key(
 
     case KEY_DOWN:
         mstatstruct->modeindex ++;
-        if(mstatstruct->modeindex > mstatstruct->NBmode-1)
+        if(mstatstruct->modeindex > mstatstruct->NBmode - 1)
         {
-            mstatstruct->modeindex = mstatstruct->NBmode-1;
+            mstatstruct->modeindex = mstatstruct->NBmode - 1;
         }
         break;
 
     case KEY_PPAGE:
         mstatstruct->modeindex -= 10;
-        if(mstatstruct->modeindex<0)
+        if(mstatstruct->modeindex < 0)
         {
             mstatstruct->modeindex = 0;
         }
@@ -131,9 +131,9 @@ static int modalstats_TUI_process_user_key(
 
     case KEY_NPAGE:
         mstatstruct->modeindex += 10;
-        if(mstatstruct->modeindex > mstatstruct->NBmode-1)
+        if(mstatstruct->modeindex > mstatstruct->NBmode - 1)
         {
-            mstatstruct->modeindex = mstatstruct->NBmode-1;
+            mstatstruct->modeindex = mstatstruct->NBmode - 1;
         }
         break;
 
@@ -178,8 +178,8 @@ inline static void printfixedlen(
     MODALSTATSTRUCT *mstatstruct
 )
 {
-    long tmpl =  (long) (mstatstruct->pscale*val);
-    if( (tmpl < 100000) && (tmpl > -100000) )
+    long tmpl = (long)(mstatstruct->pscale * val);
+    if((tmpl < 100000) && (tmpl > -100000))
     {
         TUI_printfw("%+5ld", tmpl);
     }
@@ -197,8 +197,8 @@ inline static void printfixedlen_unsigned(
     MODALSTATSTRUCT *mstatstruct
 )
 {
-    long tmpl =  (long) (mstatstruct->pscale*val);
-    if( (tmpl < 100000) && (tmpl > -100000) )
+    long tmpl = (long)(mstatstruct->pscale * val);
+    if((tmpl < 100000) && (tmpl > -100000))
     {
         TUI_printfw("%5ld", tmpl);
     }
@@ -238,7 +238,7 @@ errno_t AOloopControl_modalstatsTUI(
     IMGID imgDMmodes;
     {
         char name[STRINGMAXLEN_STREAMNAME];
-        WRITE_IMAGENAME(name, "aol%d_DMmodes", loopindex);
+        WRITE_IMAGENAME(name, "aol%d_CMmodesDM", loopindex);
         imgDMmodes = mkIMGID_from_name(name);
         resolveIMGID(&imgDMmodes, ERRMODE_ABORT);
         NBmode = imgDMmodes.md->size[2];
@@ -383,14 +383,14 @@ errno_t AOloopControl_modalstatsTUI(
 
 
 
-    double *WFSave = (double*) malloc(sizeof(double)*mstatstruct.NBmode);
-    double *WFSrms = (double*) malloc(sizeof(double)*mstatstruct.NBmode);
+    double *WFSave = (double *) malloc(sizeof(double) * mstatstruct.NBmode);
+    double *WFSrms = (double *) malloc(sizeof(double) * mstatstruct.NBmode);
 
-    double *DMave = (double*) malloc(sizeof(double)*mstatstruct.NBmode);
-    double *DMrms = (double*) malloc(sizeof(double)*mstatstruct.NBmode);
+    double *DMave = (double *) malloc(sizeof(double) * mstatstruct.NBmode);
+    double *DMrms = (double *) malloc(sizeof(double) * mstatstruct.NBmode);
 
-    double *OLave = (double*) malloc(sizeof(double)*mstatstruct.NBmode);
-    double *OLrms = (double*) malloc(sizeof(double)*mstatstruct.NBmode);
+    double *OLave = (double *) malloc(sizeof(double) * mstatstruct.NBmode);
+    double *OLrms = (double *) malloc(sizeof(double) * mstatstruct.NBmode);
 
 
 
@@ -399,18 +399,20 @@ errno_t AOloopControl_modalstatsTUI(
 
 
     // Compute DMmodes norm
-    double *DMmodenorm = (double*) malloc(sizeof(double)*NBmode);
-    for(uint32_t mi=0; mi<NBmode; mi++)
+    double *DMmodenorm = (double *) malloc(sizeof(double) * NBmode);
+    for(uint32_t mi = 0; mi < NBmode; mi++)
     {
         double val = 0.0;
         double valcnt = 0.0;
-        for(uint64_t ii=0; ii<imgDMmodes.md->size[0]*imgDMmodes.md->size[1]; ii++)
+        for(uint64_t ii = 0; ii < imgDMmodes.md->size[0]*imgDMmodes.md->size[1]; ii++)
         {
-            val += imgDMmodes.im->array.F[mi*imgDMmodes.md->size[0]*imgDMmodes.md->size[1] + ii]
-                   * imgDMmodes.im->array.F[mi*imgDMmodes.md->size[0]*imgDMmodes.md->size[1] + ii];
+            val += imgDMmodes.im->array.F[mi * imgDMmodes.md->size[0] *
+                                             imgDMmodes.md->size[1] + ii]
+                   * imgDMmodes.im->array.F[mi * imgDMmodes.md->size[0] * imgDMmodes.md->size[1] +
+                                               ii];
             valcnt += 1.0;
         }
-        DMmodenorm[mi] = sqrt(val/valcnt);
+        DMmodenorm[mi] = sqrt(val / valcnt);
     }
 
 
@@ -443,7 +445,7 @@ errno_t AOloopControl_modalstatsTUI(
     long loopcnt = 0;
 
     // min / max of mode index to be displayed
-    int mirange = (wrow-5);
+    int mirange = (wrow - 5);
     int mimin = 0;
     int mimax = mirange;
     long mioffset = 0;
@@ -475,12 +477,12 @@ errno_t AOloopControl_modalstatsTUI(
 
         // update mimin and mimax
 
-        if(mimax>mstatstruct.NBmode)
+        if(mimax > mstatstruct.NBmode)
         {
             mimax = mstatstruct.NBmode;
         }
 
-        if(mstatstruct.modeindex > mimax-10)
+        if(mstatstruct.modeindex > mimax - 10)
         {
             // if within 10 lines of bottom
             mioffset ++;
@@ -494,12 +496,12 @@ errno_t AOloopControl_modalstatsTUI(
             }
         }
 
-        if(mimax>mstatstruct.NBmode)
+        if(mimax > mstatstruct.NBmode)
         {
             mimax = mstatstruct.NBmode;
         }
 
-        if(mstatstruct.modeindex < mimin+10)
+        if(mstatstruct.modeindex < mimin + 10)
         {
             // if within 10 lines of top
             mioffset --;
@@ -513,7 +515,7 @@ errno_t AOloopControl_modalstatsTUI(
             }
         }
 
-        if(mimax>mstatstruct.NBmode)
+        if(mimax > mstatstruct.NBmode)
         {
             mimax = mstatstruct.NBmode;
         }
@@ -541,13 +543,13 @@ errno_t AOloopControl_modalstatsTUI(
 
 
         TUI_printfw("MODE [ gain  mult  lim ]           WFS       |          DM       |");
-        if ( MODALTUI_DMfilt )
+        if(MODALTUI_DMfilt)
         {
             TUI_printfw("    DMf       |");
         }
         TUI_printfw("          OL       | LIMTRUC WFS/OL  DM/OL");
 
-        if ( MODALTUI_PF )
+        if(MODALTUI_PF)
         {
             TUI_printfw(" [ mPFmix ] ");
         }
@@ -565,22 +567,22 @@ errno_t AOloopControl_modalstatsTUI(
 
         if(buffindex != buffindex0)
         {
-            for(int32_t mi=mimin; mi<mimax; mi++)
+            for(int32_t mi = mimin; mi < mimax; mi++)
             {
                 WFSave[mi] = imgmvalWFSave.im->array.F[mi];
                 WFSrms[mi] = imgmvalWFSrms.im->array.F[mi];
                 // remove DC from rms
-                WFSrms[mi] = sqrt ( WFSrms[mi]*WFSrms[mi] - WFSave[mi]*WFSave[mi]);
+                WFSrms[mi] = sqrt(WFSrms[mi] * WFSrms[mi] - WFSave[mi] * WFSave[mi]);
 
                 DMave[mi] = imgmvalDMave.im->array.F[mi];
                 DMrms[mi] = imgmvalDMrms.im->array.F[mi];
                 // remove DC from rms
-                DMrms[mi] = sqrt ( DMrms[mi]*DMrms[mi] - DMave[mi]*DMave[mi]);
+                DMrms[mi] = sqrt(DMrms[mi] * DMrms[mi] - DMave[mi] * DMave[mi]);
 
                 OLave[mi] = imgmvalOLave.im->array.F[mi];
                 OLrms[mi] = imgmvalOLrms.im->array.F[mi];
                 // remove DC from rms
-                OLrms[mi] = sqrt ( OLrms[mi]*OLrms[mi] - OLave[mi]*OLave[mi]);
+                OLrms[mi] = sqrt(OLrms[mi] * OLrms[mi] - OLave[mi] * OLave[mi]);
             }
 
 
@@ -594,21 +596,22 @@ errno_t AOloopControl_modalstatsTUI(
 
 
 
-        for(mi=mimin; mi<mimax; mi++)
+        for(mi = mimin; mi < mimax; mi++)
         {
             if(mi == mstatstruct.modeindex)
             {
                 screenprint_setbold();
             }
 
-            TUI_printfw("%4ld [%5.3f %5.3f ",
+            TUI_printfw("%4ld [%5.3f %5.3f %8.6f]   ",
                         mi,
                         imgmgain.im->array.F[mi],
-                        imgmmult.im->array.F[mi]
+                        imgmmult.im->array.F[mi],
+                        imgmlimit.im->array.F[mi]
                        );
 
-            printfixedlen_unsigned(imgmlimit.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
-            TUI_printfw("]   ");
+            //printfixedlen_unsigned(imgmlimit.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
+            //TUI_printfw("]   ");
 
 
 
@@ -657,14 +660,15 @@ errno_t AOloopControl_modalstatsTUI(
 
 
 
-            if ( MODALTUI_DMfilt )
+            if(MODALTUI_DMfilt)
             {
                 // DMf telemetry
                 //
                 printfixedlen(imgmodevalDMf.im->array.F[mi]*DMmodenorm[mi], &mstatstruct);
                 TUI_printfw(" ");
 
-                printfixedlen((imgmodevalDMf.im->array.F[mi] - imgmodevalDM.im->array.F[mi])*DMmodenorm[mi], &mstatstruct);
+                printfixedlen((imgmodevalDMf.im->array.F[mi] - imgmodevalDM.im->array.F[mi])
+                              *DMmodenorm[mi], &mstatstruct);
                 TUI_printfw(" ");
 
                 TUI_printfw(" | ");
@@ -746,7 +750,7 @@ errno_t AOloopControl_modalstatsTUI(
             screenprint_unsetcolor(color);
 
 
-            if ( MODALTUI_PF )
+            if(MODALTUI_PF)
             {
 
                 // Predictive Filter
@@ -759,10 +763,10 @@ errno_t AOloopControl_modalstatsTUI(
                             imgmvalPFresrms.im->array.F[mi]
                            );
                 TUI_printfw("  %5.3f ",
-                            imgmvalPFresrms.im->array.F[mi]/imgmvalWFSrms.im->array.F[mi]
+                            imgmvalPFresrms.im->array.F[mi] / imgmvalWFSrms.im->array.F[mi]
                            );
                 TUI_printfw("  %8.6f ",
-                            imgmvalPFresrms.im->array.F[mi]/imgmvalOLrms.im->array.F[mi]
+                            imgmvalPFresrms.im->array.F[mi] / imgmvalOLrms.im->array.F[mi]
                            );
             }
 

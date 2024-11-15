@@ -74,4 +74,3 @@ sendFPScmd "setval mapWFS-${CACAO_LOOPNUMBER}.procinfo.triggersname ${CACAO_WFSS
 
 rm -f $MILK_SHM_DIR/aol${CACAO_LOOPNUMBER}_wfsim.im.shm
 sendFPScmd "setval mapWFS-${CACAO_LOOPNUMBER}.wfsout aol${CACAO_LOOPNUMBER}_wfsim"
-

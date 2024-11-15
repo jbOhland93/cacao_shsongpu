@@ -529,7 +529,7 @@ static errno_t compute_function()
         if(data.fpsptr->parray[fpi_turbZERO].fpflag & FPFLAG_ONOFF)
         {
 
-            for(uint64_t ii = 0; ii < xsize *ysize; ii++)
+            for(uint64_t ii = 0; ii < xsize * ysize; ii++)
             {
                 turbimarray[ii] = 0.0;
             }
@@ -634,14 +634,15 @@ static errno_t compute_function()
                 }
             }
             double total2 = 0.0;
-            for(uint64_t ii = 0; ii < xsize *ysize; ii++)
+            for(uint64_t ii = 0; ii < xsize * ysize; ii++)
             {
                 turbimarray[ii] -= total / (xsize * ysize);
                 total2 += turbimarray[ii] * turbimarray[ii];
             }
             double RMSval = sqrt(total2 / (xsize * ysize));
 
-            processinfo_WriteMessage_fmt(processinfo, "pht %.3lf s (+ %.0f us) RMS %.3f", phystime, 1e6 * dt, RMSval);
+            processinfo_WriteMessage_fmt(processinfo, "pht %.3lf s (+ %.0f us) RMS %.3f",
+                                         phystime, 1e6 * dt, RMSval);
 
             // tweak amplcoeff to match desired RMS
             // large discrepancy leads to large correction

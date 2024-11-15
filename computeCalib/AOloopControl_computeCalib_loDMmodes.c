@@ -177,7 +177,7 @@ imageID AOloopControl_computeCalib_mkloDMmodes(const char *ID_name,
         linopt_imtools_makeCPAmodes(&imgoutm,
                                     msizex,
                                     0.0,
-                                    1.5*CPAmax,
+                                    1.5 * CPAmax,
                                     CPAmax,
                                     deltaCPA,
                                     0.5 * msizex,
@@ -187,7 +187,7 @@ imageID AOloopControl_computeCalib_mkloDMmodes(const char *ID_name,
                                     imgCPAmask,
                                     0.0,
                                     0.0
-                                    );
+                                   );
     }
 
     ID0    = image_ID("CPAmodes");

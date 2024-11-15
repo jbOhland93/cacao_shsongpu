@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+
+# This script uses milk-argparse
+# See template milk-scriptexample in module milk_module_example for template and instructions
+
+# script 1-line description
+MSdescr="Select control matrix"
+
+
+set +u
+if [ -z ${CACAO_CONFWDIR+x} ]; then
+	CACAO_CONFWDIR="conf"
+fi
+set -u
+
+
+MSextdescr="Select control matrix and load it
+
+Use CACAO_CONFWDIR to select directory
+
+Copies dmmask<TAG>, wfsmask<TAG>, CMmodesWFS<TAG>, CMmodesDM<TAG> from:
+CACAO_CONFWDIR/
+to:
+conf/
+
+Load to shared memory
+
+"
+source milk-script-std-config
+source cacao-check-cacaovars
+source cacaofuncs-log
+
+
+# SCRIPT OPTIONS
+# syntax: "short:long:functioncall:args[types]:description"
+
+MSopt+=( "t:tag:setfiletag:tag[string]:Set file tag, empty by default, gets prepended with a period [.]" )
+filetag=""
+function setfiletag()
+{
+	filetag=".$1"
+}
+
+
+source milk-argparse
+
+
+# Calibration files / streams
+declare -a calarr=("CMmodesDM" "CMmodesWFS" "dmmask" "wfsmask" "zrespM")
+
+
+# construct filenames: DESTINATION
+#CMDMfnameDEST="conf/CMmodesDM.fits"
+#CMWFSfnameDEST="conf/CMmodesWFS.fits"
+#dmmaskfnameDEST="conf/dmmask.fits"
+#wfsmaskfnameDEST="conf/wfsmask.fits"
+
+# SOURCE
+#CMDMfnameSRC="${CACAO_CONFWDIR}/CMmodesDM${filetag}.fits"
+#CMWFSfnameSRC="${CACAO_CONFWDIR}/CMmodesWFS${filetag}.fits"
+#dmmaskfnameSRC="${CACAO_CONFWDIR}/dmmask${filetag}.fits"
+#wfsmaskfnameSRC="${CACAO_CONFWDIR}/wfsmask${filetag}.fits"
+
+EXITSTATUS=0
+
+#checkFile ${CMDMfnameSRC}
+#checkFile ${CMWFSfnameSRC}
+
+
+for calname in "${calarr[@]}"
+do
+fnameSRC="${CACAO_CONFWDIR}/${calname}${filetag}.fits"
+fnameDEST="conf/${calname}.fits"
+checkFile ${fnameSRC}
+checkFile ${fnameSRC}
+done
+
+
+
+
+if [ ${EXITSTATUS} = 1 ]; then
+	echo "missing file - cannot proceed"
+	exit 1
+fi
+
+
+
+
+# Checking FPS and turning off runproc
+
+FPScheckOK="OK"
+checkFPSON CACAO_FPSPROC_MVMGPU_CMODEVAL2DM ${CACAO_FPSPROC_MVMGPU_CMODEVAL2DM}
+if [ ${FPScheckOK} == "OK" ]; then
+	sendFPScmd "runstop mvalC2dm-${CACAO_LOOPNUMBER}"
+fi
+
+FPScheckOK="OK"
+checkFPSON CACAO_FPSPROC_MODALFILTERING ${CACAO_FPSPROC_MODALFILTERING}
+if [ ${FPScheckOK} == "OK" ]; then
+	sendFPScmd "runstop mfilt-${CACAO_LOOPNUMBER}"
+fi
+
+
+FPScheckOK="OK"
+checkFPSON CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL ${CACAO_FPSPROC_MVMGPU_WFS2CMODEVAL}
+if [ ${FPScheckOK} == "OK" ]; then
+	sendFPScmd "runstop wfs2cmodeval-${CACAO_LOOPNUMBER}"
+fi
+
+
+
+
+
+
+
+
+if [[ "${CACAO_CONFWDIR}" == "conf" ]]; then
+echo "Adopting existing conf"
+else
+echo "Adopting external conf: Updating files"
+
+
+for calname in "${calarr[@]}"
+do
+fnameSRC="${CACAO_CONFWDIR}/${calname}${filetag}.fits"
+fnameDEST="conf/${calname}.fits"
+
+echo "lininking ${PWD}/${fnameSRC} as ${fnameDEST}"
+ln -sf ${PWD}/${fnameSRC} ${fnameDEST}
+done
+
+
+#echo "lininking ${PWD}/${CMDMfnameSRC} as ${CMDMfnameDEST}"
+#ln -sf ${PWD}/${CMDMfnameSRC} ${CMDMfnameDEST}
+
+#echo "linking ${PWD}/${CMWFSfnameSRC} as ${CMWFSfnameDEST}"
+#ln -sf ${PWD}/${CMWFSfnameSRC} ${CMWFSfnameDEST}
+
+#echo "linking ${PWD}/${dmmaskfnameSRC} as ${dmmaskfnameDEST}"
+#ln -sf ${PWD}/${dmmaskfnameSRC} ${dmmaskfnameDEST}
+
+#echo "linking ${PWD}/${wfsmaskfnameSRC} as ${wfsmaskfnameDEST}"
+#ln -sf ${PWD}/${wfsmaskfnameSRC} ${wfsmaskfnameDEST}
+fi
+
+
+# legacy
+#rm -f /milk/shm/aol${CACAO_LOOPNUMBER}_DMmodes.im.shm
+#rm -f /milk/shm/aol${CACAO_LOOPNUMBER}_modesWFS.im.shm
+#milk-FITS2shm ${CMDMfnameSRC} aol${CACAO_LOOPNUMBER}_DMmodes
+#milk-FITS2shm ${CMWFSfnameSRC} aol${CACAO_LOOPNUMBER}_modesWFS
+
+CACAO_CONFWDIR="conf" # force update
+for calname in "${calarr[@]}"
+do
+cacao-calib-streamupdate ${calname}
+done
+
+#cacao-calib-streamupdate CMmodesDM
+#cacao-calib-streamupdate CMmodesWFS
+#cacao-calib-streamupdate dmmask
+#cacao-calib-streamupdate wfsmask

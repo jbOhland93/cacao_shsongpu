@@ -167,40 +167,41 @@ static errno_t compute_function()
     {
 
         // allocate nearest pixels array
-        double *npix_dist2 = (double*) malloc(sizeof(double) * xysize);
-        double *npix_coeff = (double*) malloc(sizeof(double) * xysize);
-        long   *npix_index = (long*) malloc(sizeof(long)*xysize);
+        double *npix_dist2 = (double *) malloc(sizeof(double) * xysize);
+        double *npix_coeff = (double *) malloc(sizeof(double) * xysize);
+        long   *npix_index = (long *) malloc(sizeof(long) * xysize);
 
         for(uint32_t ii = 0; ii < xsize; ii++)
         {
             for(uint32_t jj = 0; jj < xsize; jj++)
             {
-                if(imgmask.im->array.F[jj*xsize+ii] > 0.5)
+                if(imgmask.im->array.F[jj * xsize + ii] > 0.5)
                 {
                     // in mask -> copy pixel value to output
-                    for(uint32_t mi=0; mi<NBmodes; mi++)
+                    for(uint32_t mi = 0; mi < NBmodes; mi++)
                     {
-                        imgoutmoudeC.im->array.F[xysize*mi + jj*xsize + ii] = imginmodeC.im->array.F[xysize*mi + jj*xsize + ii];
+                        imgoutmoudeC.im->array.F[xysize * mi + jj * xsize + ii] =
+                        imginmodeC.im->array.F[xysize * mi + jj * xsize + ii];
                     }
                 }
-                else if (imgextmask.im->array.F[jj*xsize+ii] > 0.5)
+                else if(imgextmask.im->array.F[jj * xsize + ii] > 0.5)
                 {
                     // pixel is in extmask, but not in mask -> run extrapolation
 
                     // find nearest active pixel
                     float nearest_dist2 = xysize;
 
-                    for(uint32_t ii1=0; ii1<xsize; ii1++)
+                    for(uint32_t ii1 = 0; ii1 < xsize; ii1++)
                     {
-                        for(uint32_t jj1=0; jj1<ysize; jj1++)
+                        for(uint32_t jj1 = 0; jj1 < ysize; jj1++)
                         {
-                            if(imgmask.im->array.F[jj1*xsize+ii1] > 0.5)
+                            if(imgmask.im->array.F[jj1 * xsize + ii1] > 0.5)
                             {
-                                float dx = 1.0*ii - ii1;
-                                float dy = 1.0*jj - jj1;
-                                float dr2 = dx*dx + dy*dy;
+                                float dx = 1.0 * ii - ii1;
+                                float dy = 1.0 * jj - jj1;
+                                float dr2 = dx * dx + dy * dy;
 
-                                if( dr2 < nearest_dist2 )
+                                if(dr2 < nearest_dist2)
                                 {
                                     nearest_dist2 = dr2;
                                 }
@@ -209,7 +210,7 @@ static errno_t compute_function()
                     }
 
                     // Kernel radius
-                    int kradint = (int) (sqrt(nearest_dist2) + 3.0);
+                    int kradint = (int)(sqrt(nearest_dist2) + 3.0);
 
                     int iimin = ii - kradint;
                     if(iimin < 0)
@@ -238,19 +239,19 @@ static errno_t compute_function()
                     long npixcnt = 0;
                     double coefftotal = 0.0;
                     double alpha1 = 1.0 / (*edgeapo * nearest_dist2);
-                    for(int ii1=iimin; ii1<iimax; ii1++)
+                    for(int ii1 = iimin; ii1 < iimax; ii1++)
                     {
-                        for(int jj1=jjmin; jj1<jjmax; jj1++)
+                        for(int jj1 = jjmin; jj1 < jjmax; jj1++)
                         {
-                            float dx = 1.0*ii - ii1;
-                            float dy = 1.0*jj - jj1;
-                            double dr2 = dx*dx + dy*dy;
+                            float dx = 1.0 * ii - ii1;
+                            float dy = 1.0 * jj - jj1;
+                            double dr2 = dx * dx + dy * dy;
 
                             //if(dr2 < nearest_dist2 + 0.2) // only consider nearest pixels
                             //{
                             npix_dist2[npixcnt] = dr2;
-                            npix_index[npixcnt] = jj1*xsize + ii1;
-                            npix_coeff[npixcnt] = exp(-alpha1*dr2);
+                            npix_index[npixcnt] = jj1 * xsize + ii1;
+                            npix_coeff[npixcnt] = exp(-alpha1 * dr2);
                             coefftotal += npix_coeff[npixcnt];
                             npixcnt ++;
                             //}
@@ -260,14 +261,14 @@ static errno_t compute_function()
 
                     // nearest pixel
                     //
-                    for(uint32_t mi=0; mi<NBmodes; mi++)
+                    for(uint32_t mi = 0; mi < NBmodes; mi++)
                     {
-                        for(long npixi=0; npixi < npixcnt; npixi++)
+                        for(long npixi = 0; npixi < npixcnt; npixi++)
                         {
-                            imgoutmoudeC.im->array.F[xysize*mi + jj*xsize + ii] +=
-                                imginmodeC.im->array.F[xysize*mi + npix_index[npixi]] * npix_coeff[npixi];
+                            imgoutmoudeC.im->array.F[xysize * mi + jj * xsize + ii] +=
+                                imginmodeC.im->array.F[xysize * mi + npix_index[npixi]] * npix_coeff[npixi];
                         }
-                        imgoutmoudeC.im->array.F[xysize*mi + jj*xsize + ii] /= coefftotal;
+                        imgoutmoudeC.im->array.F[xysize * mi + jj * xsize + ii] /= coefftotal;
                     }
 
                 }
