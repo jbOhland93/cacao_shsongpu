@@ -3,6 +3,7 @@
 
 #include "../util/Pupil.hpp"
 #include "../util/ImageHandler2D.hpp"
+#include <stdexcept>
 #include <errno.h>
 
 // A class for rearranging 1D samples into a pupil of valid fields

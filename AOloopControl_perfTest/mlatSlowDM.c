@@ -20,10 +20,10 @@ static int cmdindex;
 
 // Local variables pointers
 static char *dmstream;
-long         fpi_dmstream;
+long         fpi_dmstream_s;
 
 static char *wfsstream;
-long         fpi_wfsstream;
+long         fpi_wfsstream_s;
 
 static int64_t *skipMFramerate;
 long            fpi_skipMFramerate;
@@ -38,7 +38,7 @@ static uint32_t *framesPerPoke;
 long             fpi_framesPerPoke;
 
 static int64_t *saveraw;
-long            fpi_saveraw;
+long            fpi_saveraw_s;
 
 // Poke pattern settings
 static int32_t *pokePatternType;
@@ -64,7 +64,7 @@ long             fpi_customResponseSliceIdx;
 
 // Outputs
 static float *framerateHz;
-long          fpi_framerateHz;
+long          fpi_framerateHz_s;
 
 static float *delayfr;
 long          fpi_delayfr;
@@ -79,7 +79,7 @@ static float *risetimeus;
 long          fpi_risetimeus;
 
 static float *latencyfr;
-long          fpi_latencyfr;
+long          fpi_latencyfr_s;
 
 static float *latencyus;
 long          fpi_latencyus;
@@ -98,7 +98,7 @@ static CLICMDARGDEF farg[] = {{
         "null",
         CLIARG_VISIBLE_DEFAULT,
         (void **) &dmstream,
-        &fpi_dmstream
+        &fpi_dmstream_s
     },
     {
         CLIARG_STREAM,
@@ -107,7 +107,7 @@ static CLICMDARGDEF farg[] = {{
         "null",
         CLIARG_VISIBLE_DEFAULT,
         (void **) &wfsstream,
-        &fpi_wfsstream
+        &fpi_wfsstream_s
     },
     {
         CLIARG_ONOFF,
@@ -215,7 +215,7 @@ static CLICMDARGDEF farg[] = {{
         "0",
         CLIARG_HIDDEN_DEFAULT,
         (void **) &saveraw,
-        &fpi_saveraw
+        &fpi_saveraw_s
     },
     {
         CLIARG_FLOAT32,
@@ -224,7 +224,7 @@ static CLICMDARGDEF farg[] = {{
         "0",
         CLIARG_OUTPUT_DEFAULT,
         (void **) &framerateHz,
-        &fpi_framerateHz
+        &fpi_framerateHz_s
     },
     {
         CLIARG_FLOAT32,
@@ -251,7 +251,7 @@ static CLICMDARGDEF farg[] = {{
         "0",
         CLIARG_OUTPUT_DEFAULT,
         (void **) &latencyfr,
-        &fpi_latencyfr
+        &fpi_latencyfr_s
     },
     {
         CLIARG_FLOAT32,
@@ -312,12 +312,12 @@ static errno_t customCONFsetup()
 {
     if(data.fpsptr != NULL)
     {
-        data.fpsptr->parray[fpi_dmstream].fpflag |=
+        data.fpsptr->parray[fpi_dmstream_s].fpflag |=
             FPFLAG_STREAM_RUN_REQUIRED | FPFLAG_CHECKSTREAM;
-        data.fpsptr->parray[fpi_wfsstream].fpflag |=
+        data.fpsptr->parray[fpi_wfsstream_s].fpflag |=
             FPFLAG_STREAM_RUN_REQUIRED | FPFLAG_CHECKSTREAM;
 
-        data.fpsptr->parray[fpi_saveraw].fpflag |= FPFLAG_WRITERUN;
+        data.fpsptr->parray[fpi_saveraw_s].fpflag |= FPFLAG_WRITERUN;
     }
 
     return RETURN_SUCCESS;

@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 #include <limits>
+#include <stdexcept>
 
 #define spImHandler2D(type) std::shared_ptr<ImageHandler2D<type>>
 #define newImHandler2DFrmIm(type, name, image) ImageHandler2D<type>::newHandler2DfrmImage(name, image)

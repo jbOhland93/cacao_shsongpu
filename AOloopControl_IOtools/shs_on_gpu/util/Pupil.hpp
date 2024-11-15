@@ -1,6 +1,7 @@
 #ifndef PUPIL_HPP
 #define PUPIL_HPP
 #include <memory>
+#include <stdexcept>
 
 #define spPupil std::shared_ptr<Pupil>
 

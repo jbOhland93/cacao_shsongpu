@@ -6,6 +6,7 @@
 #define ONEDGAUSSIANFIT_HPP
 
 #include <memory>
+#include <stdexcept>
 
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>

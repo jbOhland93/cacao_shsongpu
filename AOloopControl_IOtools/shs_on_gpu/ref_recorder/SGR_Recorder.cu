@@ -276,13 +276,11 @@ errno_t SGR_Recorder::evaluateRecBuffers(
             for (uint32_t iy = 0; iy < mGridSize.mY; iy++)
             {
 
-                float stdDvX = IHstdDvP->read(ix, iy);
-                float stdDvY = IHstdDvP->read(ix+mGridSize.mX, iy);
-                float stdDvXY = sqrt(stdDvX*stdDvX+stdDvY*stdDvY);
+                stdDvX = IHstdDvP->read(ix, iy);
+                stdDvY = IHstdDvP->read(ix+mGridSize.mX, iy);
+                stdDvXY = sqrt(stdDvX*stdDvX+stdDvY*stdDvY);
 
-                float relInt = IHavgI->read(ix, iy) / maxI;
-
-                if (stdDvXY <= pxPrecision && relInt >= minRelIntensity)
+                if (stdDvXY <= pxPrecision && IHavgI->read(ix, iy) / maxI >= minRelIntensity)
                     IHspotMask->write(1, ix, iy);
                 else
                     IHspotMask->write(0, ix, iy);
