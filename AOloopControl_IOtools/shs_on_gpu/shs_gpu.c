@@ -354,7 +354,7 @@ static errno_t compute_function()
     char loopPrefix[(int)((
         3                           // "aol"
         +ceil(log10(*loopnumber))   // loopnumber
-        //+1                          // "_"
+        +1                          // "_"
         // +lnLen                      // loopname
         +fpLen                      // function prefix
         )*sizeof(char))];
