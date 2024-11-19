@@ -84,7 +84,7 @@ errno_t SGE_Reshaper::reshapeDo()
             readBuf,
             mp_pupil->get2DarraySize(),
             writeBuf,
-            NAN);
+            0.0f);
         // Go to next frame
         readBuf += mp_IHinput->mWidth;
         writeBuf += mp_pupil->get2DarraySize();
