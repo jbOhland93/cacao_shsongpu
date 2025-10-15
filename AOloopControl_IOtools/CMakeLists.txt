@@ -4,13 +4,6 @@ set(SRCNAME "AOloopControl_IOtools")
 message("")
 message(" SRCNAME = ${SRCNAME} -> LIBNAME = ${LIBNAME}")
 
-#if(USE_CUDA)
-#find_package(CUDA 9.0 REQUIRED)
-#message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
-#message("---- CUDA_INCLUDE_DIRS = ${CUDA_INCLUDE_DIRS}")
-#message("---- CUDA_LIBRARIES    = ${CUDA_LIBRARIES}" )
-#target_compile_options(${LIBNAME} PUBLIC -DHAVE_CUDA)
-#target_link_libraries(${LIBNAME} PUBLIC ${CUDA_LIBRARIES})
 
 set(SOURCEFILES
 	${SRCNAME}.c
@@ -145,6 +138,22 @@ target_include_directories(${LIBNAME} PUBLIC
 )
 
 target_link_libraries(${LIBNAME} PRIVATE ${LINKLIBS})
+
+#if(USE_CUDA)
+#find_package(CUDA 9.0 REQUIRED)
+#message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
+#message("---- CUDA_INCLUDE_DIRS = ${CUDA_INCLUDE_DIRS}")
+#message("---- CUDA_LIBRARIES    = ${CUDA_LIBRARIES}" )
+#target_compile_options(${LIBNAME} PUBLIC -DHAVE_CUDA)
+#target_link_libraries(${LIBNAME} PUBLIC ${CUDA_LIBRARIES})
+#endif(USE_CUDA)
+
+if(USE_CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    target_compile_definitions(${LIBNAME} PUBLIC HAVE_CUDA)
+    target_include_directories(${LIBNAME} PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+    target_link_libraries(${LIBNAME} PUBLIC CUDA::cudart CUDA::cublas)
+endif()
 
 install(TARGETS ${LIBNAME} DESTINATION lib)
 install(FILES ${INCLUDEFILES} DESTINATION include/${SRCNAME})

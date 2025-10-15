@@ -4,6 +4,7 @@
 #ifndef IMAGEHANDLERBASE_HPP
 #define IMAGEHANDLERBASE_HPP
 
+#include <cuda_runtime_api.h>
 #include <string>
 #include <cstring>
 #include <stdexcept>

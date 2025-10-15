@@ -67,6 +67,13 @@ project(lib_${LIBNAME}_project)
 #
 add_library(${LIBNAME} SHARED ${SRCNAME}.c ${SOURCEFILES})
 
+if(USE_CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    target_compile_definitions(${LIBNAME} PUBLIC HAVE_CUDA)
+    target_include_directories(${LIBNAME} PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+endif()
+
+
 target_link_libraries(${LIBNAME} PUBLIC CLIcore milkstatistic cacaoAOloopControl)
 
 install(TARGETS ${LIBNAME} DESTINATION lib)
