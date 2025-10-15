@@ -4,14 +4,23 @@ set(SRCNAME "AOloopControl_IOtools")
 message("")
 message(" SRCNAME = ${SRCNAME} -> LIBNAME = ${LIBNAME}")
 
+#if(USE_CUDA)
+#find_package(CUDA 9.0 REQUIRED)
+#message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
+#message("---- CUDA_INCLUDE_DIRS = ${CUDA_INCLUDE_DIRS}")
+#message("---- CUDA_LIBRARIES    = ${CUDA_LIBRARIES}" )
+#target_compile_options(${LIBNAME} PUBLIC -DHAVE_CUDA)
+#target_link_libraries(${LIBNAME} PUBLIC ${CUDA_LIBRARIES})
 
 set(SOURCEFILES
 	${SRCNAME}.c
     ${SRCNAME}.h
     acquireWFSim.c
-    acquireWFSspec.c
     ao188_preprocessor.c
     findspots.c
+    WFScamsim.c
+    WFSmap.c
+    acquireWFSspec.c
     shs_on_gpu/evaluator/SGE_Evaluator.cu
     shs_on_gpu/evaluator/SGE_Evaluator_interface.cpp
     shs_on_gpu/evaluator/SGE_GridLayout.cu
@@ -39,17 +48,17 @@ set(SOURCEFILES
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgradmodegenerator.cpp
     shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.cpp
-    WFScamsim.c
-    WFSmap.c
 )
 
 set(INCLUDEFILES
 	${SRCNAME}.h
     AOloopControl_IOtools.h
     acquireWFSim.h
-    acquireWFSspec.h
     ao188_preprocessor.h
     findspots.h
+    WFScamsim.h
+    WFSmap.h
+    acquireWFSspec.h
     shs_on_gpu/evaluator/SGE_CUDAkernel.hpp
     shs_on_gpu/evaluator/SGE_CUDAremoveTilt.hpp
     shs_on_gpu/evaluator/SGE_Evaluator.hpp
@@ -84,12 +93,11 @@ set(INCLUDEFILES
     shs_on_gpu/wf_reconstructor/subclasses/wfgrad.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfgradmodegenerator.hpp
     shs_on_gpu/wf_reconstructor/subclasses/wfresponsesampler.hpp
-    WFScamsim.h
-    WFSmap.h
 )
 
+
 set(SCRIPTS
-    scripts/cacao-fpslistadd-LOG_STREAM
+	scripts/cacao-fpslistadd-LOG_STREAM
     scripts/cacao-fpslistadd-RESHAPE_1D_PUPIL
     scripts/cacao-fpslistadd-SHSONGPU_EVAL
     scripts/cacao-fpslistadd-SHSONGPU_REF
@@ -109,9 +117,9 @@ set(SCRIPTS
 set(LINKLIBS
 	CLIcore
     milkinfo
+    cacaoAOloopControl
     milkCOREMODiofits
     milkZernikePolyn
-    cacaoAOloopControl
     -lcublas
 )
 

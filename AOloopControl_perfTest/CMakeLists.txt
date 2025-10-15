@@ -12,6 +12,9 @@ set(SOURCEFILES
 	mlatSlowRecorder/MLS_Recorder.cpp
 	mlatSlowRecorder/MLS_ResultManager.cpp
 	mlatSlowRecorder/MLS_SequenceManager.cpp
+	streamlogtimesample.c
+	wfsrefoptimselect.c
+	zoptsearch.c
 )
 
 # list include files (.h) that should be installed on system
