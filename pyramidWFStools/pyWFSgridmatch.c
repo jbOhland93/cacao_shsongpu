@@ -800,7 +800,7 @@ static errno_t compute_function()
             // optimize actpitch_angle
             int direction = 1;
             int dirflipcnt = 0;
-            int loopcnt = 0;
+            long loopcnt = 0;
 
 
             double gridval_old = eval_gridmatch(grid, spotpos_x, spotpos_y, spotval);
