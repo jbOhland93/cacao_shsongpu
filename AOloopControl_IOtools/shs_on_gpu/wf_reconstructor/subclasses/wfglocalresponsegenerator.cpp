@@ -35,6 +35,8 @@ std::pair<spWF, spWFGrad> WFGLocalResponseGenerator::generateResponse(
                 std::pair<double, double> gVal = lorentzianGradient(x, y, centerX, centerY, width);
                 dxVals[i] = gVal.first;
                 dyVals[i] = gVal.second;
+                if (wfVals [i] == NAN || dxVals[i] == NAN || dyVals[i] == NAN)
+                  printf("WFGLocalResponseGenerator::generateResponse: Detected NAN ...\n");
                 i++;
             }
 
@@ -46,6 +48,10 @@ std::pair<spWF, spWFGrad> WFGLocalResponseGenerator::generateResponse(
         grad->subtractTilt();
         wf->subtractTilt();
     }
+    if (grad->hasNANs() != -1)
+      printf("WFGLocalResponseGenerator::generateResponse: NAN detected in gradient!\n");
+    if (wf->hasNANs() != -1)
+      printf("WFGLocalResponseGenerator::generateResponse: NAN detected in wavefront!\n");
 
     return std::pair<spWF, spWFGrad>(wf, grad);
 }

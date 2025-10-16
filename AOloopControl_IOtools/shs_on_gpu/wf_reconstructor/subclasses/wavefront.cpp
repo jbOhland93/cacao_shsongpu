@@ -81,6 +81,19 @@ double Wavefront::scalarProduct(spWF other)
     return scalarProduct;
 }
 
+int Wavefront::hasNANs()
+{
+    int numSamples = mPupil->getNumValidFields();
+    int numNANs = 0;
+    for (int i = 0; i < numSamples; i++)
+        if (std::isnan(mData[i]))
+          numNANs++;
+    if (numNANs > 0)
+        return numNANs;
+    else
+        return -1;
+}
+
 Wavefront::Wavefront(spPupil pupil)
     : mPupil(pupil)
 {

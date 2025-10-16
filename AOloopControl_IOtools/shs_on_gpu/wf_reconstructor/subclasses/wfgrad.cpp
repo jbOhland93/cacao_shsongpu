@@ -95,6 +95,19 @@ double WFGrad::scalarProduct(spWFGrad other)
     return scalarProduct;
 }
 
+int WFGrad::hasNANs()
+{
+    int numSamples = mPupil->getNumValidFields();
+    int numNANs = 0;
+    for (int i = 0; i < numSamples; i++)
+        if (std::isnan(ptrDX[i]) || std::isnan(ptrDY[i]))
+          numNANs++;
+    if (numNANs > 0)
+        return numNANs;
+    else
+        return -1;
+}
+
 WFGrad::WFGrad(spPupil pupil)
     : mPupil(pupil)
 {

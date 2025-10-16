@@ -20,6 +20,8 @@ public:
     void printGrd();
     double scalarProduct(spWFGrad other);
     
+    int hasNANs();
+    
 private:
     spPupil mPupil;
     double* mData; // The gradient values within the pupil, stored as 1D array

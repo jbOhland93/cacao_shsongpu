@@ -17,6 +17,8 @@ public:
     void printWF();
     double scalarProduct(spWF other);
     
+    int hasNANs();
+    
 private:
     spPupil mPupil;
     double* mData; // The wavefront values within the pupil, stored as 1D array

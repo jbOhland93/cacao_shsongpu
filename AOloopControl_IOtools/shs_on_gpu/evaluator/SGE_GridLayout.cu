@@ -85,6 +85,9 @@ int SGE_GridLayout::getCudaCoresPerSM(int major, int minor)
         case 9:
             if (minor == 0)
                 return 128;
+	case 12:
+	    if (minor == 0)
+		return 128;
         default:
             errMsg.append("no core count entry found for SM ");
             errMsg.append(std::to_string(major));

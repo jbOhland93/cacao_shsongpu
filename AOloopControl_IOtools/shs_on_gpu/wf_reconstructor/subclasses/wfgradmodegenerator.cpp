@@ -38,7 +38,30 @@ std::vector<std::pair<spWF, spWFGrad>> WFGradModeGenerator::calculateModes(int n
     computeWMS2GMStransferMatrix();
     fillGradientModeMatrices();
     extractModePairsFromMatrices();
-
+    
+    // Check if there are any NANs in the wavefronts and gradients of the modes
+    printf("About to test for NANs ...\n");
+    int checkedSamples = 0;
+    int wfWithNANs = 0;
+    int grdWithNANs = 0;
+    for (const auto& [wf, grad] : mModes) {
+        checkedSamples++;
+        if (wf->hasNANs() != -1)
+        {
+            printf("WFGradModeGenerator::calculateModes: NAN detected in wavefront!\n");
+            wfWithNANs++;
+        }
+        if (grad->hasNANs() != -1)
+        {
+            printf("WFGradModeGenerator::calculateModes: NAN detected in gradient!\n");
+            grdWithNANs++;
+        }
+    }
+    printf("Checked %d samples, %d wfs and %d grads of them contained NANs.\n",
+        checkedSamples,
+        wfWithNANs,
+        grdWithNANs);
+    
     return getWFModes();
 }
 
