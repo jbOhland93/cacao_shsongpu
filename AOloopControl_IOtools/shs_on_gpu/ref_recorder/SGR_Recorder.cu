@@ -99,8 +99,8 @@ errno_t SGR_Recorder::sampleDo()
 
                 // Move to subaperture ROI to find inter peak
                 mIHconvolution->setROI(searchRect);
-                uint32_t mpX;
-                uint32_t mpY;
+                uint32_t mpX = 0;
+                uint32_t mpY = 0;
                 float I_xy = mIHconvolution->getMaxInROI(&mpX, &mpY);
                 
                 // Go to absolute ROI again
