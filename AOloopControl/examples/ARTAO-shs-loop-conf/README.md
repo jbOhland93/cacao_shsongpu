@@ -433,20 +433,27 @@ cacao-aorun-140-applyPF 1 start
 
 # Cleanup
 
+
 From main directory (upstream of rootdir) :
 
 ```bash
+# From the root directory, stop the logging
 cacao-msglogCTRL stop
-cacao-task-manager -C 0 scexao-vispyr-bin2
-rm -rf .vispyr2.cacaotaskmanager-log
-# Erase everything in shared memory (optional)
+# Then move up to the work directory and disassemble the loop
+cd ..
+cacao-task-manager -C 0 ARTAO-shs-loop
+# Delete the cacao task manager log, so the next deployment will work fine
+rm -rf .artao-loop.cacaotaskmanager-log
+
+# Erase everything in shared memory
 rm -rf ${MILK_SHM_DIR}/*
+
+# Optional: Delete the logging directory
+rm -rf logdir-artao-loop
 ```
 
 # Logging streams to disk
-
-
-
+WIP
 
 
 THE END
