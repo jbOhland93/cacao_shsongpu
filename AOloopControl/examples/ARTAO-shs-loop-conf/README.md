@@ -129,7 +129,7 @@ relax
 # Arm the DM (listen to ISIO output again)
 arm
 
-# Keep this tmux session open for camera control or detach using ctrl+b, d.
+# Keep this tmux session open for DM control or detach using ctrl+b, d.
 ```
 
 
