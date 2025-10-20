@@ -125,60 +125,11 @@ void ModalWFReconstructor::setupReconstructionMatrix(
     {
         wfData = modes[i].first->getDataPtr(&wfSize);
         gradData = modes[i].second->getDataPtr(&gradSize);
-        // =======================================
-        for (size_t j = 0; j < wfSize; ++j) {
-            double val = wfData[j];
-            if (std::isnan(val)) {
-                printf("NaN detected in WF %d\n", j);
-                break;
-            }
-        }
-        for (size_t j = 0; j < gradSize; ++j) {
-            double val = gradData[j];
-            if (std::isnan(val)) {
-                printf("NaN detected in Grad %d\n", j);
-                break;
-            }
-        }
-        // =======================================
-        
         gsl_vector_view wfView = gsl_vector_view_array(wfData, wfSize);
         gsl_vector_view gradView = gsl_vector_view_array(gradData, gradSize);
 
         gsl_blas_dger(1.0, &wfView.vector, &gradView.vector, rmDbl);
-        for (size_t u = 0; u < rmDbl->size1; ++u) {
-          for (size_t v = 0; v < rmDbl->size2; ++v) {
-              double val = gsl_matrix_get(rmDbl, u, v);
-              if (std::isnan(val)) {
-                  printf("First NaN detected at (%d,%d) at iteration %d\n", u, v, i);
-              }
-          }
-      }
     }
-    
-    // =======================================
-    bool has_nan = false;
-    int total_nans = 0;
-    for (size_t i = 0; i < rmDbl->size1; ++i) {
-        for (size_t j = 0; j < rmDbl->size2; ++j) {
-            double val = gsl_matrix_get(rmDbl, i, j);
-            if (std::isnan(val)) {
-                if (has_nan == false)
-                  printf("First NaN detected at (%d,%d)\n", i, j);
-                has_nan = true;
-                total_nans++;
-            }
-        }
-    }
-
-    if (!has_nan) {
-        printf("No NaNs found in rmDbl matrix.\n");
-    }
-    else
-    {
-        printf("Total NaNs found: %d\n", total_nans);
-    }
-    // =======================================
 
     // Port the matrix to an image stream of type float
     std::string imgName = streamPrefix;

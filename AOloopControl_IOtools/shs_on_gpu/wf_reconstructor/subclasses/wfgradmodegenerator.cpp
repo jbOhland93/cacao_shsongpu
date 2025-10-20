@@ -47,20 +47,17 @@ std::vector<std::pair<spWF, spWFGrad>> WFGradModeGenerator::calculateModes(int n
     for (const auto& [wf, grad] : mModes) {
         checkedSamples++;
         if (wf->hasNANs() != -1)
-        {
-            printf("WFGradModeGenerator::calculateModes: NAN detected in wavefront!\n");
             wfWithNANs++;
-        }
         if (grad->hasNANs() != -1)
-        {
-            printf("WFGradModeGenerator::calculateModes: NAN detected in gradient!\n");
             grdWithNANs++;
-        }
     }
-    printf("Checked %d samples, %d wfs and %d grads of them contained NANs.\n",
-        checkedSamples,
-        wfWithNANs,
-        grdWithNANs);
+    if (wfWithNANs > 0 || grdWithNANs > 0)
+    {
+        printf("WFGradModeGenerator::calculateModes: Checked %d samples, %d wfs and %d grads of them contained NANs.\n",
+            checkedSamples,
+            wfWithNANs,
+            grdWithNANs);
+        }
     
     return getWFModes();
 }
